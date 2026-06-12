@@ -1,0 +1,1 @@
+console.log("Fortune First Backend is starting...");
