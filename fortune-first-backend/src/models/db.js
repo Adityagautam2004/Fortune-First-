@@ -1,16 +1,23 @@
 const { Pool } = require('pg');
 
-// The connection string comes from the environment variables we set in docker-compose.yml
+if (!process.env.DATABASE_URL) {
+  console.warn('DATABASE_URL is not set; database-backed routes will be unavailable.');
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: Number(process.env.DB_POOL_MAX) || 10,
 });
 
 pool.on('connect', () => {
-  console.log('🔗 Connected to the PostgreSQL database');
+  console.log('Connected to the PostgreSQL database');
+});
+
+pool.on('error', (error) => {
+  console.error('Unexpected PostgreSQL pool error', error);
 });
 
 module.exports = {
-  // This allows us to use db.query() anywhere in our app
   query: (text, params) => pool.query(text, params),
-  pool
+  pool,
 };
