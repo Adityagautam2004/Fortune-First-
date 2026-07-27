@@ -3,6 +3,9 @@ const cors = require('cors');
 require('dotenv').config();
 
 const db = require('./models/db'); // Loads our raw SQL database connection pool
+const routes = require('./routes');
+const errorHandler = require('./middleware/errorHandler');
+const ApiError = require('./utils/apiError');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -28,6 +31,17 @@ app.get('/api/v1/health', async (req, res) => {
     return res.status(500).json({ status: 'error', message: error.message });
   }
 });
+
+// Mount all versioned API routes
+app.use('/api/v1', routes);
+
+// 404 catch-all for unmatched routes
+app.all('*', (req, _res, next) => {
+  next(ApiError.notFound(`Route ${req.method} ${req.originalUrl} not found`));
+});
+
+// Global error handler (must be registered LAST)
+app.use(errorHandler);
 
 // Start listening for web API requests
 app.listen(PORT, () => {
