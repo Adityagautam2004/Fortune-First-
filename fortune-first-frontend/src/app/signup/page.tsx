@@ -1,61 +1,45 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/src/hooks/useAuth';
 import Button from '@/src/components/ui/Button';
 import { Eye, EyeOff, AlertCircle, ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter();
-  const { login, isAuthenticated, loading, error, resetError, user } = useAuth();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      if (user.must_change_password) {
-        router.push('/change-password');
-      } else {
-        router.push('/dashboard');
-      }
-    }
-  }, [isAuthenticated, user, router]);
-
-  useEffect(() => {
-    resetError();
-  }, [resetError]);
-
-  useEffect(() => {
-    if (error) {
-      if (error.toLowerCase().includes('email') || error.toLowerCase().includes('user')) {
-        setEmailError('Please enter a valid email id');
-        setPasswordError('');
-      } else if (
-        error.toLowerCase().includes('password') ||
-        error.toLowerCase().includes('credential') ||
-        error.toLowerCase().includes('incorrect')
-      ) {
-        setPasswordError('Incorrect password. Please try again');
-        setEmailError('');
-      } else {
-        setEmailError('');
-        setPasswordError(error);
-      }
-    } else {
-      setEmailError('');
-      setPasswordError('');
-    }
-  }, [error]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login({ email, password });
+
+    let hasError = false;
+    if (!name.trim()) {
+      setNameError('Please enter your full name');
+      hasError = true;
+    }
+    if (!email.trim()) {
+      setEmailError('Please enter a valid email id');
+      hasError = true;
+    }
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      hasError = true;
+    }
+    if (hasError) return;
+
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      router.push('/login');
+    }, 1000);
   };
 
   return (
@@ -82,8 +66,8 @@ export default function LoginPage() {
         <ChevronLeft size={18} />
       </button>
 
-      {/* Login Card — compact size */}
-      <div className="relative z-10 w-full max-w-[380px] mx-4">
+      {/* Signup Card — compact, same width as login */}
+      <div className="relative z-10 w-full max-w-[380px] mx-4 my-6">
         <div className="bg-white rounded-2xl shadow-2xl px-7 py-8">
           {/* Logo + Brand */}
           <div className="flex flex-col items-center gap-1.5 mb-4">
@@ -101,12 +85,35 @@ export default function LoginPage() {
 
           {/* Heading */}
           <div className="text-center mb-5">
-            <h2 className="text-2xl font-extrabold text-gray-900">Welcome Back</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Login to access your account</p>
+            <h2 className="text-2xl font-extrabold text-gray-900">Create Account</h2>
+            <p className="mt-0.5 text-xs text-gray-500">Sign up to get started</p>
           </div>
 
           {/* Form */}
           <form className="space-y-3.5" onSubmit={handleSubmit}>
+            {/* Full Name */}
+            <div>
+              <label className="block text-xs font-medium text-gray-800 mb-1">Full Name</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => { setName(e.target.value); setNameError(''); }}
+                placeholder="Enter your full name"
+                className={`w-full border rounded-xl px-3.5 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 transition-all ${
+                  nameError
+                    ? 'border-red-500 focus:ring-red-200'
+                    : 'border-gray-300 focus:ring-orange-200 focus:border-[#f97316]'
+                }`}
+              />
+              {nameError && (
+                <div className="flex items-center gap-1 mt-1">
+                  <AlertCircle size={12} className="text-red-500 flex-shrink-0" />
+                  <p className="text-xs text-red-500">{nameError}</p>
+                </div>
+              )}
+            </div>
+
             {/* Email */}
             <div>
               <label className="block text-xs font-medium text-gray-800 mb-1">Email ID</label>
@@ -139,7 +146,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setPasswordError(''); }}
-                  placeholder="Enter your password"
+                  placeholder="Create a password"
                   className={`w-full border rounded-xl px-3.5 py-2.5 pr-10 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 transition-all ${
                     passwordError
                       ? 'border-red-500 focus:ring-red-200'
@@ -162,31 +169,13 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* Remember me + Forgot password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-3.5 w-3.5 border-gray-300 rounded text-[#f97316] focus:ring-[#f97316]"
-                />
-                <span className="text-xs text-gray-700">Remember me</span>
-              </label>
-              <a href="#" className="text-xs font-medium text-[#f97316] hover:text-[#ea580c] transition-colors">
-                Forgot Password?
-              </a>
-            </div>
-
-            {/* Login Button */}
+            {/* Sign Up Button */}
             <Button
               type="submit"
               isLoading={loading}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl text-sm font-bold tracking-widest text-white bg-[#f97316] hover:bg-[#ea580c] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f97316] transition-colors uppercase"
             >
-              LOGIN
+              SIGN UP
             </Button>
 
             {/* OR Divider */}
@@ -196,11 +185,11 @@ export default function LoginPage() {
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
-            {/* Create Account */}
+            {/* Already have account */}
             <p className="text-center text-xs text-gray-700">
-              Don&apos;t have an account?{' '}
-              <a href="/signup" className="font-semibold text-[#f97316] hover:text-[#ea580c] transition-colors">
-                Create Account
+              Already have an account?{' '}
+              <a href="/login" className="font-semibold text-[#f97316] hover:text-[#ea580c] transition-colors">
+                Login
               </a>
             </p>
           </form>

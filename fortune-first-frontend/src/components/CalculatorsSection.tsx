@@ -1,24 +1,22 @@
 "use client";
 
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Calculator, PieChart, PiggyBank } from "lucide-react";
 
 const calculators = [
   {
     title: "SIP Calculator",
     description: "Calculate future returns on your Systematic Investment Plan",
-    image: "/SipCalculator_img.png",
+    icon: <PieChart size={40} className="text-[#f97316]" />,
   },
   {
     title: "EMI Calculator",
     description: "Calculate your loan EMI and plan your monthly payments.",
-    image: "/EmiCalculator_img.png",
+    icon: <Calculator size={40} className="text-[#f97316]" />,
   },
   {
     title: "Retirement Calculator",
     description: "Plan your retirement corpus and secure your future.",
-    image: "/RetirementCalculator_img.png",
+    icon: <PiggyBank size={40} className="text-[#f97316]" />,
   },
 ];
 
@@ -26,7 +24,8 @@ export default function CalculatorsSection() {
   return (
     <section
       id="calculators"
-      className="py-16 md:py-24 bg-white"
+      className="py-12 md:py-16"
+      style={{ backgroundColor: "#ffffff" }}
     >
       <div className="container-max">
         {/* Section Header */}
@@ -44,17 +43,12 @@ export default function CalculatorsSection() {
           {calculators.map((calc) => (
             <div
               key={calc.title}
-              className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] text-center p-8 flex flex-col items-center hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow duration-300"
+              className="group rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.05)] text-center p-8 flex flex-col items-center hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow duration-300"
+              style={{ backgroundColor: "#fdf8f4" }}
             >
-              {/* Image / Icon */}
-              <div className="relative w-20 h-20 md:w-24 md:h-24 mb-4">
-                <Image
-                  src={calc.image}
-                  alt={calc.title}
-                  fill
-                  className="object-contain transition-transform duration-300 group-hover:scale-105"
-                  sizes="(max-width: 640px) 100vw, 33vw"
-                />
+              {/* Icon */}
+              <div className="flex items-center justify-center w-16 h-16 md:w-20 md:h-20 mb-6 bg-white rounded-full group-hover:scale-110 transition-transform duration-300">
+                {calc.icon}
               </div>
 
               <h3 className="text-base md:text-lg font-bold text-[#1f2937] mb-2">{calc.title}</h3>
@@ -62,7 +56,7 @@ export default function CalculatorsSection() {
                 {calc.description}
               </p>
               
-              <button className="mt-auto inline-flex items-center justify-center border border-[#f97316] text-[#f97316] rounded-full px-6 py-1.5 text-xs md:text-sm font-medium hover:bg-[#fff7ed] transition-all duration-200">
+              <button className="mt-auto inline-flex items-center justify-center border border-[#f97316] text-[#f97316] rounded-full px-6 py-1.5 text-xs md:text-sm font-medium hover:bg-white transition-all duration-200">
                 Calculate
               </button>
             </div>

@@ -1,35 +1,29 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/src/hooks/useAuth';
+import Navbar from "@/src/components/Navbar";
+import HeroSection from "@/src/components/HeroSection";
+import ServicesSection from "@/src/components/ServicesSection";
+import WhyChooseSection from "@/src/components/WhyChooseSection";
+import GrowthChart from "@/src/components/GrowthChart";
+import PastReturns from "@/src/components/PastReturns";
+import CalculatorsSection from "@/src/components/CalculatorsSection";
+import TrustedSection from "@/src/components/TrustedSection";
+import Footer from "@/src/components/Footer";
 
 export default function Home() {
-  const router = useRouter();
-  const { isAuthenticated, loading, token, fetchMe } = useAuth();
-
-  useEffect(() => {
-    if (token) {
-      fetchMe();
-    }
-  }, [token, fetchMe]);
-
-  useEffect(() => {
-    if (!loading) {
-      if (isAuthenticated) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/login');
-      }
-    }
-  }, [isAuthenticated, loading, router]);
-
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4 animate-fade-in">
-        <div className="w-12 h-12 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-400 text-sm">Loading Fortune First…</p>
-      </div>
-    </div>
+    <>
+      <Navbar />
+      <main>
+        <HeroSection />
+        <ServicesSection />
+        <WhyChooseSection />
+        <GrowthChart />
+        <PastReturns />
+        <CalculatorsSection />
+        <TrustedSection />
+      </main>
+      <Footer />
+    </>
   );
 }

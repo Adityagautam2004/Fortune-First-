@@ -25,13 +25,26 @@ export const loginUser = createAsyncThunk(
   'auth/login',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
-      const response = await api.post('/auth/login', credentials);
-      const { token, user } = response.data.data;
-      Cookies.set('ff_token', token, { expires: 7 });
-      return { token, user };
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      return rejectWithValue(err.response?.data?.message || 'Login failed');
+      // MOCK API CALL
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      if (credentials.email === 'test@example.com' && credentials.password === 'password123') {
+        const token = 'mock_jwt_token_123';
+        const user: User = {
+          id: '1',
+          name: 'Test User',
+          email: 'test@example.com',
+          role: 'user',
+          must_change_password: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        Cookies.set('ff_token', token, { expires: 7 });
+        return { token, user };
+      }
+      return rejectWithValue('Invalid credentials. Use test@example.com / password123');
+    } catch (error) {
+      return rejectWithValue('Login failed');
     }
   }
 );
@@ -40,12 +53,25 @@ export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchMe',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/auth/me');
-      return response.data.data.user;
+      // MOCK API CALL
+      await new Promise(resolve => setTimeout(resolve, 400));
+      const token = Cookies.get('ff_token');
+      
+      if (token === 'mock_jwt_token_123') {
+        return {
+          id: '1',
+          name: 'Test User',
+          email: 'test@example.com',
+          role: 'user',
+          must_change_password: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        } as User;
+      }
+      throw new Error('Invalid token');
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
       Cookies.remove('ff_token');
-      return rejectWithValue(err.response?.data?.message || 'Session expired');
+      return rejectWithValue('Session expired');
     }
   }
 );
