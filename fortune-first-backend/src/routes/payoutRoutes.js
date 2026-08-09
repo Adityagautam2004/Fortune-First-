@@ -1,14 +1,15 @@
 const { Router } = require('express');
 const Joi = require('joi');
 const payoutController = require('../controllers/payoutController');
-const { authenticate, authorize } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth.middleware');
+const { requireRole } = require('../middleware/role.middleware');
 const validate = require('../middleware/validate');
 const { USER_ROLES, PAYOUT_STATUS } = require('../utils/constants');
 
 const router = Router();
 
 // All payout routes require authentication
-router.use(authenticate);
+router.use(requireAuth);
 
 // ── Validation schemas ─────────────────────────────────────────
 
@@ -32,7 +33,7 @@ const updatePayoutStatusSchema = Joi.object({
 // POST /payouts — record a new monthly return (investment_head, super_admin)
 router.post(
   '/',
-  authorize(USER_ROLES.INVESTMENT_HEAD, USER_ROLES.SUPER_ADMIN),
+  requireRole(USER_ROLES.INVESTMENT_HEAD, USER_ROLES.SUPER_ADMIN),
   validate(recordPayoutSchema),
   payoutController.recordPayout
 );
@@ -41,7 +42,7 @@ router.post(
 // NOTE: This route must be before /:id routes to avoid conflicts
 router.get(
   '/summary',
-  authorize(USER_ROLES.BUSINESS_HEAD, USER_ROLES.SUPER_ADMIN),
+  requireRole(USER_ROLES.BUSINESS_HEAD, USER_ROLES.SUPER_ADMIN),
   payoutController.getPayoutSummary
 );
 
@@ -51,7 +52,7 @@ router.get('/investment/:investmentId', payoutController.getPayoutsByInvestment)
 // PATCH /payouts/:id/status — update payout status (business_head, super_admin)
 router.patch(
   '/:id/status',
-  authorize(USER_ROLES.BUSINESS_HEAD, USER_ROLES.SUPER_ADMIN),
+  requireRole(USER_ROLES.BUSINESS_HEAD, USER_ROLES.SUPER_ADMIN),
   validate(updatePayoutStatusSchema),
   payoutController.updatePayoutStatus
 );

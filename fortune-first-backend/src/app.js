@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const db = require('./models/db'); // Loads our raw SQL database connection pool
@@ -16,6 +17,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json()); // Allows our server to read JSON payloads sent by users
+app.use(cookieParser()); // Parses incoming cookies (needed to read the refresh-token cookie)
 
 // A simple health-check route to ensure the server answers external requests
 app.get('/api/v1/health', async (req, res) => {

@@ -1,14 +1,15 @@
 const { Router } = require('express');
 const Joi = require('joi');
 const investmentController = require('../controllers/investmentController');
-const { authenticate, authorize } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth.middleware');
+const { requireRole } = require('../middleware/role.middleware');
 const validate = require('../middleware/validate');
 const { USER_ROLES, INVESTMENT_STATUS, MIN_INVESTMENT_AMOUNT } = require('../utils/constants');
 
 const router = Router();
 
 // All investment routes require authentication
-router.use(authenticate);
+router.use(requireAuth);
 
 // ── Validation schemas ─────────────────────────────────────────
 
@@ -33,7 +34,7 @@ const updateStatusSchema = Joi.object({
 // POST /investments — create (investment_head, super_admin)
 router.post(
   '/',
-  authorize(USER_ROLES.INVESTMENT_HEAD, USER_ROLES.SUPER_ADMIN),
+  requireRole(USER_ROLES.INVESTMENT_HEAD, USER_ROLES.SUPER_ADMIN),
   validate(createInvestmentSchema),
   investmentController.createInvestment
 );
@@ -47,7 +48,7 @@ router.get('/:id', investmentController.getInvestmentById);
 // PATCH /investments/:id/status — update status (investment_head, super_admin)
 router.patch(
   '/:id/status',
-  authorize(USER_ROLES.INVESTMENT_HEAD, USER_ROLES.SUPER_ADMIN),
+  requireRole(USER_ROLES.INVESTMENT_HEAD, USER_ROLES.SUPER_ADMIN),
   validate(updateStatusSchema),
   investmentController.updateInvestmentStatus
 );
