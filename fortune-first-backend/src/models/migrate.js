@@ -8,9 +8,12 @@ const runMigrations = async () => {
     // Absolute path layout to find your sql query file
     const schemaPath = path.join(__dirname, '../../migrations/001_init_schema.sql');
     const sqlSchema = fs.readFileSync(schemaPath, 'utf8');
+    const extensionPath = path.join(__dirname, '../../migrations/002_customer_extended.sql');
+    const sqlExtension = fs.readFileSync(extensionPath, 'utf8');
     
     // Fire the entire raw script directly into the Postgres instance
     await db.query(sqlSchema);
+    await db.query(sqlExtension);
     console.log('✅ All relational core database tables created successfully!');
     process.exit(0);
   } catch (error) {

@@ -1,4 +1,4 @@
-const payoutService = require('../services/payoutService');
+const payoutService = require('../services/payout.service');
 const ApiResponse = require('../utils/apiResponse');
 
 /**
