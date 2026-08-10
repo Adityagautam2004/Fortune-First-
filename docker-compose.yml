@@ -32,11 +32,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    env_file:
+      - ./fortune-first-backend/.env
     environment:
       - DATABASE_URL=postgresql://ff_user:${POSTGRES_PASSWORD:-local_dev_password}@postgres:5432/fortunefirst
       - REDIS_URL=redis://redis:6379
       - PORT=4000
-      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
     ports:
       - "4000:4000"
     restart: unless-stopped
