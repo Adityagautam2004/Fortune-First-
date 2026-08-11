@@ -149,4 +149,25 @@ const processPayout = async (req, res) => {
   }
 };
 
-module.exports = { getAssignedClients,addInvestment,processPayout };
+const getChatHistory = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+
+    const history = await db.query(
+      `SELECT c.id, c.sender_id, u.name AS sender_name, c.content, c.created_at 
+       FROM chat_messages c
+       JOIN users u ON c.sender_id = u.id
+       WHERE c.conversation_id = $1
+       ORDER BY c.created_at DESC
+       LIMIT 50`,
+      [conversationId]
+    );
+
+    // Reverse array so chronological order puts newest messages at the bottom
+    return res.status(200).json({ status: 'success', data: history.rows.reverse() });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to load chat history' });
+  }
+};
+
+module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory };

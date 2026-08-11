@@ -6,6 +6,8 @@ const investmentRoutes = require('./investmentRoutes');
 const payoutRoutes = require('./payoutRoutes');
 const customerRoutes = require('./customer.routes');
 const boardRoutes = require('./board.routes');
+const adminRoutes = require('./admin.routes');
+const publicRoutes = require('./public.routes');
 
 const router = Router();
 
@@ -19,4 +21,6 @@ router.use('/investments', investmentRoutes);
 router.use('/payouts', payoutRoutes);
 router.use('/customers', customerRoutes);
 router.use('/board', boardRoutes);
+router.use('/admin', adminRoutes);
+router.use('/public', publicRoutes);
 module.exports = router;

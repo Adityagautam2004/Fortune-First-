@@ -129,6 +129,36 @@ const getSupportTickets = async (req, res) => {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch tickets' });
   }
 };
+const { generateReportPDF } = require('../utils/pdf');
+
+const downloadFullReport = async (req, res) => {
+  try {
+    const customerId = req.user.userId;
+    
+    // Fetch profile and history
+    const profileRes = await db.query(`SELECT name FROM users WHERE id = $1`, [customerId]);
+    const historyRes = await db.query(
+      `SELECT mr.month, mr.year, i.amount AS invested_amount, mr.return_pct, mr.payout_amount 
+       FROM monthly_returns mr
+       JOIN investments i ON mr.investment_id = i.id
+       WHERE i.customer_id = $1 ORDER BY mr.year DESC, mr.month DESC`,
+      [customerId]
+    );
+
+    const pdfBuffer = await generateReportPDF(profileRes.rows[0].name, historyRes.rows);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename="Fortune_First_Report.pdf"',
+      'Content-Length': pdfBuffer.length
+    });
+    
+    return res.send(pdfBuffer);
+  } catch (error) {
+    console.error('PDF Generation Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to generate report' });
+  }
+};
 
 
-module.exports = { getDashboardStats, getInvestmentHistory,getProfile,createSupportTicket,getSupportTickets };
+module.exports = { getDashboardStats, getInvestmentHistory,getProfile,createSupportTicket,getSupportTickets,downloadFullReport };
