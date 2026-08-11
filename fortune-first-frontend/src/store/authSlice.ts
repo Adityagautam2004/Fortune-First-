@@ -1,132 +1,109 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import Cookies from 'js-cookie';
-import api from '@/src/lib/api';
-import type { User, LoginCredentials } from '@/src/types';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import api, { setAccessToken } from '@/lib/api';
+import type { LoginCredentials } from '@/types';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'customer' | 'investment_head' | 'business_head' | 'super_admin';
+  mustChangePassword: boolean;
+}
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
-  loading: boolean;
+  isLoading: boolean;
   error: string | null;
 }
 
 const initialState: AuthState = {
   user: null,
-  token: Cookies.get('ff_token') || null,
-  isAuthenticated: !!Cookies.get('ff_token'),
-  loading: false,
+  isAuthenticated: false,
+  isLoading: false,
   error: null,
 };
 
-// ── Thunks ──────────────────────────────────────────────────
+interface LoginResponseData {
+  accessToken: string;
+  user: User;
+}
+
+function extractErrorMessage(err: unknown, fallback: string): string {
+  const error = err as { response?: { data?: { message?: string } } };
+  return error.response?.data?.message || fallback;
+}
 
 export const loginUser = createAsyncThunk(
   'auth/login',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
-      // MOCK API CALL
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      if (credentials.email === 'test@example.com' && credentials.password === 'password123') {
-        const token = 'mock_jwt_token_123';
-        const user: User = {
-          id: '1',
-          name: 'Test User',
-          email: 'test@example.com',
-          role: 'user',
-          must_change_password: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        Cookies.set('ff_token', token, { expires: 7 });
-        return { token, user };
-      }
-      return rejectWithValue('Invalid credentials. Use test@example.com / password123');
-    } catch (error) {
-      return rejectWithValue('Login failed');
+      const res = await api.post('/auth/login', credentials);
+      return res.data.data as LoginResponseData;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, 'Login failed. Please check your credentials.'));
     }
   }
 );
 
 export const fetchCurrentUser = createAsyncThunk(
-  'auth/fetchMe',
+  'auth/fetchCurrentUser',
   async (_, { rejectWithValue }) => {
     try {
-      // MOCK API CALL
-      await new Promise(resolve => setTimeout(resolve, 400));
-      const token = Cookies.get('ff_token');
-      
-      if (token === 'mock_jwt_token_123') {
-        return {
-          id: '1',
-          name: 'Test User',
-          email: 'test@example.com',
-          role: 'user',
-          must_change_password: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        } as User;
-      }
-      throw new Error('Invalid token');
-    } catch (error: unknown) {
-      Cookies.remove('ff_token');
-      return rejectWithValue('Session expired');
+      const res = await api.get('/auth/me');
+      return res.data.data as User;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, 'Failed to fetch current user'));
     }
   }
 );
 
-// ── Slice ───────────────────────────────────────────────────
+export const logout = createAsyncThunk('auth/logout', async () => {
+  try {
+    await api.post('/auth/logout');
+  } finally {
+    setAccessToken(null);
+  }
+});
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    logout: (state) => {
-      Cookies.remove('ff_token');
-      state.user = null;
-      state.token = null;
-      state.isAuthenticated = false;
-      state.error = null;
-    },
     clearError: (state) => {
       state.error = null;
     },
   },
   extraReducers: (builder) => {
     builder
-      // Login
       .addCase(loginUser.pending, (state) => {
-        state.loading = true;
+        state.isLoading = true;
         state.error = null;
       })
-      .addCase(loginUser.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
+      .addCase(loginUser.fulfilled, (state, action: PayloadAction<LoginResponseData>) => {
+        state.isLoading = false;
         state.isAuthenticated = true;
+        state.user = action.payload.user;
+        setAccessToken(action.payload.accessToken);
       })
       .addCase(loginUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        state.isLoading = false;
+        state.error = (action.payload as string) || 'Login failed';
       })
-      // Fetch current user
-      .addCase(fetchCurrentUser.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload;
+      .addCase(fetchCurrentUser.fulfilled, (state, action: PayloadAction<User>) => {
         state.isAuthenticated = true;
+        state.user = action.payload;
       })
       .addCase(fetchCurrentUser.rejected, (state) => {
-        state.loading = false;
+        state.isAuthenticated = false;
         state.user = null;
-        state.token = null;
+      })
+      .addCase(logout.fulfilled, (state) => {
+        state.user = null;
         state.isAuthenticated = false;
       });
   },
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { clearError } = authSlice.actions;
 export default authSlice.reducer;

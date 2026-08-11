@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/src/hooks/useAuth';
-import api from '@/src/lib/api';
-import Button from '@/src/components/ui/Button';
-import Input from '@/src/components/ui/Input';
+import { useAuth } from '@/hooks/useAuth';
+import api from '@/lib/api';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 import { Lock, KeyRound, TrendingUp } from 'lucide-react';
 
 export default function ChangePasswordPage() {
@@ -73,7 +73,7 @@ export default function ChangePasswordPage() {
           </div>
           <h1 className="text-2xl font-bold text-white mb-1">Change Password</h1>
           <p className="text-gray-400 text-sm">
-            {user?.must_change_password
+            {user?.mustChangePassword
               ? 'You must change your password before continuing'
               : 'Update your account password'}
           </p>

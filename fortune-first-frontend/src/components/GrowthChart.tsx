@@ -113,7 +113,7 @@ export default function GrowthChart() {
                 <LabelList
                   dataKey="value"
                   position="top"
-                  formatter={(v: number) => `₹${v}K`}
+                  formatter={(v) => `₹${v ?? ''}K`}
                   style={{
                     fill: "#92400e",
                     fontSize: "9px",

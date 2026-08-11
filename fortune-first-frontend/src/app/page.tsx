@@ -1,14 +1,14 @@
 "use client";
 
-import Navbar from "@/src/components/Navbar";
-import HeroSection from "@/src/components/HeroSection";
-import ServicesSection from "@/src/components/ServicesSection";
-import WhyChooseSection from "@/src/components/WhyChooseSection";
-import GrowthChart from "@/src/components/GrowthChart";
-import PastReturns from "@/src/components/PastReturns";
-import CalculatorsSection from "@/src/components/CalculatorsSection";
-import TrustedSection from "@/src/components/TrustedSection";
-import Footer from "@/src/components/Footer";
+import Navbar from "@/components/Navbar";
+import HeroSection from "@/components/HeroSection";
+import ServicesSection from "@/components/ServicesSection";
+import WhyChooseSection from "@/components/WhyChooseSection";
+import GrowthChart from "@/components/GrowthChart";
+import PastReturns from "@/components/PastReturns";
+import CalculatorsSection from "@/components/CalculatorsSection";
+import TrustedSection from "@/components/TrustedSection";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (

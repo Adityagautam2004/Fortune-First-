@@ -1,210 +1,80 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/src/hooks/useAuth';
-import Button from '@/src/components/ui/Button';
-import { Eye, EyeOff, AlertCircle, ChevronLeft } from 'lucide-react';
-import Image from 'next/image';
+import { useAuth } from '@/hooks/useAuth';
+import { loginUser } from '@/store/authSlice';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { login, isAuthenticated, loading, error, resetError, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      if (user.must_change_password) {
-        router.push('/change-password');
-      } else {
-        router.push('/dashboard');
-      }
-    }
-  }, [isAuthenticated, user, router]);
+  const router = useRouter();
+  const { login, error, isLoading } = useAuth();
 
-  useEffect(() => {
-    resetError();
-  }, [resetError]);
-
-  useEffect(() => {
-    if (error) {
-      if (error.toLowerCase().includes('email') || error.toLowerCase().includes('user')) {
-        setEmailError('Please enter a valid email id');
-        setPasswordError('');
-      } else if (
-        error.toLowerCase().includes('password') ||
-        error.toLowerCase().includes('credential') ||
-        error.toLowerCase().includes('incorrect')
-      ) {
-        setPasswordError('Incorrect password. Please try again');
-        setEmailError('');
-      } else {
-        setEmailError('');
-        setPasswordError(error);
-      }
-    } else {
-      setEmailError('');
-      setPasswordError('');
-    }
-  }, [error]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    login({ email, password });
+
+    const result = await login({ email, password });
+    if (loginUser.fulfilled.match(result)) {
+      const { role } = result.payload.user;
+      if (role === 'customer') {
+        router.push('/dashboard');
+      } else if (role === 'investment_head' || role === 'business_head') {
+        router.push('/board');
+      } else if (role === 'super_admin') {
+        router.push('/admin');
+      }
+    }
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
-      {/* Full-screen Hero Background */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/Hero_image.png"
-          alt="Fortune First Background"
-          fill
-          priority
-          className="object-cover object-center"
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-black/55" />
-      </div>
-
-      {/* Back arrow */}
-      <button
-        onClick={() => router.push('/')}
-        className="absolute top-4 left-4 z-20 flex items-center justify-center w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white transition-all"
-        aria-label="Go back"
-      >
-        <ChevronLeft size={18} />
-      </button>
-
-      {/* Login Card — compact size */}
-      <div className="relative z-10 w-full max-w-[380px] mx-4">
-        <div className="bg-white rounded-2xl shadow-2xl px-7 py-8">
-          {/* Logo + Brand */}
-          <div className="flex flex-col items-center gap-1.5 mb-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden border border-gray-200 shadow-sm">
-              <Image
-                src="/logo_img.png"
-                alt="Fortune First Logo"
-                width={64}
-                height={64}
-                className="object-cover w-full h-full"
-              />
-            </div>
-            <span className="text-sm font-semibold text-gray-900 tracking-wide">Fortune First</span>
-          </div>
-
-          {/* Heading */}
-          <div className="text-center mb-5">
-            <h2 className="text-2xl font-extrabold text-gray-900">Welcome Back</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Login to access your account</p>
-          </div>
-
-          {/* Form */}
-          <form className="space-y-3.5" onSubmit={handleSubmit}>
-            {/* Email */}
-            <div>
-              <label className="block text-xs font-medium text-gray-800 mb-1">Email ID</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
-                placeholder="Enter your email id"
-                className={`w-full border rounded-xl px-3.5 py-2.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 transition-all ${
-                  emailError
-                    ? 'border-red-500 focus:ring-red-200'
-                    : 'border-gray-300 focus:ring-orange-200 focus:border-[#f97316]'
-                }`}
-              />
-              {emailError && (
-                <div className="flex items-center gap-1 mt-1">
-                  <AlertCircle size={12} className="text-red-500 flex-shrink-0" />
-                  <p className="text-xs text-red-500">{emailError}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-xs font-medium text-gray-800 mb-1">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setPasswordError(''); }}
-                  placeholder="Enter your password"
-                  className={`w-full border rounded-xl px-3.5 py-2.5 pr-10 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 transition-all ${
-                    passwordError
-                      ? 'border-red-500 focus:ring-red-200'
-                      : 'border-gray-300 focus:ring-orange-200 focus:border-[#f97316]'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
-              </div>
-              {passwordError && (
-                <div className="flex items-center gap-1 mt-1">
-                  <AlertCircle size={12} className="text-red-500 flex-shrink-0" />
-                  <p className="text-xs text-red-500">{passwordError}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Remember me + Forgot password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-3.5 w-3.5 border-gray-300 rounded text-[#f97316] focus:ring-[#f97316]"
-                />
-                <span className="text-xs text-gray-700">Remember me</span>
-              </label>
-              <a href="#" className="text-xs font-medium text-[#f97316] hover:text-[#ea580c] transition-colors">
-                Forgot Password?
-              </a>
-            </div>
-
-            {/* Login Button */}
-            <Button
-              type="submit"
-              isLoading={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl text-sm font-bold tracking-widest text-white bg-[#f97316] hover:bg-[#ea580c] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f97316] transition-colors uppercase"
-            >
-              LOGIN
-            </Button>
-
-            {/* OR Divider */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-xs text-gray-400 font-medium">OR</span>
-              <div className="flex-1 h-px bg-gray-200" />
-            </div>
-
-            {/* Create Account */}
-            <p className="text-center text-xs text-gray-700">
-              Don&apos;t have an account?{' '}
-              <a href="/signup" className="font-semibold text-[#f97316] hover:text-[#ea580c] transition-colors">
-                Create Account
-              </a>
-            </p>
-          </form>
+    <div className="flex min-h-screen items-center justify-center bg-brand-surface p-4">
+      <div className="w-full max-w-md rounded-xl border border-brand-border bg-white p-8 shadow-md">
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-bold text-brand-navy">Fortune First</h1>
+          <p className="text-sm text-gray-600">Sign in to access your portal</p>
         </div>
+
+        {error && (
+          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Email Address</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 w-full rounded-md border border-brand-border p-2 focus:border-brand-orange focus:outline-none"
+              placeholder="name@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 w-full rounded-md border border-brand-border p-2 focus:border-brand-orange focus:outline-none"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full rounded-md bg-brand-navy py-2.5 font-medium text-white hover:bg-opacity-90 transition disabled:opacity-50"
+          >
+            {isLoading ? 'Authenticating...' : 'Sign In'}
+          </button>
+        </form>
       </div>
     </div>
   );

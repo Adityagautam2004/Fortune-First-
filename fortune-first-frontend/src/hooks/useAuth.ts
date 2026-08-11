@@ -1,9 +1,9 @@
 'use client';
 
 import { useSelector, useDispatch } from 'react-redux';
-import type { RootState, AppDispatch } from '@/src/store/store';
-import { loginUser, fetchCurrentUser, logout, clearError } from '@/src/store/authSlice';
-import type { LoginCredentials } from '@/src/types';
+import type { RootState, AppDispatch } from '@/store/store';
+import { loginUser, fetchCurrentUser, logout, clearError } from '@/store/authSlice';
+import type { LoginCredentials } from '@/types';
 import { useCallback } from 'react';
 
 export function useAuth() {
