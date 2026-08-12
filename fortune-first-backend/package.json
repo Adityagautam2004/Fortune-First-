@@ -24,6 +24,7 @@
     "puppeteer": "^25.6.0",
     "resend": "^6.18.1",
     "socket.io": "^4.8.3",
+    "swagger-ui-express": "^5.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

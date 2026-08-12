@@ -2,9 +2,23 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1. Create the Custom ENUM Roles needed for our strictly enforced RBAC system
-CREATE TYPE user_role AS ENUM ('customer', 'investment_head', 'business_head', 'super_admin');
-CREATE TYPE investment_status AS ENUM ('active', 'exited', 'suspended');
-CREATE TYPE payout_status AS ENUM ('pending', 'paid', 'skipped');
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('customer', 'investment_head', 'business_head', 'super_admin');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE investment_status AS ENUM ('active', 'exited', 'suspended');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE payout_status AS ENUM ('pending', 'paid', 'skipped');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- 2. Master Users Table
 CREATE TABLE IF NOT EXISTS users (

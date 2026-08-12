@@ -19,7 +19,7 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/investments', investmentRoutes);
 router.use('/payouts', payoutRoutes);
-router.use('/customers', customerRoutes);
+router.use('/customer', customerRoutes);
 router.use('/board', boardRoutes);
 router.use('/admin', adminRoutes);
 router.use('/public', publicRoutes);

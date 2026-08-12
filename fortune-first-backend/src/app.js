@@ -4,9 +4,11 @@ const http = require('http'); // Add this native module
 const { Server } = require('socket.io'); // Import Socket.io
 require('dotenv').config();
 
-const db = require('./models/db'); 
-const apiRoutes = require('./routes'); 
+const db = require('./models/db');
+const apiRoutes = require('./routes');
 const setupSocket = require('./services/socket.service'); // We will build this next
+const swaggerUi = require('swagger-ui-express');
+const openapiSpec = require('./docs/openapi.json');
 
 const app = express();
 const server = http.createServer(app); // Wrap Express in HTTP server
@@ -23,6 +25,7 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
 app.use(express.json()); 
 
 app.use('/api/v1', apiRoutes);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 // Initialize the socket event listeners
 setupSocket(io);

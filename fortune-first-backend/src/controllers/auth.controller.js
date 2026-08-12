@@ -1,10 +1,11 @@
 const db = require('../models/db');
-const { 
-  comparePassword, 
-  generateAccessToken, 
-  generateRefreshToken, 
-  verifyRefreshToken, 
-  revokeRefreshToken 
+const {
+  comparePassword,
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+  revokeRefreshToken,
+  hashPassword
 } = require('../utils/auth.utils');
 
 const login = async (req, res) => {
@@ -105,4 +106,22 @@ const logout = async (req, res) => {
   }
 };
 
-module.exports = { login, refresh, logout };
+const changeInitialPassword = async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    const userId = req.user.userId;
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    await db.query(
+      `UPDATE users SET password_hash = $1, must_change_password = FALSE WHERE id = $2`,
+      [hashedPassword, userId]
+    );
+
+    return res.status(200).json({ status: 'success', message: 'Password updated successfully' });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to update password' });
+  }
+};
+
+module.exports = { login, refresh, logout, changeInitialPassword };

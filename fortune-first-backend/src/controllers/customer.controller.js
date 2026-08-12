@@ -161,4 +161,24 @@ const downloadFullReport = async (req, res) => {
 };
 
 
-module.exports = { getDashboardStats, getInvestmentHistory,getProfile,createSupportTicket,getSupportTickets,downloadFullReport };
+const submitKYC = async (req, res) => {
+  try {
+    const { panNumber, bankName, accountNumber, ifscCode } = req.body;
+    const userId = req.user.userId;
+
+    await db.query(
+      `INSERT INTO kyc_details (user_id, pan_number_enc, bank_name, account_number_enc, ifsc_code)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (user_id) DO UPDATE
+       SET pan_number_enc = EXCLUDED.pan_number_enc, bank_name = EXCLUDED.bank_name,
+           account_number_enc = EXCLUDED.account_number_enc, ifsc_code = EXCLUDED.ifsc_code`,
+      [userId, panNumber, bankName, accountNumber, ifscCode]
+    );
+
+    return res.status(200).json({ status: 'success', message: 'KYC submitted for verification' });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'KYC submission failed' });
+  }
+};
+
+module.exports = { getDashboardStats, getInvestmentHistory,getProfile,createSupportTicket,getSupportTickets,downloadFullReport, submitKYC };

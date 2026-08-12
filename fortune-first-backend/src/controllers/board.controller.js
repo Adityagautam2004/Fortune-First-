@@ -170,4 +170,24 @@ const getChatHistory = async (req, res) => {
   }
 };
 
-module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory };
+const getBoardDashboardStats = async (req, res) => {
+  try {
+    const boardMemberId = req.user.userId;
+
+    const stats = await db.query(
+      `SELECT
+         COUNT(DISTINCT u.id) as total_clients,
+         COALESCE(SUM(i.amount), 0) as total_aum
+       FROM users u
+       LEFT JOIN investments i ON u.id = i.customer_id AND i.status = 'active'
+       WHERE u.assigned_to = $1 AND u.role = 'customer'`,
+      [boardMemberId]
+    );
+
+    return res.status(200).json({ status: 'success', data: stats.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to load stats' });
+  }
+};
+
+module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory, getBoardDashboardStats };

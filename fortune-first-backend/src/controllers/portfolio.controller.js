@@ -59,4 +59,15 @@ const addPosition = async (req, res) => {
   }
 };
 
-module.exports = { getLivePortfolio, addPosition };
+const removePosition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Ensure the user only deletes their own portfolio items
+    await db.query(`DELETE FROM portfolio_positions WHERE id = $1 AND owner_id = $2`, [id, req.user.userId]);
+    return res.status(200).json({ status: 'success', message: 'Position removed' });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to remove position' });
+  }
+};
+
+module.exports = { getLivePortfolio, addPosition, removePosition };
