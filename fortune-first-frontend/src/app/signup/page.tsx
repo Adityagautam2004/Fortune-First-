@@ -71,15 +71,13 @@ export default function SignupPage() {
         <div className="bg-white rounded-2xl shadow-2xl px-7 py-8">
           {/* Logo + Brand */}
           <div className="flex flex-col items-center gap-1.5 mb-4">
-            <div className="w-16 h-16 flex items-center justify-center">
-              <Image
-                src="/logo_img.png"
-                alt="Fortune First Logo"
-                width={64}
-                height={64}
-                className="object-contain w-full h-full"
-              />
-            </div>
+            <Image
+              src="/logo_circle.png"
+              alt="Fortune First Logo"
+              width={64}
+              height={64}
+              className="h-16 w-16 rounded-full object-contain"
+            />
             <span className="text-sm font-semibold text-gray-900 tracking-wide">Fortune First</span>
           </div>
 
