@@ -37,11 +37,11 @@ export function SiteHeader() {
         <div className="flex flex-1 justify-start">
           <Link href="/" className="group ml-2 flex items-center gap-3 md:ml-0">
             <Image
-              src="/logo_img.png"
+              src="/logo_circle.png"
               alt="Fortune First Logo"
               width={44}
               height={44}
-              className="object-contain transition-transform duration-300 group-hover:scale-110"
+              className="rounded-full object-contain transition-transform duration-300 group-hover:scale-110"
             />
             <span
               className={`text-xl font-bold tracking-tight transition-colors duration-300 ${

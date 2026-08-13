@@ -16,7 +16,7 @@ export function SiteFooter() {
         <div className="mx-auto mb-10 grid max-w-5xl grid-cols-1 gap-10 px-4 md:grid-cols-2 md:px-0">
           <div>
             <div className="mb-3 flex items-center gap-3">
-              <Image src="/logo_img.png" alt="Fortune First Logo" width={36} height={36} className="object-contain" />
+              <Image src="/logo_circle.png" alt="Fortune First Logo" width={36} height={36} className="rounded-full object-contain" />
               <span className="text-lg font-bold tracking-wide text-white">Fortune First</span>
             </div>
             <p className="mb-6 max-w-sm text-xs leading-relaxed text-gray-400">
