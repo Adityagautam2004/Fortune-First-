@@ -21,6 +21,16 @@ export default function PortfolioPage() {
     fetchPortfolio(); // Refresh the list
   };
 
+  const handleRemovePosition = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this position?')) return;
+    try {
+      await api.delete(`/board/portfolio/${id}`);
+      fetchPortfolio();
+    } catch (error) {
+      alert('Failed to remove position.');
+    }
+  };
+
   const totalPnL = positions.reduce((acc, pos: any) => acc + pos.pnl, 0);
 
   return (
@@ -42,9 +52,23 @@ export default function PortfolioPage() {
               <div key={pos.id} className="bg-white p-6 rounded-xl shadow-sm border border-brand-border">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-bold text-lg">{pos.symbol}</h3>
-                  <span className={`font-bold ${pos.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {pos.pnl >= 0 ? '+' : ''}₹{pos.pnl.toLocaleString()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold ${pos.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {pos.pnl >= 0 ? '+' : ''}₹{pos.pnl.toLocaleString()}
+                    </span>
+                    <button
+                      onClick={() => handleRemovePosition(pos.id)}
+                      className="p-1.5 rounded-md text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                      title="Remove position"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 <p className="text-sm text-gray-600">Qty: {pos.quantity} | Avg: ₹{pos.buy_price}</p>
                 <p className="text-sm text-brand-navy font-medium mt-1">LTP: ₹{pos.currentPrice}</p>

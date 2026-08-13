@@ -6,7 +6,7 @@ import api from '@/lib/api';
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'customer', phone: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'customer', phone: '', assignedTo: '' });
 
   const fetchUsers = async () => {
     const res = await api.get('/admin/users');
@@ -14,6 +14,8 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => { fetchUsers(); }, []);
+
+  const heads = users.filter((u: any) => u.role === 'investment_head');
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +80,19 @@ export default function AdminUsersPage() {
                 <option value="business_head">Business Head</option>
                 <option value="super_admin">Super Admin</option>
               </select>
+              {form.role === 'customer' && (
+                <select 
+                  required 
+                  className="w-full border p-2 rounded" 
+                  value={form.assignedTo} 
+                  onChange={e => setForm({...form, assignedTo: e.target.value})}
+                >
+                  <option value="">Assign to Investment Head...</option>
+                  {heads.map((head: any) => (
+                    <option key={head.id} value={head.id}>{head.name}</option>
+                  ))}
+                </select>
+              )}
               <div className="flex justify-end space-x-2 mt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-brand-navy text-white rounded">Save</button>

@@ -17,8 +17,10 @@ export default function LoginPage() {
 
     const result = await login({ email, password });
     if (loginUser.fulfilled.match(result)) {
-      const { role } = result.payload.user;
-      if (role === 'customer') {
+      const { role, mustChangePassword } = result.payload.user;
+      if (mustChangePassword) {
+        router.push('/change-password');
+      } else if (role === 'customer') {
         router.push('/dashboard');
       } else if (role === 'investment_head' || role === 'business_head') {
         router.push('/board');
