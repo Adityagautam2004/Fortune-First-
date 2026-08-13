@@ -22,9 +22,9 @@ export default function Footer() {
               <Image
                 src="/logo_img.png"
                 alt="Fortune First Logo"
-                width={32}
-                height={32}
-                className="rounded-full"
+                width={36}
+                height={36}
+                className="object-contain"
               />
               <span className="text-lg font-bold text-white tracking-wide" style={{ fontFamily: "'Outfit', sans-serif" }}>
                 Fortune First

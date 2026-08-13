@@ -41,9 +41,9 @@ export default function Navbar() {
             <Image
               src="/logo_img.png"
               alt="Fortune First Logo"
-              width={40}
-              height={40}
-              className="rounded-full transition-transform duration-300 group-hover:scale-110"
+              width={44}
+              height={44}
+              className="object-contain transition-transform duration-300 group-hover:scale-110"
             />
             <span
               className={`text-xl font-bold tracking-tight transition-colors duration-300 ${
