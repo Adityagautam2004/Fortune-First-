@@ -165,6 +165,35 @@
         }
       }
     },
+    "/auth/forgot-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Request a password reset link",
+        "security": [],
+        "description": "Always returns the same success message whether or not the email exists, to prevent account enumeration. Generates a random 32-byte token, stores it (plus a 15-minute expiry) on the user, and emails a reset link via Resend.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["email"], "properties": { "email": { "type": "string", "format": "email" } } } } }
+        },
+        "responses": { "200": { "description": "If that email exists, a reset link has been sent." } }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Set a new password using a reset token",
+        "security": [],
+        "description": "Token is single-use — it's cleared as soon as the password is reset, and rejected if expired (15 minutes) or unknown.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["token", "newPassword"], "properties": { "token": { "type": "string" }, "newPassword": { "type": "string", "format": "password" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Password has been successfully reset." },
+          "400": { "description": "Invalid or expired reset token" }
+        }
+      }
+    },
     "/users": {
       "get": {
         "tags": ["Users"],
@@ -413,6 +442,16 @@
         "responses": { "200": { "description": "Client list" } }
       }
     },
+    "/board/clients/{id}/investments/active": {
+      "get": {
+        "tags": ["Board"],
+        "summary": "Get a client's active investments",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: investment_head or business_head. No ownership check against assigned_to — any board member can query any customer id.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" }, "description": "Customer id" }],
+        "responses": { "200": { "description": "List of active investments for that customer" } }
+      }
+    },
     "/board/investments": {
       "post": {
         "tags": ["Board"],
@@ -437,6 +476,16 @@
           "content": { "application/json": { "schema": { "type": "object", "required": ["investmentId", "month", "year", "returnPct"], "properties": { "investmentId": { "type": "string", "format": "uuid" }, "month": { "type": "integer" }, "year": { "type": "integer" }, "returnPct": { "type": "number" } } } } }
         },
         "responses": { "200": { "description": "Payout processed", "content": { "application/json": { "example": { "status": "success", "data": { "payoutAmount": 1000 } } } } }, "400": { "description": "Payout already processed for this month" } }
+      }
+    },
+    "/board/payouts/{returnId}/void": {
+      "patch": {
+        "tags": ["Board"],
+        "summary": "Void a processed payout",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: investment_head or business_head. Sets payout_status to 'voided' (keeps the row for historical integrity) and writes an audit_logs entry.",
+        "parameters": [{ "name": "returnId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Payout voided successfully" } }
       }
     },
     "/board/chat/{conversationId}": {
@@ -539,6 +588,25 @@
         "description": "Requires role: super_admin. KNOWN ISSUE: scoped to owner_id = the caller's own id (copied from the board version), so as written a super_admin can never actually delete another user's position — the delete matches zero rows and still returns success. See Known Issues.",
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
         "responses": { "200": { "description": "Returns success even when no row was deleted" } }
+      }
+    },
+    "/admin/support": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "List every support ticket, across all customers",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin.",
+        "responses": { "200": { "description": "Ticket list, newest first, joined with customer name/email" } }
+      }
+    },
+    "/admin/support/{id}/resolve": {
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Mark a support ticket as resolved",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Ticket marked as resolved" } }
       }
     },
     "/public/join-request": {

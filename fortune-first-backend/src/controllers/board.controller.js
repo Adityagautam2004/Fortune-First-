@@ -190,4 +190,47 @@ const getBoardDashboardStats = async (req, res) => {
   }
 };
 
-module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory, getBoardDashboardStats };
+const voidPayout = async (req, res) => {
+  const client = await db.pool.connect();
+  try {
+    const { returnId } = req.params;
+    await client.query('BEGIN');
+
+    // Mark as voided instead of deleting to maintain historical integrity
+    await client.query(`UPDATE monthly_returns SET payout_status = 'voided' WHERE id = $1`, [returnId]);
+
+    // Log the reversal
+    await client.query(
+      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id) VALUES ($1, 'VOID_PAYOUT', 'monthly_return', $2)`,
+      [req.user.userId, returnId]
+    );
+
+    await client.query('COMMIT');
+    return res.status(200).json({ status: 'success', message: 'Payout voided successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    return res.status(500).json({ status: 'error', message: 'Failed to void payout' });
+  } finally {
+    client.release();
+  }
+};
+
+const getClientActiveInvestments = async (req, res) => {
+  try {
+    const { id } = req.params; // Customer ID
+
+    const investments = await db.query(
+      `SELECT id, amount, investment_date, week_of_month
+       FROM investments
+       WHERE customer_id = $1 AND status = 'active'
+       ORDER BY investment_date DESC`,
+      [id]
+    );
+
+    return res.status(200).json({ status: 'success', data: investments.rows });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch active investments' });
+  }
+};
+
+module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory, getBoardDashboardStats, voidPayout, getClientActiveInvestments };

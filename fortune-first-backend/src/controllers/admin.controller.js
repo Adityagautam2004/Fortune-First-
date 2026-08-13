@@ -100,4 +100,31 @@ const removePosition = async (req, res) => {
   }
 };
 
-module.exports = { getUsers, createUser, getJoinRequests, updateJoinRequestStatus, getDashboardStats, removePosition };
+const getAllSupportTickets = async (req, res) => {
+  try {
+    const tickets = await db.query(
+      `SELECT t.id, t.subject, t.category, t.message, t.status, t.created_at, u.name as customer_name, u.email
+       FROM support_tickets t
+       JOIN users u ON t.customer_id = u.id
+       ORDER BY t.created_at DESC`
+    );
+    return res.status(200).json({ status: 'success', data: tickets.rows });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch tickets' });
+  }
+};
+
+const resolveSupportTicket = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query(
+      `UPDATE support_tickets SET status = 'Resolved', resolved_at = NOW() WHERE id = $1`,
+      [id]
+    );
+    return res.status(200).json({ status: 'success', message: 'Ticket marked as resolved' });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to resolve ticket' });
+  }
+};
+
+module.exports = { getUsers, createUser, getJoinRequests, updateJoinRequestStatus, getDashboardStats, removePosition, getAllSupportTickets, resolveSupportTicket };

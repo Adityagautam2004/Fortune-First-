@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const db = require('../models/db');
 const {
   comparePassword,
@@ -7,6 +8,7 @@ const {
   revokeRefreshToken,
   hashPassword
 } = require('../utils/auth.utils');
+const { sendPasswordResetEmail } = require('../utils/mailer');
 
 const login = async (req, res) => {
   try {
@@ -124,4 +126,65 @@ const changeInitialPassword = async (req, res) => {
   }
 };
 
-module.exports = { login, refresh, logout, changeInitialPassword };
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // 1. Verify user exists
+    const userRes = await db.query(`SELECT id FROM users WHERE email = $1`, [email]);
+    if (userRes.rows.length === 0) {
+      // Security best practice: Do not reveal if the email exists to prevent enumeration attacks
+      return res.status(200).json({ status: 'success', message: 'If that email exists, a reset link has been sent.' });
+    }
+
+    // 2. Generate secure token & expiry (15 minutes from now)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiryTime = new Date(Date.now() + 15 * 60 * 1000);
+
+    // 3. Save token to database
+    await db.query(
+      `UPDATE users SET reset_token = $1, reset_token_expiry = $2 WHERE email = $3`,
+      [resetToken, expiryTime, email]
+    );
+
+    // 4. Dispatch Email
+    await sendPasswordResetEmail(email, resetToken);
+
+    return res.status(200).json({ status: 'success', message: 'If that email exists, a reset link has been sent.' });
+  } catch (error) {
+    console.error('Forgot Password Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to process request' });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    // 1. Find user with this token where the expiry is still in the future
+    const userRes = await db.query(
+      `SELECT id FROM users WHERE reset_token = $1 AND reset_token_expiry > NOW()`,
+      [token]
+    );
+
+    if (userRes.rows.length === 0) {
+      return res.status(400).json({ status: 'error', message: 'Invalid or expired reset token. Please request a new one.' });
+    }
+
+    const userId = userRes.rows[0].id;
+    const hashedPassword = await hashPassword(newPassword);
+
+    // 2. Update password and invalidate the token immediately
+    await db.query(
+      `UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expiry = NULL WHERE id = $2`,
+      [hashedPassword, userId]
+    );
+
+    return res.status(200).json({ status: 'success', message: 'Password has been successfully reset. You may now log in.' });
+  } catch (error) {
+    console.error('Reset Password Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to reset password' });
+  }
+};
+
+module.exports = { login, refresh, logout, changeInitialPassword, forgotPassword, resetPassword };
