@@ -6,14 +6,17 @@ const getAssignedClients = async (req, res) => {
     const userRole = req.user.role;
 
     let queryStr = `
-      SELECT u.id, u.name, u.email, u.phone, 
-             COALESCE(SUM(i.amount), 0) AS total_invested
+      SELECT u.id, u.name, u.email, u.phone, u.is_active, u.created_at,
+             am.name AS relationship_manager,
+             COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0) AS total_invested,
+             COUNT(i.id) FILTER (WHERE i.status = 'active') AS active_mandates
       FROM users u
-      LEFT JOIN investments i ON u.id = i.customer_id AND i.status = 'active'
+      LEFT JOIN investments i ON u.id = i.customer_id
+      LEFT JOIN users am ON am.id = u.assigned_to
     `;
     const queryParams = [];
 
-    // Investment Heads only see their assigned clients; Business Heads might see all
+    // Investment Heads only see their assigned clients; Business Heads see all
     if (userRole === 'investment_head') {
       queryStr += ` WHERE u.assigned_to = $1 AND u.role = 'customer'`;
       queryParams.push(boardMemberId);
@@ -21,10 +24,10 @@ const getAssignedClients = async (req, res) => {
       queryStr += ` WHERE u.role = 'customer'`;
     }
 
-    queryStr += ` GROUP BY u.id ORDER BY u.name ASC`;
+    queryStr += ` GROUP BY u.id, am.name ORDER BY u.name ASC`;
 
     const clients = await db.query(queryStr, queryParams);
-    
+
     return res.status(200).json({ status: 'success', data: clients.rows });
   } catch (error) {
     console.error('Fetch Clients Error:', error);
@@ -80,7 +83,7 @@ const processPayout = async (req, res) => {
   const client = await db.pool.connect();
   
   try {
-    if (req.user.role !== 'investment_head') {
+    if (!['investment_head', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ status: 'error', message: 'Forbidden' });
     }
 
@@ -173,19 +176,55 @@ const getChatHistory = async (req, res) => {
 const getBoardDashboardStats = async (req, res) => {
   try {
     const boardMemberId = req.user.userId;
+    const userRole = req.user.role;
 
-    const stats = await db.query(
-      `SELECT
-         COUNT(DISTINCT u.id) as total_clients,
-         COALESCE(SUM(i.amount), 0) as total_aum
-       FROM users u
-       LEFT JOIN investments i ON u.id = i.customer_id AND i.status = 'active'
-       WHERE u.assigned_to = $1 AND u.role = 'customer'`,
-      [boardMemberId]
-    );
+    // Default the reporting window to the current calendar month when not specified.
+    // Built from local Y/M/D components, not toISOString() (which converts to UTC and
+    // can roll the date back a day depending on server timezone).
+    const toLocalIso = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+    const now = new Date();
+    const defaultStart = toLocalIso(new Date(now.getFullYear(), now.getMonth(), 1));
+    const defaultEnd = toLocalIso(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    const startDate = req.query.startDate || defaultStart;
+    const endDate = req.query.endDate || defaultEnd;
 
-    return res.status(200).json({ status: 'success', data: stats.rows[0] });
+    // $1/$2 (the date range) are always referenced in the query text; the board-member
+    // id is only appended (as $3) when the investment_head branch actually uses it —
+    // Postgres can't infer a placeholder's type if it's passed but never referenced.
+    let queryStr = `
+      SELECT
+        COUNT(DISTINCT u.id) AS total_clients,
+        COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0) AS total_aum,
+        COUNT(DISTINCT i.id) FILTER (WHERE i.status = 'active') AS active_mandates,
+        COUNT(DISTINCT u.id) FILTER (WHERE u.created_at BETWEEN $1 AND $2::date + 1) AS new_clients,
+        COUNT(mr.id) FILTER (WHERE mr.payout_date BETWEEN $1 AND $2) AS transactions
+      FROM users u
+      LEFT JOIN investments i ON u.id = i.customer_id
+      LEFT JOIN monthly_returns mr ON mr.investment_id = i.id
+    `;
+    const queryParams = [startDate, endDate];
+
+    // Investment Heads only see their assigned clients; Business Heads see all
+    if (userRole === 'investment_head') {
+      queryParams.push(boardMemberId);
+      queryStr += ` WHERE u.assigned_to = $3 AND u.role = 'customer'`;
+    } else {
+      queryStr += ` WHERE u.role = 'customer'`;
+    }
+
+    const stats = await db.query(queryStr, queryParams);
+
+    return res.status(200).json({
+      status: 'success',
+      data: { ...stats.rows[0], startDate, endDate },
+    });
   } catch (error) {
+    console.error('Board Dashboard Stats Error:', error);
     return res.status(500).json({ status: 'error', message: 'Failed to load stats' });
   }
 };
@@ -215,6 +254,58 @@ const voidPayout = async (req, res) => {
   }
 };
 
+const getClientDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const profileRes = await db.query(
+      `SELECT u.id, u.name, u.email, u.phone, u.is_active, u.created_at,
+              am.name AS relationship_manager
+       FROM users u
+       LEFT JOIN users am ON am.id = u.assigned_to
+       WHERE u.id = $1 AND u.role = 'customer'`,
+      [id]
+    );
+
+    if (profileRes.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Client not found' });
+    }
+
+    const investmentsRes = await db.query(
+      `SELECT id, amount, investment_date, week_of_month, tenure_months, status, exit_date
+       FROM investments
+       WHERE customer_id = $1
+       ORDER BY investment_date DESC`,
+      [id]
+    );
+
+    const currentYear = new Date().getFullYear();
+    const summaryRes = await db.query(
+      `SELECT
+         COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0) AS total_aum,
+         COUNT(DISTINCT i.id) FILTER (WHERE i.status = 'active') AS active_mandates,
+         COUNT(DISTINCT i.id) AS total_investment_count,
+         COALESCE(SUM(mr.payout_amount) FILTER (WHERE mr.year = $2), 0) AS total_returns_ytd
+       FROM investments i
+       LEFT JOIN monthly_returns mr ON mr.investment_id = i.id
+       WHERE i.customer_id = $1`,
+      [id, currentYear]
+    );
+
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        profile: profileRes.rows[0],
+        investments: investmentsRes.rows,
+        summary: summaryRes.rows[0],
+      },
+    });
+  } catch (error) {
+    console.error('Client Detail Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch client detail' });
+  }
+};
+
 const getClientActiveInvestments = async (req, res) => {
   try {
     const { id } = req.params; // Customer ID
@@ -233,4 +324,43 @@ const getClientActiveInvestments = async (req, res) => {
   }
 };
 
-module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory, getBoardDashboardStats, voidPayout, getClientActiveInvestments };
+const getPendingPayouts = async (req, res) => {
+  try {
+    const boardMemberId = req.user.userId;
+    const userRole = req.user.role;
+
+    const now = new Date();
+    const month = parseInt(req.query.month, 10) || now.getMonth() + 1;
+    const year = parseInt(req.query.year, 10) || now.getFullYear();
+
+    let queryStr = `
+      SELECT i.id AS investment_id, i.amount, i.week_of_month, i.investment_date,
+             u.id AS customer_id, u.name AS client_name
+      FROM investments i
+      JOIN users u ON u.id = i.customer_id
+      WHERE i.status = 'active'
+        AND NOT EXISTS (
+          SELECT 1 FROM monthly_returns mr
+          WHERE mr.investment_id = i.id AND mr.month = $1 AND mr.year = $2
+        )
+    `;
+    const queryParams = [month, year];
+
+    // Investment Heads only see their assigned clients; Business Heads / Super Admins see all
+    if (userRole === 'investment_head') {
+      queryParams.push(boardMemberId);
+      queryStr += ` AND u.assigned_to = $3`;
+    }
+
+    queryStr += ` ORDER BY u.name ASC`;
+
+    const pending = await db.query(queryStr, queryParams);
+
+    return res.status(200).json({ status: 'success', data: { investments: pending.rows, month, year } });
+  } catch (error) {
+    console.error('Pending Payouts Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch pending payouts' });
+  }
+};
+
+module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory, getBoardDashboardStats, voidPayout, getClientActiveInvestments, getClientDetail, getPendingPayouts };

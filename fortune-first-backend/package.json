@@ -8,6 +8,7 @@
     "dev": "nodemon src/app.js",
     "seed": "node src/scripts/seed.js",
     "seed:customer": "node src/scripts/seedCustomer.js",
+    "seed:board": "node src/scripts/seedBoard.js",
     "migrate": "node src/models/migrate.js"
   },
   "dependencies": {

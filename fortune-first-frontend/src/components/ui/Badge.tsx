@@ -1,47 +1,50 @@
-import React from 'react';
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 
-type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'gold';
+import { cn } from '@/lib/utils';
 
-interface BadgeProps {
-  children: React.ReactNode;
-  variant?: BadgeVariant;
-  className?: string;
-}
+const badgeVariants = cva(
+  'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold',
+  {
+    variants: {
+      variant: {
+        success: 'bg-emerald-100 text-emerald-700',
+        warning: 'bg-amber-100 text-amber-700',
+        danger: 'bg-red-100 text-red-700',
+        info: 'bg-blue-100 text-blue-700',
+        neutral: 'bg-gray-100 text-gray-700',
+        brand: 'bg-primary/10 text-primary',
+      },
+    },
+    defaultVariants: {
+      variant: 'neutral',
+    },
+  }
+);
 
-const variantStyles: Record<BadgeVariant, string> = {
-  success: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  warning: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  danger: 'bg-red-500/15 text-red-400 border-red-500/30',
-  info: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  neutral: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
-  gold: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-};
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof badgeVariants> {}
 
-export default function Badge({ children, variant = 'neutral', className = '' }: BadgeProps) {
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${variantStyles[variant]} ${className}`}
-    >
-      {children}
-    </span>
-  );
+function Badge({ className, variant, ...props }: BadgeProps) {
+  return <span className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
 // ── Convenience helpers for common badge types ──────────────
 
 export function RoleBadge({ role }: { role: string }) {
-  const map: Record<string, { label: string; variant: BadgeVariant }> = {
-    super_admin: { label: 'Super Admin', variant: 'gold' },
+  const map: Record<string, { label: string; variant: BadgeProps['variant'] }> = {
+    super_admin: { label: 'Super Admin', variant: 'brand' },
     business_head: { label: 'Business Head', variant: 'info' },
     investment_head: { label: 'Investment Head', variant: 'success' },
     customer: { label: 'Customer', variant: 'neutral' },
   };
-  const config = map[role] || { label: role, variant: 'neutral' as BadgeVariant };
+  const config = map[role] || { label: role, variant: 'neutral' as const };
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; variant: BadgeVariant }> = {
+  const map: Record<string, { label: string; variant: BadgeProps['variant'] }> = {
     active: { label: 'Active', variant: 'success' },
     exited: { label: 'Exited', variant: 'neutral' },
     suspended: { label: 'Suspended', variant: 'danger' },
@@ -49,6 +52,9 @@ export function StatusBadge({ status }: { status: string }) {
     paid: { label: 'Paid', variant: 'success' },
     skipped: { label: 'Skipped', variant: 'neutral' },
   };
-  const config = map[status] || { label: status, variant: 'neutral' as BadgeVariant };
+  const config = map[status] || { label: status, variant: 'neutral' as const };
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }
+
+export { Badge, badgeVariants };
+export default Badge;

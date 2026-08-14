@@ -1,0 +1,173 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import { Info } from 'lucide-react';
+
+import { calculatePayout } from '../lib/calculate-payout';
+import type { PendingPayout } from '../types';
+
+const PAGE_SIZE = 6;
+const DEFAULT_RETURN_PCT = 2.0;
+
+function formatRupees(value: number) {
+  return `₹${Math.round(value).toLocaleString('en-IN')}`;
+}
+
+interface PayoutTableProps {
+  investments: PendingPayout[];
+  month: number;
+  year: number;
+  onMarkPaid: (investmentId: string, returnPct: number) => Promise<void>;
+}
+
+export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTableProps) {
+  const [page, setPage] = useState(1);
+  const [returnPcts, setReturnPcts] = useState<Record<string, number>>({});
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
+
+  const totalPages = Math.max(1, Math.ceil(investments.length / PAGE_SIZE));
+  const pageRows = useMemo(
+    () => investments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [investments, page]
+  );
+  const rangeStart = investments.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, investments.length);
+
+  const getReturnPct = (investmentId: string) => returnPcts[investmentId] ?? DEFAULT_RETURN_PCT;
+
+  const handleMarkPaid = async (inv: PendingPayout) => {
+    setSubmittingId(inv.investment_id);
+    try {
+      await onMarkPaid(inv.investment_id, getReturnPct(inv.investment_id));
+    } finally {
+      setSubmittingId(null);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-brand-border bg-white">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="bg-muted text-gray-600">
+              <th className="whitespace-nowrap px-6 py-3 font-medium">
+                Client Name
+                <br />
+                <span className="font-normal text-gray-400">Client ID</span>
+              </th>
+              <th className="whitespace-nowrap px-6 py-3 font-medium">
+                Investment Amount <Info size={12} className="ml-1 inline text-gray-400" />
+              </th>
+              <th className="whitespace-nowrap px-6 py-3 font-medium">Return</th>
+              <th className="whitespace-nowrap px-6 py-3 font-medium">
+                Payout Amount <Info size={12} className="ml-1 inline text-gray-400" />
+                <br />
+                <span className="font-normal text-gray-400">(Auto calculated)</span>
+              </th>
+              <th className="whitespace-nowrap px-6 py-3 font-medium">Status</th>
+              <th className="whitespace-nowrap px-6 py-3 font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-brand-border">
+            {pageRows.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-10 text-center text-gray-400">
+                  No pending payouts for this period.
+                </td>
+              </tr>
+            ) : (
+              pageRows.map((inv) => {
+                const returnPct = getReturnPct(inv.investment_id);
+                const invDate = new Date(inv.investment_date);
+                const isFirstMonth = invDate.getMonth() + 1 === month && invDate.getFullYear() === year;
+                const payoutAmount = calculatePayout(Number(inv.amount), returnPct, inv.week_of_month, null, isFirstMonth);
+
+                return (
+                  <tr key={inv.investment_id}>
+                    <td className="px-6 py-4">
+                      <p className="font-medium text-gray-900">{inv.client_name}</p>
+                      <p className="text-xs text-gray-400">{inv.customer_id.slice(0, 8).toUpperCase()}</p>
+                    </td>
+                    <td className="px-6 py-4 text-gray-700">{formatRupees(Number(inv.amount))}</td>
+                    <td className="px-6 py-4">
+                      <div className="relative w-24">
+                        <input
+                          type="number"
+                          step={0.1}
+                          min={0}
+                          value={returnPct}
+                          onChange={(e) =>
+                            setReturnPcts((prev) => ({ ...prev, [inv.investment_id]: Number(e.target.value) }))
+                          }
+                          className="w-full rounded-lg border border-brand-border px-3 py-1.5 pr-6 text-sm text-gray-900 focus:border-primary focus:outline-none"
+                        />
+                        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                          %
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-gray-900">{formatRupees(payoutAmount)}</td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                        Pending
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleMarkPaid(inv)}
+                        disabled={submittingId === inv.investment_id}
+                        className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {submittingId === inv.investment_id ? 'Processing...' : 'Mark Paid'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-brand-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-gray-500">
+          {investments.length === 0
+            ? 'No clients'
+            : `Showing ${rangeStart} to ${rangeEnd} of ${investments.length} clients`}
+        </p>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            ‹
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              onClick={() => setPage(n)}
+              className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${
+                n === page ? 'bg-primary text-white' : 'border border-brand-border text-gray-600 hover:bg-muted'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-2 border-t border-brand-border bg-muted px-6 py-4 text-sm text-gray-600">
+        <Info size={16} className="mt-0.5 shrink-0 text-primary" />
+        <p>Enter the return percentage (%) for each client. Click &quot;Mark Paid&quot; to process the payout.</p>
+      </div>
+    </div>
+  );
+}

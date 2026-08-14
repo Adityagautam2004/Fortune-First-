@@ -24,6 +24,28 @@ api.interceptors.request.use((config) => {
 });
 
 // ── Response interceptor: silent token refresh on 401 ────────
+// A single in-flight refresh is shared across concurrent 401s (e.g. a page firing
+// several requests at once after a hard reload) — otherwise each request would race
+// to call /auth/refresh independently, and the backend's refresh-token rotation
+// invalidates the earlier ones mid-flight, turning one dropped token into several.
+let refreshPromise: Promise<string> | null = null;
+
+async function refreshAccessToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true })
+      .then((res) => {
+        const newAccessToken = res.data.data.accessToken;
+        setAccessToken(newAccessToken);
+        return newAccessToken;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -32,16 +54,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const refreshResponse = await axios.post(
-          `${API_BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
-
-        const newAccessToken = refreshResponse.data.data.accessToken;
-        setAccessToken(newAccessToken);
+        const newAccessToken = await refreshAccessToken();
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-
         return api(originalRequest);
       } catch (refreshError) {
         setAccessToken(null);

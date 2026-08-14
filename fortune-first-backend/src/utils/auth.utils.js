@@ -18,10 +18,11 @@ const comparePassword = async (password, hash) => {
 // Generate 15-minute Access Token
 const generateAccessToken = (user) => {
   return jwt.sign(
-    { 
-      userId: user.id, 
-      email: user.email, 
-      role: user.role 
+    {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
     },
     ACCESS_SECRET,
     { expiresIn: '15m' }
