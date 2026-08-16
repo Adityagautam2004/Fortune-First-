@@ -36,6 +36,9 @@ const getAssignedClients = async (req, res) => {
 };
 
 const addInvestment = async (req, res) => {
+  // Investment insert + audit log entry must succeed or fail together (NFR-REL-04) —
+  // acquire a dedicated client for the transaction, same pattern as processPayout/voidPayout.
+  const client = await db.pool.connect();
   try {
     // Only Investment Heads can add investments
     if (req.user.role !== 'investment_head') {
@@ -47,24 +50,28 @@ const addInvestment = async (req, res) => {
 
     // Application-level validation before hitting Postgres
     if (amount < 5000 || amount % 5000 !== 0) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'Investment amount must be at least ₹5,000 and a multiple of ₹5,000' 
+      return res.status(400).json({
+        status: 'error',
+        message: 'Investment amount must be at least ₹5,000 and a multiple of ₹5,000'
       });
     }
 
-    const newInvestment = await db.query(
+    await client.query('BEGIN');
+
+    const newInvestment = await client.query(
       `INSERT INTO investments (customer_id, recorded_by, amount, investment_date, week_of_month, notes)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
       [customerId, recordedBy, amount, investmentDate, weekOfMonth, notes]
     );
 
     // Audit Log Entry
-    await db.query(
-      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, new_value)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [recordedBy, 'CREATE', 'investment', newInvestment.rows[0].id, JSON.stringify(req.body)]
+    await client.query(
+      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, new_value, ip)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [recordedBy, 'CREATE', 'investment', newInvestment.rows[0].id, JSON.stringify(req.body), req.ip]
     );
+
+    await client.query('COMMIT');
 
     // Invalidate the customer's dashboard cache in Redis so they see the update immediately
     const redis = require('../utils/redis');
@@ -72,8 +79,11 @@ const addInvestment = async (req, res) => {
 
     return res.status(201).json({ status: 'success', message: 'Investment recorded successfully' });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Add Investment Error:', error);
     return res.status(500).json({ status: 'error', message: 'Failed to record investment' });
+  } finally {
+    client.release();
   }
 };
 const { calculatePayout } = require('../services/payout.service');
@@ -125,9 +135,9 @@ const processPayout = async (req, res) => {
 
     // 5. Audit Log
     await client.query(
-      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, new_value)
-       VALUES ($1, 'PROCESS_PAYOUT', 'monthly_return', $2, $3)`,
-      [processedBy, investmentId, JSON.stringify({ month, year, payoutAmount })]
+      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, new_value, ip)
+       VALUES ($1, 'PROCESS_PAYOUT', 'monthly_return', $2, $3, $4)`,
+      [processedBy, investmentId, JSON.stringify({ month, year, payoutAmount }), req.ip]
     );
 
     await client.query('COMMIT'); // Commit the transaction safely
@@ -235,13 +245,22 @@ const voidPayout = async (req, res) => {
     const { returnId } = req.params;
     await client.query('BEGIN');
 
+    const previous = await client.query(`SELECT payout_status FROM monthly_returns WHERE id = $1 FOR UPDATE`, [returnId]);
+
     // Mark as voided instead of deleting to maintain historical integrity
     await client.query(`UPDATE monthly_returns SET payout_status = 'voided' WHERE id = $1`, [returnId]);
 
-    // Log the reversal
+    // Log the reversal, including the prior status so the change is traceable
     await client.query(
-      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id) VALUES ($1, 'VOID_PAYOUT', 'monthly_return', $2)`,
-      [req.user.userId, returnId]
+      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, old_value, new_value, ip)
+       VALUES ($1, 'VOID_PAYOUT', 'monthly_return', $2, $3, $4, $5)`,
+      [
+        req.user.userId,
+        returnId,
+        JSON.stringify({ payout_status: previous.rows[0]?.payout_status ?? null }),
+        JSON.stringify({ payout_status: 'voided' }),
+        req.ip,
+      ]
     );
 
     await client.query('COMMIT');

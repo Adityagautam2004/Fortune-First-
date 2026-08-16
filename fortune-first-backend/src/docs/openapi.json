@@ -3,7 +3,7 @@
   "info": {
     "title": "Fortune First Backend API",
     "version": "1.0.0",
-    "description": "REST API for the Fortune First investment management platform.\n\n### Roles\n`customer`, `investment_head`, `business_head`, `super_admin` — enforced via `requireAuth` (valid JWT access token) and `requireRole(...)` on each route below.\n\n### Response shape\nMost endpoints return `{ \"status\": \"success\"|\"error\", \"message\": string, \"data\": ... }`. Routes built on the newer `ApiResponse` helper (`/users`, `/investments`, `/payouts`) instead return `{ \"success\": boolean, \"message\": string, \"data\": ... }`. Both are documented exactly as implemented below — this is a real inconsistency in the codebase, not a documentation error.\n\n### Known issues in the current implementation\n- `POST /board/investments` and `POST /board/payouts` are registered server-side without a leading slash (`'investments'`, `'process-payouts'`) — as written they do not match the paths the frontend actually calls and are effectively unreachable. Documented here as the frontend calls them; fix pending.\n- `PUT /auth/change-password` — the frontend calls this with `PUT`, but only `POST /auth/change-password` is registered. Documented as currently implemented (`POST`).\n- `POST /investments` and `POST /payouts` read `req.user.id`, but the JWT payload only contains `userId` — so `recorded_by`/`processed_by` are saved as `undefined` rather than the acting user's id.\n- `GET /board/dashboard` always filters by `assigned_to`, so `business_head` users (who see all clients, not just assigned ones, per `GET /board/clients`) currently get zero stats back.\n- `DELETE /admin/portfolio/{id}` filters by `owner_id = req.user.userId` (the same scoping used by the board's own `DELETE /board/portfolio/{id}`, where it's correct) — but a super_admin has no portfolio positions of their own, so this endpoint can never actually delete anything for anyone else. It always reports success regardless.",
+    "description": "REST API for the Fortune First investment management platform.\n\n### Roles\n`customer`, `investment_head`, `business_head`, `super_admin` — enforced via `requireAuth` (valid JWT access token) and `requireRole(...)` on each route below.\n\n### Response shape\nMost endpoints return `{ \"status\": \"success\"|\"error\", \"message\": string, \"data\": ... }`. Routes built on the newer `ApiResponse` helper (`/users`, `/investments`, `/payouts`) instead return `{ \"success\": boolean, \"message\": string, \"data\": ... }`. Both are documented exactly as implemented below — this is a real inconsistency in the codebase, not a documentation error.\n\n### Known issues in the current implementation\n- `PUT /auth/change-password` — the frontend calls this with `PUT`, but only `POST /auth/change-password` is registered.\n- `GET /board/dashboard` always filters by `assigned_to`, so `business_head` users (who see all clients, not just assigned ones, per `GET /board/clients`) currently get zero stats back.\n- `DELETE /admin/portfolio/{id}` filters by `owner_id = req.user.userId` (the same scoping used by the board's own `DELETE /board/portfolio/{id}`, where it's correct) — but a super_admin has no portfolio positions of their own, so this endpoint can never actually delete anything for anyone else. It always reports success regardless.",
     "contact": { "name": "Fortune First" }
   },
   "servers": [
@@ -258,7 +258,7 @@
         "tags": ["Investments"],
         "summary": "Record a new investment",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or super_admin. NOTE: recorded_by is currently saved as undefined — see Known Issues.",
+        "description": "Requires role: investment_head or super_admin.",
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "type": "object", "required": ["customer_id", "amount", "investment_date", "week_of_month"], "properties": { "customer_id": { "type": "string", "format": "uuid" }, "amount": { "type": "number", "minimum": 5000 }, "investment_date": { "type": "string", "format": "date" }, "week_of_month": { "type": "integer", "minimum": 1, "maximum": 4 }, "tenure_months": { "type": "integer", "default": 3 }, "notes": { "type": "string", "maxLength": 500 } } } } }
@@ -311,7 +311,7 @@
         "tags": ["Payouts"],
         "summary": "Record a new monthly return / payout",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or super_admin. NOTE: processed_by is currently saved as undefined — see Known Issues.",
+        "description": "Requires role: investment_head or super_admin.",
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "type": "object", "required": ["investment_id", "month", "year", "return_pct", "payout_amount"], "properties": { "investment_id": { "type": "string", "format": "uuid" }, "month": { "type": "integer", "minimum": 1, "maximum": 12 }, "year": { "type": "integer", "minimum": 2020, "maximum": 2100 }, "return_pct": { "type": "number", "minimum": 0, "maximum": 100 }, "payout_amount": { "type": "number", "minimum": 0 } } } } }
@@ -457,7 +457,7 @@
         "tags": ["Board"],
         "summary": "Record an investment for an assigned client",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head (enforced again inside the controller). KNOWN ISSUE: registered server-side as `'investments'` (no leading slash) — likely unreachable as written.",
+        "description": "Requires role: investment_head (enforced again inside the controller).",
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "type": "object", "required": ["customerId", "amount", "investmentDate", "weekOfMonth"], "properties": { "customerId": { "type": "string", "format": "uuid" }, "amount": { "type": "number" }, "investmentDate": { "type": "string", "format": "date" }, "weekOfMonth": { "type": "integer" }, "notes": { "type": "string" } } } } }
@@ -465,12 +465,25 @@
         "responses": { "201": { "description": "Investment recorded successfully" }, "400": { "description": "Amount below 5000 or not a multiple of 5000" } }
       }
     },
+    "/board/payouts/pending": {
+      "get": {
+        "tags": ["Board"],
+        "summary": "List investments due a payout this month (FR-IH-11)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: investment_head or business_head. Active investments with no monthly_returns row yet for the given month/year (defaults to current month). investment_head is scoped to assigned clients only.",
+        "parameters": [
+          { "name": "month", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } },
+          { "name": "year", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Pending investments for the period" } }
+      }
+    },
     "/board/payouts": {
       "post": {
         "tags": ["Board"],
         "summary": "Process a monthly payout for an investment",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head (enforced again inside the controller). KNOWN ISSUE: registered server-side as `'process-payouts'` (no leading slash, different name) — does not match this path as written.",
+        "description": "Requires role: investment_head (enforced again inside the controller).",
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "type": "object", "required": ["investmentId", "month", "year", "returnPct"], "properties": { "investmentId": { "type": "string", "format": "uuid" }, "month": { "type": "integer" }, "year": { "type": "integer" }, "returnPct": { "type": "number" } } } } }

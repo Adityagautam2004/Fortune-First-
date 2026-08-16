@@ -8,7 +8,7 @@ const ApiResponse = require('../utils/apiResponse');
 const createInvestment = async (req, res, next) => {
   try {
     // Auto-fill the recorder from the authenticated user
-    const data = { ...req.body, recorded_by: req.user.id };
+    const data = { ...req.body, recorded_by: req.user.userId };
     const investment = await investmentService.createInvestment(data);
     return ApiResponse.created(res, { investment }, 'Investment recorded successfully');
   } catch (error) {

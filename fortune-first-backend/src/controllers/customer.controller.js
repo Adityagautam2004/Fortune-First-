@@ -1,5 +1,6 @@
 const db = require('../models/db');
 const redis = require('../utils/redis');
+const { encrypt, decrypt } = require('../utils/crypto');
 
 const getDashboardStats = async (req, res) => {
   try {
@@ -87,12 +88,20 @@ const getProfile = async (req, res) => {
     }
 
     const data = profileQuery.rows[0];
-    
-    // Masking sensitive data before it leaves the server
+
+    // Decrypt server-side only long enough to mask, then discard the plaintext —
+    // the raw encrypted columns and full decrypted values never leave this function.
     if (data.pan_number_enc) {
-      data.pan_masked = data.pan_number_enc.substring(0, 5) + '****' + data.pan_number_enc.substring(9);
+      const pan = decrypt(data.pan_number_enc);
+      data.pan_masked = pan ? pan.substring(0, 5) + '****' + pan.substring(9) : null;
     }
-    
+    if (data.account_number_enc) {
+      const account = decrypt(data.account_number_enc);
+      data.account_masked = account ? '*'.repeat(Math.max(account.length - 4, 0)) + account.slice(-4) : null;
+    }
+    delete data.pan_number_enc;
+    delete data.account_number_enc;
+
     return res.status(200).json({ status: 'success', data });
   } catch (error) {
     console.error('Profile Error:', error);
@@ -172,7 +181,7 @@ const submitKYC = async (req, res) => {
        ON CONFLICT (user_id) DO UPDATE
        SET pan_number_enc = EXCLUDED.pan_number_enc, bank_name = EXCLUDED.bank_name,
            account_number_enc = EXCLUDED.account_number_enc, ifsc_code = EXCLUDED.ifsc_code`,
-      [userId, panNumber, bankName, accountNumber, ifscCode]
+      [userId, encrypt(panNumber), bankName, encrypt(accountNumber), ifscCode]
     );
 
     return res.status(200).json({ status: 'success', message: 'KYC submitted for verification' });
