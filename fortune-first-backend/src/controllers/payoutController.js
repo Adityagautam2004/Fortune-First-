@@ -7,7 +7,7 @@ const ApiResponse = require('../utils/apiResponse');
  */
 const recordPayout = async (req, res, next) => {
   try {
-    const data = { ...req.body, processed_by: req.user.id };
+    const data = { ...req.body, processed_by: req.user.userId };
     const payout = await payoutService.recordPayout(data);
     return ApiResponse.created(res, { payout }, 'Payout recorded successfully');
   } catch (error) {
@@ -34,7 +34,7 @@ const getPayoutsByInvestment = async (req, res, next) => {
  */
 const updatePayoutStatus = async (req, res, next) => {
   try {
-    const data = { ...req.body, processed_by: req.user.id };
+    const data = { ...req.body, processed_by: req.user.userId };
     const payout = await payoutService.updatePayoutStatus(req.params.id, data);
     return ApiResponse.ok(res, { payout }, 'Payout status updated successfully');
   } catch (error) {
