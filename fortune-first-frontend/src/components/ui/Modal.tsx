@@ -8,7 +8,7 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export default function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
@@ -35,6 +35,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
     sm: 'max-w-sm',
     md: 'max-w-lg',
     lg: 'max-w-2xl',
+    xl: 'max-w-4xl',
   };
 
   return (
@@ -46,11 +47,11 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
       />
       {/* Modal body */}
       <div
-        className={`relative ${sizeMap[size]} w-full rounded-2xl border border-primary/15 bg-white shadow-2xl animate-in zoom-in-95`}
+        className={`relative flex max-h-[90vh] ${sizeMap[size]} w-full flex-col rounded-2xl border border-primary/15 bg-white shadow-2xl animate-in zoom-in-95`}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
+          <div className="flex shrink-0 items-center justify-between px-6 py-4 border-b border-brand-border">
             <h3 className="text-lg font-bold text-gray-900">{title}</h3>
             <button
               onClick={onClose}
@@ -61,7 +62,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
           </div>
         )}
         {/* Content */}
-        <div className="p-6">{children}</div>
+        <div className="overflow-y-auto p-6">{children}</div>
       </div>
     </div>
   );
