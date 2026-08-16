@@ -104,19 +104,6 @@ export function LoginForm() {
         >
           Login
         </Button>
-
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-gray-200" />
-          <span className="text-xs font-medium text-gray-400">OR</span>
-          <div className="h-px flex-1 bg-gray-200" />
-        </div>
-
-        <p className="text-center text-xs text-gray-700">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className="font-semibold text-[#f97316] hover:text-[#ea580c]">
-            Create Account
-          </Link>
-        </p>
       </form>
     </>
   );
