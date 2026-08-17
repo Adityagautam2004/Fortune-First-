@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/Button';
 
 export function TrustedSection() {
   return (
-    <section id="trusted" className="bg-muted py-12 md:py-16">
+    <section id="trusted" className="border-t border-gray-100 bg-muted py-12 md:py-16">
       <div className="container-max text-center">
         <h2 className="mb-1 text-xl font-bold text-gray-800 md:text-2xl">
           Trusted by 20+ private clients
