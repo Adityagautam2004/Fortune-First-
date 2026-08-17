@@ -1,15 +1,59 @@
 const db = require('../models/db');
 const { hashPassword } = require('../utils/auth.utils');
+const userService = require('../services/userService');
+const investmentService = require('../services/investmentService');
+const payoutService = require('../services/payout.service');
 
 const getUsers = async (req, res) => {
   try {
-    const usersRes = await db.query(
-      `SELECT id, name, email, role, phone, is_active, created_at 
-       FROM users ORDER BY created_at DESC`
-    );
-    return res.status(200).json({ status: 'success', data: usersRes.rows });
+    // FR-ADMIN-05: search/filter by investment head (assignedTo) and status (isActive).
+    // Response stays a flat array (data: [...]) for backward compatibility with the
+    // existing admin users table, which doesn't paginate — just filters if asked.
+    const { role, assignedTo, isActive } = req.query;
+    const result = await userService.getAllUsers({
+      role,
+      assigned_to: assignedTo,
+      is_active: isActive !== undefined ? isActive === 'true' : undefined,
+      page: 1,
+      limit: 1000,
+    });
+    return res.status(200).json({ status: 'success', data: result.users });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch users' });
+  }
+};
+
+// GET /admin/users/:id — FR-ADMIN-05/06 single-user lookup
+const getUserByIdAdmin = async (req, res) => {
+  try {
+    const user = await userService.getUserById(req.params.id);
+    return res.status(200).json({ status: 'success', data: user });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to fetch user' });
+  }
+};
+
+// PATCH /admin/users/:id — FR-ADMIN-06: edit investor/board profile, assigned head, etc.
+const updateUserAdmin = async (req, res) => {
+  try {
+    const user = await userService.updateUser(req.params.id, req.body);
+    return res.status(200).json({ status: 'success', message: 'User updated successfully', data: user });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to update user' });
+  }
+};
+
+// PATCH /admin/users/:id/toggle-active — FR-ADMIN-07: suspend/activate
+const toggleUserActiveAdmin = async (req, res) => {
+  try {
+    const user = await userService.toggleUserActive(req.params.id);
+    return res.status(200).json({
+      status: 'success',
+      message: `User ${user.is_active ? 'activated' : 'deactivated'} successfully`,
+      data: user,
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to update user status' });
   }
 };
 
@@ -127,4 +171,376 @@ const resolveSupportTicket = async (req, res) => {
   }
 };
 
-module.exports = { getUsers, createUser, getJoinRequests, updateJoinRequestStatus, getDashboardStats, removePosition, getAllSupportTickets, resolveSupportTicket };
+// ── Investments (FR-ADMIN-14) ────────────────────────────────────
+
+// GET /admin/investments — paginated, filterable by customer_id/status
+const getAllInvestmentsAdmin = async (req, res) => {
+  try {
+    const { customer_id, status, page, limit } = req.query;
+    const result = await investmentService.getAllInvestments({
+      customer_id,
+      status,
+      page: parseInt(page, 10) || 1,
+      limit: parseInt(limit, 10) || 20,
+    });
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        investments: result.investments,
+        pagination: {
+          total: result.total,
+          page: parseInt(page, 10) || 1,
+          limit: parseInt(limit, 10) || 20,
+          totalPages: Math.ceil(result.total / (parseInt(limit, 10) || 20)),
+        },
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch investments' });
+  }
+};
+
+const getInvestmentByIdAdmin = async (req, res) => {
+  try {
+    const investment = await investmentService.getInvestmentById(req.params.id);
+    return res.status(200).json({ status: 'success', data: investment });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to fetch investment' });
+  }
+};
+
+const updateInvestmentStatusAdmin = async (req, res) => {
+  try {
+    const investment = await investmentService.updateInvestmentStatus(req.params.id, req.body);
+    return res.status(200).json({ status: 'success', message: 'Investment status updated successfully', data: investment });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to update investment status' });
+  }
+};
+
+// GET /admin/investments/:id/payouts — all monthly_returns for one investment
+const getInvestmentPayoutsAdmin = async (req, res) => {
+  try {
+    const payouts = await payoutService.getPayoutsByInvestment(req.params.id);
+    return res.status(200).json({ status: 'success', data: payouts });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch payouts' });
+  }
+};
+
+// PATCH /admin/payouts/:id/status — correct a payout's status (pending/paid/skipped)
+const updatePayoutStatusAdmin = async (req, res) => {
+  try {
+    const data = { ...req.body, processed_by: req.user.userId };
+    const payout = await payoutService.updatePayoutStatus(req.params.id, data);
+    return res.status(200).json({ status: 'success', message: 'Payout status updated successfully', data: payout });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to update payout status' });
+  }
+};
+
+// GET /admin/financials — FR-ADMIN-14/15/16: global summary + optional CSV export
+const getFinancialsSummary = async (req, res) => {
+  try {
+    const investmentsRes = await db.query(
+      `SELECT i.id, i.amount, i.status, i.investment_date, u.name AS customer_name, u.email AS customer_email
+       FROM investments i JOIN users u ON u.id = i.customer_id
+       ORDER BY i.investment_date DESC`
+    );
+
+    if (req.query.format === 'csv') {
+      const header = 'id,customer_name,customer_email,amount,status,investment_date';
+      const rows = investmentsRes.rows.map((r) =>
+        [r.id, `"${r.customer_name}"`, r.customer_email, r.amount, r.status, r.investment_date.toISOString().slice(0, 10)].join(',')
+      );
+      const csv = [header, ...rows].join('\n');
+      res.set({ 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="fortune_first_investments.csv"' });
+      return res.status(200).send(csv);
+    }
+
+    const summary = await payoutService.getPayoutSummary();
+    const totalsRes = await db.query(
+      `SELECT COALESCE(SUM(amount), 0) AS total_aum, COUNT(*) AS total_investments
+       FROM investments WHERE status = 'active'`
+    );
+
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        totalAum: parseFloat(totalsRes.rows[0].total_aum),
+        totalInvestments: parseInt(totalsRes.rows[0].total_investments, 10),
+        payoutSummary: summary,
+        investments: investmentsRes.rows,
+      },
+    });
+  } catch (error) {
+    console.error('Financials Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to load financial summary' });
+  }
+};
+
+// ── Audit Logs (FR-ADMIN-22) — read-only, immutable per FR-ADMIN-23 ──
+
+const getAuditLogs = async (req, res) => {
+  try {
+    const { actorId, entityType, startDate, endDate, page, limit } = req.query;
+    const conditions = [];
+    const values = [];
+    let i = 1;
+
+    if (actorId) { conditions.push(`actor_id = $${i++}`); values.push(actorId); }
+    if (entityType) { conditions.push(`entity_type = $${i++}`); values.push(entityType); }
+    if (startDate) { conditions.push(`created_at >= $${i++}`); values.push(startDate); }
+    if (endDate) { conditions.push(`created_at <= $${i++}`); values.push(endDate); }
+
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 50;
+    const offset = (pageNum - 1) * limitNum;
+
+    const countRes = await db.query(`SELECT COUNT(*) FROM audit_logs ${whereClause}`, values);
+    const logsRes = await db.query(
+      `SELECT al.id, al.actor_id, u.name AS actor_name, al.action, al.entity_type, al.entity_id,
+              al.old_value, al.new_value, al.ip, al.created_at
+       FROM audit_logs al
+       LEFT JOIN users u ON u.id = al.actor_id
+       ${whereClause}
+       ORDER BY al.created_at DESC
+       LIMIT $${i++} OFFSET $${i}`,
+      [...values, limitNum, offset]
+    );
+
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        logs: logsRes.rows,
+        pagination: {
+          total: parseInt(countRes.rows[0].count, 10),
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(parseInt(countRes.rows[0].count, 10) / limitNum),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Audit Log Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch audit logs' });
+  }
+};
+
+// ── Global return rate (FR-ADMIN-13) ─────────────────────────────
+
+const getReturnRate = async (req, res) => {
+  try {
+    const result = await db.query(`SELECT global_return_pct, updated_at FROM platform_settings WHERE id = 1`);
+    return res.status(200).json({ status: 'success', data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch return rate' });
+  }
+};
+
+const setReturnRate = async (req, res) => {
+  try {
+    const { returnPct } = req.body;
+    if (typeof returnPct !== 'number' || returnPct < 0 || returnPct > 100) {
+      return res.status(400).json({ status: 'error', message: 'returnPct must be a number between 0 and 100' });
+    }
+    const result = await db.query(
+      `UPDATE platform_settings SET global_return_pct = $1, updated_at = NOW() WHERE id = 1 RETURNING global_return_pct, updated_at`,
+      [returnPct]
+    );
+    return res.status(200).json({ status: 'success', message: 'Global return rate updated', data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to update return rate' });
+  }
+};
+
+// ── Support ticket assignment (FR-ADMIN-25) ──────────────────────
+
+const assignSupportTicket = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { boardMemberId } = req.body;
+    const result = await db.query(
+      `UPDATE support_tickets SET assigned_to = $1 WHERE id = $2 RETURNING id, assigned_to`,
+      [boardMemberId, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Ticket not found' });
+    }
+    return res.status(200).json({ status: 'success', message: 'Ticket assigned', data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to assign ticket' });
+  }
+};
+
+// ── Blog CMS (FR-ADMIN-17, FR-PUBLIC-23..26) ─────────────────────
+
+const slugify = (title) =>
+  title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+const getAllBlogPostsAdmin = async (req, res) => {
+  try {
+    const posts = await db.query(`SELECT * FROM blog_posts ORDER BY created_at DESC`);
+    return res.status(200).json({ status: 'success', data: posts.rows });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch blog posts' });
+  }
+};
+
+const createBlogPost = async (req, res) => {
+  try {
+    const { title, content, isPublished } = req.body;
+    const slug = slugify(title);
+    const published = !!isPublished;
+    const result = await db.query(
+      `INSERT INTO blog_posts (title, slug, content, author_id, is_published, published_at)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [title, slug, content, req.user.userId, published, published ? new Date() : null]
+    );
+    return res.status(201).json({ status: 'success', message: 'Blog post created', data: result.rows[0] });
+  } catch (error) {
+    if (error.code === '23505') {
+      return res.status(400).json({ status: 'error', message: 'A post with a matching slug already exists' });
+    }
+    return res.status(500).json({ status: 'error', message: 'Failed to create blog post' });
+  }
+};
+
+const updateBlogPost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, isPublished } = req.body;
+    const result = await db.query(
+      `UPDATE blog_posts
+       SET title = COALESCE($1, title),
+           content = COALESCE($2, content),
+           is_published = COALESCE($3, is_published),
+           published_at = CASE WHEN $3 = TRUE AND published_at IS NULL THEN NOW() ELSE published_at END,
+           updated_at = NOW()
+       WHERE id = $4 RETURNING *`,
+      [title || null, content || null, isPublished === undefined ? null : isPublished, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Blog post not found' });
+    }
+    return res.status(200).json({ status: 'success', message: 'Blog post updated', data: result.rows[0] });
+  } catch (error) {
+    console.error('Update Blog Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to update blog post' });
+  }
+};
+
+const deleteBlogPost = async (req, res) => {
+  try {
+    await db.query(`DELETE FROM blog_posts WHERE id = $1`, [req.params.id]);
+    return res.status(200).json({ status: 'success', message: 'Blog post deleted' });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to delete blog post' });
+  }
+};
+
+// ── Testimonials CMS (FR-ADMIN-18) ───────────────────────────────
+
+const getAllTestimonialsAdmin = async (req, res) => {
+  try {
+    const testimonials = await db.query(`SELECT * FROM testimonials ORDER BY created_at DESC`);
+    return res.status(200).json({ status: 'success', data: testimonials.rows });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch testimonials' });
+  }
+};
+
+const createTestimonial = async (req, res) => {
+  try {
+    const { clientName, content, rating, isVisible } = req.body;
+    const result = await db.query(
+      `INSERT INTO testimonials (client_name, content, rating, is_visible)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [clientName, content, rating || 5, isVisible !== false]
+    );
+    return res.status(201).json({ status: 'success', message: 'Testimonial created', data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to create testimonial' });
+  }
+};
+
+const updateTestimonial = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { clientName, content, rating, isVisible } = req.body;
+    const result = await db.query(
+      `UPDATE testimonials
+       SET client_name = COALESCE($1, client_name), content = COALESCE($2, content),
+           rating = COALESCE($3, rating), is_visible = COALESCE($4, is_visible)
+       WHERE id = $5 RETURNING *`,
+      [clientName || null, content || null, rating || null, isVisible === undefined ? null : isVisible, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Testimonial not found' });
+    }
+    return res.status(200).json({ status: 'success', message: 'Testimonial updated', data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to update testimonial' });
+  }
+};
+
+const deleteTestimonial = async (req, res) => {
+  try {
+    await db.query(`DELETE FROM testimonials WHERE id = $1`, [req.params.id]);
+    return res.status(200).json({ status: 'success', message: 'Testimonial deleted' });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to delete testimonial' });
+  }
+};
+
+// ── Public returns chart data (FR-ADMIN-19) ──────────────────────
+
+const updatePublicReturns = async (req, res) => {
+  try {
+    const { month, year, returnPct, notes } = req.body;
+    const result = await db.query(
+      `INSERT INTO public_returns (month, year, return_pct, notes)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (month, year) DO UPDATE SET return_pct = EXCLUDED.return_pct, notes = EXCLUDED.notes
+       RETURNING *`,
+      [month, year, returnPct, notes || null]
+    );
+    return res.status(200).json({ status: 'success', message: 'Public return data updated', data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to update public returns' });
+  }
+};
+
+module.exports = {
+  getUsers,
+  createUser,
+  getUserByIdAdmin,
+  updateUserAdmin,
+  toggleUserActiveAdmin,
+  getJoinRequests,
+  updateJoinRequestStatus,
+  getDashboardStats,
+  removePosition,
+  getAllSupportTickets,
+  resolveSupportTicket,
+  assignSupportTicket,
+  getAllInvestmentsAdmin,
+  getInvestmentByIdAdmin,
+  updateInvestmentStatusAdmin,
+  getInvestmentPayoutsAdmin,
+  updatePayoutStatusAdmin,
+  getFinancialsSummary,
+  getAuditLogs,
+  getReturnRate,
+  setReturnRate,
+  getAllBlogPostsAdmin,
+  createBlogPost,
+  updateBlogPost,
+  deleteBlogPost,
+  getAllTestimonialsAdmin,
+  createTestimonial,
+  updateTestimonial,
+  deleteTestimonial,
+  updatePublicReturns,
+};

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedClients, addInvestment , processPayout, getChatHistory, getBoardDashboardStats, voidPayout, getClientActiveInvestments, getClientDetail, getPendingPayouts } = require('../controllers/board.controller');
+const { getAssignedClients, addInvestment , processPayout, getChatHistory, getBoardDashboardStats, voidPayout, getClientActiveInvestments, getClientDetail, getPendingPayouts, sendClientReport, sendClientEmail, getBoardReturnRate } = require('../controllers/board.controller');
 const { getLivePortfolio, addPosition, removePosition } = require('../controllers/portfolio.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireRole } = require('../middleware/role.middleware');
@@ -13,6 +13,17 @@ router.get('/dashboard', getBoardDashboardStats);
 router.get('/clients', getAssignedClients);
 router.get('/clients/:id', getClientDetail);
 router.get('/clients/:id/investments/active', getClientActiveInvestments);
+router.get('/return-rate', getBoardReturnRate);
+router.post(
+  '/clients/:id/send-report',
+  (req, res, next) => (['investment_head', 'super_admin'].includes(req.user.role) ? next() : res.status(403).json({ status: 'error', message: 'Forbidden' })),
+  sendClientReport
+);
+router.post(
+  '/clients/:id/send-email',
+  (req, res, next) => (['investment_head', 'super_admin'].includes(req.user.role) ? next() : res.status(403).json({ status: 'error', message: 'Forbidden' })),
+  sendClientEmail
+);
 router.post('/investments', addInvestment)
 router.get('/payouts/pending', getPendingPayouts);
 router.post('/payouts', processPayout)

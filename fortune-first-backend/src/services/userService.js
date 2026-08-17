@@ -2,11 +2,11 @@ const db = require('../models/db');
 const ApiError = require('../utils/apiError');
 
 /**
- * Get all users with optional role filtering and pagination.
- * @param {{ role?: string, page?: number, limit?: number }} options
+ * Get all users with optional role/assigned-head/status filtering and pagination.
+ * @param {{ role?: string, assigned_to?: string, is_active?: boolean, page?: number, limit?: number }} options
  * @returns {Promise<{ users: object[], total: number }>}
  */
-const getAllUsers = async ({ role, page = 1, limit = 20 } = {}) => {
+const getAllUsers = async ({ role, assigned_to, is_active, page = 1, limit = 20 } = {}) => {
   const offset = (page - 1) * limit;
   const conditions = [];
   const values = [];
@@ -15,6 +15,16 @@ const getAllUsers = async ({ role, page = 1, limit = 20 } = {}) => {
   if (role) {
     conditions.push(`role = $${paramIndex++}`);
     values.push(role);
+  }
+
+  if (assigned_to) {
+    conditions.push(`assigned_to = $${paramIndex++}`);
+    values.push(assigned_to);
+  }
+
+  if (is_active !== undefined) {
+    conditions.push(`is_active = $${paramIndex++}`);
+    values.push(is_active);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

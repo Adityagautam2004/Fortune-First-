@@ -60,7 +60,13 @@ setupSocket(io);
 
 const PORT = process.env.PORT || 4000;
 
-// IMPORTANT: Change app.listen to server.listen
-server.listen(PORT, () => {
-  console.log(`🚀 Server gracefully running on port ${PORT} with WebSockets enabled`);
-});
+// Only actually bind to a port when this file is the process entry point
+// (`node src/app.js` / Docker's CMD) — not when a test file `require()`s it
+// to get `app` for supertest, which would otherwise fight over the port.
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`🚀 Server gracefully running on port ${PORT} with WebSockets enabled`);
+  });
+}
+
+module.exports = { app, server };

@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-lint:
+    name: Backend / Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: fortune-first-backend/package-lock.json
+      - working-directory: fortune-first-backend
+        run: npm ci
+      - working-directory: fortune-first-backend
+        run: npm run lint
+
+  backend-test:
+    name: Backend / Test
+    runs-on: ubuntu-latest
+    needs: backend-lint
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: fortunefirst
+          POSTGRES_USER: ff_user
+          POSTGRES_PASSWORD: ci_test_password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ff_user -d fortunefirst"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ff_user:ci_test_password@localhost:5432/fortunefirst
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci_test_access_secret_32_chars_minimum
+      JWT_REFRESH_SECRET: ci_test_refresh_secret_32_chars_minimum
+      AES_ENCRYPTION_KEY: ci_test_aes_key_not_for_production_use
+      CORS_ORIGIN: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: fortune-first-backend/package-lock.json
+      - working-directory: fortune-first-backend
+        run: npm ci
+      - working-directory: fortune-first-backend
+        run: npm run migrate
+      - working-directory: fortune-first-backend
+        run: npm test
+
+  frontend-checks:
+    name: Frontend / Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: fortune-first-frontend/package-lock.json
+      - working-directory: fortune-first-frontend
+        run: npm ci
+      - working-directory: fortune-first-frontend
+        run: npm run lint
+      - working-directory: fortune-first-frontend
+        run: npm run build
+
+  deploy-backend:
+    name: Deploy backend (Render)
+    runs-on: ubuntu-latest
+    needs: backend-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Trigger Render deploy hook
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL secret not set — skipping (add it in repo Settings > Secrets to enable)."
+            exit 0
+          fi
+          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+  # No separate frontend deploy job: Vercel's own GitHub integration auto-deploys
+  # on push to main once the repo is connected in the Vercel dashboard (per the
+  # SDLC doc, Part 3/Phase 5) — nothing for this workflow to trigger.

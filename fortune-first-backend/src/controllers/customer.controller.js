@@ -170,6 +170,46 @@ const downloadFullReport = async (req, res) => {
 };
 
 
+// GET /customer/report/monthly?month=&year= — FR-CUST-09: single-month PDF report
+const downloadMonthlyReport = async (req, res) => {
+  try {
+    const customerId = req.user.userId;
+    const month = parseInt(req.query.month, 10);
+    const year = parseInt(req.query.year, 10);
+
+    if (!month || !year || month < 1 || month > 12) {
+      return res.status(400).json({ status: 'error', message: 'Valid month (1-12) and year are required' });
+    }
+
+    const profileRes = await db.query(`SELECT name FROM users WHERE id = $1`, [customerId]);
+    const historyRes = await db.query(
+      `SELECT mr.month, mr.year, i.amount AS invested_amount, mr.return_pct, mr.payout_amount
+       FROM monthly_returns mr
+       JOIN investments i ON mr.investment_id = i.id
+       WHERE i.customer_id = $1 AND mr.month = $2 AND mr.year = $3
+       ORDER BY mr.year DESC, mr.month DESC`,
+      [customerId, month, year]
+    );
+
+    if (historyRes.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'No records found for that month' });
+    }
+
+    const pdfBuffer = await generateReportPDF(profileRes.rows[0].name, historyRes.rows);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="Fortune_First_Report_${month}_${year}.pdf"`,
+      'Content-Length': pdfBuffer.length
+    });
+
+    return res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Monthly PDF Generation Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to generate report' });
+  }
+};
+
 const submitKYC = async (req, res) => {
   try {
     const { panNumber, bankName, accountNumber, ifscCode } = req.body;
@@ -190,4 +230,4 @@ const submitKYC = async (req, res) => {
   }
 };
 
-module.exports = { getDashboardStats, getInvestmentHistory,getProfile,createSupportTicket,getSupportTickets,downloadFullReport, submitKYC };
+module.exports = { getDashboardStats, getInvestmentHistory,getProfile,createSupportTicket,getSupportTickets,downloadFullReport, downloadMonthlyReport, submitKYC };

@@ -1,7 +1,11 @@
 const puppeteer = require('puppeteer');
 
 const generateReportPDF = async (clientName, historyData) => {
-  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+  });
   const page = await browser.newPage();
 
   // Create an HTML template string using the fetched history data
@@ -48,8 +52,11 @@ const generateReportPDF = async (clientName, historyData) => {
   await page.setContent(htmlContent);
   const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
   await browser.close();
-  
-  return pdfBuffer;
+
+  // This puppeteer version returns a plain Uint8Array, not a Node Buffer —
+  // Express's res.send() only sends raw binary for actual Buffer instances,
+  // otherwise it silently falls through to JSON-serializing it byte-by-byte.
+  return Buffer.from(pdfBuffer);
 };
 
 module.exports = { generateReportPDF };

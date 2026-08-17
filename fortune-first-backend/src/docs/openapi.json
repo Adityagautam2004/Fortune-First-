@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Fortune First Backend API",
-    "version": "1.0.0",
-    "description": "REST API for the Fortune First investment management platform.\n\n### Roles\n`customer`, `investment_head`, `business_head`, `super_admin` — enforced via `requireAuth` (valid JWT access token) and `requireRole(...)` on each route below.\n\n### Response shape\nMost endpoints return `{ \"status\": \"success\"|\"error\", \"message\": string, \"data\": ... }`. Routes built on the newer `ApiResponse` helper (`/users`, `/investments`, `/payouts`) instead return `{ \"success\": boolean, \"message\": string, \"data\": ... }`. Both are documented exactly as implemented below — this is a real inconsistency in the codebase, not a documentation error.\n\n### Known issues in the current implementation\n- `PUT /auth/change-password` — the frontend calls this with `PUT`, but only `POST /auth/change-password` is registered.\n- `GET /board/dashboard` always filters by `assigned_to`, so `business_head` users (who see all clients, not just assigned ones, per `GET /board/clients`) currently get zero stats back.\n- `DELETE /admin/portfolio/{id}` filters by `owner_id = req.user.userId` (the same scoping used by the board's own `DELETE /board/portfolio/{id}`, where it's correct) — but a super_admin has no portfolio positions of their own, so this endpoint can never actually delete anything for anyone else. It always reports success regardless.",
+    "version": "2.0.0",
+    "description": "REST API for the Fortune First investment management platform.\n\n### Roles\n`customer`, `investment_head`, `business_head`, `super_admin` — enforced via `requireAuth` (valid JWT access token) and `requireRole(...)` on each route below.\n\n### Route structure\nEverything lives under the SRS's role-namespaced structure (3.1.2): `/auth`, `/customer/*`, `/board/*`, `/admin/*`, `/public/*`. There used to be a separate flat `/users`, `/investments`, `/payouts` route family; that's been folded entirely into `/admin/*` (same underlying service functions, just consistently namespaced).\n\n### Known issues in the current implementation\n- `PUT /auth/change-password` — the frontend calls this with `PUT`, but only `POST /auth/change-password` is registered.\n- `GET /board/dashboard` always filters by `assigned_to`, so `business_head` users (who see all clients, not just assigned ones, per `GET /board/clients`) currently get zero stats back.\n- `DELETE /admin/portfolio/{id}` filters by `owner_id = req.user.userId` (the same scoping used by the board's own `DELETE /board/portfolio/{id}`, where it's correct) — but a super_admin has no portfolio positions of their own, so this endpoint can never actually delete anything for anyone else. It always reports success regardless.\n- `GET /board/clients/{id}/investments/active` has no ownership check against `assigned_to` — any board member can query any customer id, by design choice (not fixed).",
     "contact": { "name": "Fortune First" }
   },
   "servers": [
@@ -11,10 +11,7 @@
   ],
   "tags": [
     { "name": "Health", "description": "Service health check" },
-    { "name": "Auth", "description": "Login, token refresh, logout, password change" },
-    { "name": "Users", "description": "User administration (super_admin / business_head)" },
-    { "name": "Investments", "description": "Investment records" },
-    { "name": "Payouts", "description": "Monthly return / payout records" },
+    { "name": "Auth", "description": "Login, token refresh, logout, password change/reset" },
     { "name": "Customer", "description": "Customer-only self-service endpoints" },
     { "name": "Board", "description": "Investment Head / Business Head endpoints" },
     { "name": "Admin", "description": "Super Admin console" },
@@ -27,61 +24,6 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "Access token returned by /auth/login or /auth/refresh, sent as `Authorization: Bearer <token>`. Expires after 15 minutes."
-      }
-    },
-    "schemas": {
-      "ErrorResponse": {
-        "type": "object",
-        "properties": {
-          "status": { "type": "string", "example": "error" },
-          "message": { "type": "string" }
-        }
-      },
-      "User": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "email": { "type": "string", "format": "email" },
-          "role": { "type": "string", "enum": ["customer", "investment_head", "business_head", "super_admin"] },
-          "phone": { "type": "string", "nullable": true },
-          "is_active": { "type": "boolean" },
-          "must_change_password": { "type": "boolean" },
-          "assigned_to": { "type": "string", "format": "uuid", "nullable": true },
-          "shareholding_pct": { "type": "number" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Investment": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "customer_id": { "type": "string", "format": "uuid" },
-          "recorded_by": { "type": "string", "format": "uuid", "nullable": true },
-          "amount": { "type": "number", "minimum": 5000 },
-          "investment_date": { "type": "string", "format": "date" },
-          "week_of_month": { "type": "integer", "minimum": 1, "maximum": 4 },
-          "tenure_months": { "type": "integer", "default": 3 },
-          "status": { "type": "string", "enum": ["active", "exited", "suspended"] },
-          "exit_date": { "type": "string", "format": "date", "nullable": true },
-          "notes": { "type": "string", "nullable": true },
-          "created_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "MonthlyReturn": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "investment_id": { "type": "string", "format": "uuid" },
-          "month": { "type": "integer", "minimum": 1, "maximum": 12 },
-          "year": { "type": "integer" },
-          "return_pct": { "type": "number" },
-          "payout_amount": { "type": "number" },
-          "payout_status": { "type": "string", "enum": ["pending", "paid", "skipped"] },
-          "payout_date": { "type": "string", "format": "date", "nullable": true },
-          "processed_by": { "type": "string", "format": "uuid", "nullable": true }
-        }
       }
     }
   },
@@ -110,10 +52,7 @@
           "content": { "application/json": { "schema": { "type": "object", "required": ["email", "password"], "properties": { "email": { "type": "string", "format": "email" }, "password": { "type": "string", "format": "password" } } } } }
         },
         "responses": {
-          "200": {
-            "description": "Login successful",
-            "content": { "application/json": { "example": { "status": "success", "data": { "accessToken": "eyJ...", "user": { "id": "uuid", "name": "Aditya Gautam", "email": "admin@fortunefirst.com", "role": "super_admin", "mustChangePassword": false } } } } }
-          },
+          "200": { "description": "Login successful", "content": { "application/json": { "example": { "status": "success", "data": { "accessToken": "eyJ...", "user": { "id": "uuid", "name": "Aditya Gautam", "email": "admin@fortunefirst.com", "role": "super_admin", "mustChangePassword": false } } } } } },
           "400": { "description": "Missing email or password" },
           "401": { "description": "Invalid credentials" },
           "403": { "description": "Account suspended" },
@@ -127,10 +66,7 @@
         "summary": "Exchange a refresh token for a new access token",
         "description": "Reads the refresh token from the httpOnly cookie, or falls back to `refreshToken` in the request body.",
         "security": [],
-        "requestBody": {
-          "required": false,
-          "content": { "application/json": { "schema": { "type": "object", "properties": { "refreshToken": { "type": "string" } } } } }
-        },
+        "requestBody": { "required": false, "content": { "application/json": { "schema": { "type": "object", "properties": { "refreshToken": { "type": "string" } } } } } },
         "responses": {
           "200": { "description": "New access token issued", "content": { "application/json": { "example": { "status": "success", "data": { "accessToken": "eyJ..." } } } } },
           "401": { "description": "Refresh token missing, invalid, expired, or revoked" }
@@ -142,10 +78,7 @@
         "tags": ["Auth"],
         "summary": "Log out and revoke the refresh token",
         "security": [{ "bearerAuth": [] }],
-        "responses": {
-          "200": { "description": "Logged out successfully" },
-          "401": { "description": "Missing or invalid access token" }
-        }
+        "responses": { "200": { "description": "Logged out successfully" }, "401": { "description": "Missing or invalid access token" } }
       }
     },
     "/auth/change-password": {
@@ -154,15 +87,8 @@
         "summary": "Set a new password for the current user",
         "description": "Used to clear `must_change_password` on first login. NOTE: the frontend currently calls this endpoint with PUT, not POST — see Known Issues above.",
         "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["newPassword"], "properties": { "newPassword": { "type": "string", "format": "password" } } } } }
-        },
-        "responses": {
-          "200": { "description": "Password updated successfully" },
-          "401": { "description": "Missing or invalid access token" },
-          "500": { "description": "Failed to update password" }
-        }
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["newPassword"], "properties": { "newPassword": { "type": "string", "format": "password" } } } } } },
+        "responses": { "200": { "description": "Password updated successfully" }, "401": { "description": "Missing or invalid access token" }, "500": { "description": "Failed to update password" } }
       }
     },
     "/auth/forgot-password": {
@@ -171,10 +97,7 @@
         "summary": "Request a password reset link",
         "security": [],
         "description": "Always returns the same success message whether or not the email exists, to prevent account enumeration. Generates a random 32-byte token, stores it (plus a 15-minute expiry) on the user, and emails a reset link via Resend.",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["email"], "properties": { "email": { "type": "string", "format": "email" } } } } }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["email"], "properties": { "email": { "type": "string", "format": "email" } } } } } },
         "responses": { "200": { "description": "If that email exists, a reset link has been sent." } }
       }
     },
@@ -184,175 +107,8 @@
         "summary": "Set a new password using a reset token",
         "security": [],
         "description": "Token is single-use — it's cleared as soon as the password is reset, and rejected if expired (15 minutes) or unknown.",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["token", "newPassword"], "properties": { "token": { "type": "string" }, "newPassword": { "type": "string", "format": "password" } } } } }
-        },
-        "responses": {
-          "200": { "description": "Password has been successfully reset." },
-          "400": { "description": "Invalid or expired reset token" }
-        }
-      }
-    },
-    "/users": {
-      "get": {
-        "tags": ["Users"],
-        "summary": "List users (paginated, optional role filter)",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: super_admin or business_head.",
-        "parameters": [
-          { "name": "role", "in": "query", "schema": { "type": "string", "enum": ["customer", "investment_head", "business_head", "super_admin"] } },
-          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
-        ],
-        "responses": {
-          "200": { "description": "Paginated user list", "content": { "application/json": { "example": { "success": true, "message": "Success", "data": { "users": [], "pagination": { "total": 0, "page": 1, "limit": 20, "totalPages": 0 } } } } } },
-          "403": { "description": "Forbidden — wrong role" }
-        }
-      }
-    },
-    "/users/{id}": {
-      "get": {
-        "tags": ["Users"],
-        "summary": "Get a single user by id",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: super_admin, business_head, or investment_head.",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": {
-          "200": { "description": "User found", "content": { "application/json": { "example": { "success": true, "message": "Success", "data": { "user": {} } } } } },
-          "404": { "description": "User not found" }
-        }
-      },
-      "put": {
-        "tags": ["Users"],
-        "summary": "Update a user's fields",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: super_admin. Allowed fields: name, email, role, phone, assigned_to, shareholding_pct.",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "email": { "type": "string" }, "role": { "type": "string" }, "phone": { "type": "string" }, "assigned_to": { "type": "string", "format": "uuid" }, "shareholding_pct": { "type": "number" } } } } }
-        },
-        "responses": {
-          "200": { "description": "User updated successfully" },
-          "400": { "description": "No valid fields to update" },
-          "404": { "description": "User not found" }
-        }
-      }
-    },
-    "/users/{id}/toggle-active": {
-      "patch": {
-        "tags": ["Users"],
-        "summary": "Toggle a user's active status",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: super_admin. Flips is_active (no request body).",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": {
-          "200": { "description": "User activated/deactivated successfully" },
-          "404": { "description": "User not found" }
-        }
-      }
-    },
-    "/investments": {
-      "post": {
-        "tags": ["Investments"],
-        "summary": "Record a new investment",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or super_admin.",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["customer_id", "amount", "investment_date", "week_of_month"], "properties": { "customer_id": { "type": "string", "format": "uuid" }, "amount": { "type": "number", "minimum": 5000 }, "investment_date": { "type": "string", "format": "date" }, "week_of_month": { "type": "integer", "minimum": 1, "maximum": 4 }, "tenure_months": { "type": "integer", "default": 3 }, "notes": { "type": "string", "maxLength": 500 } } } } }
-        },
-        "responses": {
-          "201": { "description": "Investment recorded successfully" },
-          "400": { "description": "Validation error (Joi)" }
-        }
-      },
-      "get": {
-        "tags": ["Investments"],
-        "summary": "List investments (paginated, optional filters)",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Any authenticated user.",
-        "parameters": [
-          { "name": "customer_id", "in": "query", "schema": { "type": "string", "format": "uuid" } },
-          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["active", "exited", "suspended"] } },
-          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
-        ],
-        "responses": { "200": { "description": "Paginated investment list" } }
-      }
-    },
-    "/investments/{id}": {
-      "get": {
-        "tags": ["Investments"],
-        "summary": "Get a single investment by id",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Any authenticated user.",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Investment found" }, "404": { "description": "Not found" } }
-      }
-    },
-    "/investments/{id}/status": {
-      "patch": {
-        "tags": ["Investments"],
-        "summary": "Update an investment's status",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or super_admin.",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["status"], "properties": { "status": { "type": "string", "enum": ["active", "exited", "suspended"] }, "exit_date": { "type": "string", "format": "date", "nullable": true } } } } }
-        },
-        "responses": { "200": { "description": "Investment status updated successfully" } }
-      }
-    },
-    "/payouts": {
-      "post": {
-        "tags": ["Payouts"],
-        "summary": "Record a new monthly return / payout",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or super_admin.",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["investment_id", "month", "year", "return_pct", "payout_amount"], "properties": { "investment_id": { "type": "string", "format": "uuid" }, "month": { "type": "integer", "minimum": 1, "maximum": 12 }, "year": { "type": "integer", "minimum": 2020, "maximum": 2100 }, "return_pct": { "type": "number", "minimum": 0, "maximum": 100 }, "payout_amount": { "type": "number", "minimum": 0 } } } } }
-        },
-        "responses": {
-          "201": { "description": "Payout recorded successfully" },
-          "400": { "description": "Validation error (Joi) or duplicate (unique investment/month/year)" }
-        }
-      }
-    },
-    "/payouts/summary": {
-      "get": {
-        "tags": ["Payouts"],
-        "summary": "Aggregated payout dashboard data",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: business_head or super_admin.",
-        "responses": { "200": { "description": "Summary data" } }
-      }
-    },
-    "/payouts/investment/{investmentId}": {
-      "get": {
-        "tags": ["Payouts"],
-        "summary": "List all monthly returns for an investment",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Any authenticated user.",
-        "parameters": [{ "name": "investmentId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "List of monthly returns" } }
-      }
-    },
-    "/payouts/{id}/status": {
-      "patch": {
-        "tags": ["Payouts"],
-        "summary": "Update a payout's status",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: business_head or super_admin.",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["payout_status"], "properties": { "payout_status": { "type": "string", "enum": ["pending", "paid", "skipped"] }, "payout_date": { "type": "string", "format": "date", "nullable": true } } } } }
-        },
-        "responses": { "200": { "description": "Payout status updated successfully" } }
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["token", "newPassword"], "properties": { "token": { "type": "string" }, "newPassword": { "type": "string", "format": "password" } } } } } },
+        "responses": { "200": { "description": "Password has been successfully reset." }, "400": { "description": "Invalid or expired reset token" } }
       }
     },
     "/customer/dashboard": {
@@ -378,7 +134,7 @@
         "tags": ["Customer"],
         "summary": "Customer's own profile + KYC status",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: customer. `pan_number_enc` is returned masked as `pan_masked` (e.g. ABCDE****F).",
+        "description": "Requires role: customer. PAN/account numbers are AES-256-GCM encrypted at rest; this endpoint decrypts server-side just long enough to mask them as `pan_masked`/`account_masked` — the raw encrypted or plaintext values never leave the server.",
         "responses": { "200": { "description": "Profile data" }, "404": { "description": "User not found" } }
       }
     },
@@ -387,59 +143,52 @@
         "tags": ["Customer"],
         "summary": "Submit or update KYC details",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: customer. Upserts (one KYC record per user).",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "properties": { "panNumber": { "type": "string" }, "bankName": { "type": "string" }, "accountNumber": { "type": "string" }, "ifscCode": { "type": "string" } } } } }
-        },
+        "description": "Requires role: customer. Upserts (one KYC record per user). PAN and account number are encrypted (AES-256-GCM) before storage (NFR-SEC-06).",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "panNumber": { "type": "string" }, "bankName": { "type": "string" }, "accountNumber": { "type": "string" }, "ifscCode": { "type": "string" } } } } } },
         "responses": { "200": { "description": "KYC submitted for verification" } }
       }
     },
     "/customer/support": {
-      "get": {
-        "tags": ["Customer"],
-        "summary": "List the customer's own support tickets",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: customer.",
-        "responses": { "200": { "description": "Ticket list" } }
-      },
+      "get": { "tags": ["Customer"], "summary": "List the customer's own support tickets", "security": [{ "bearerAuth": [] }], "description": "Requires role: customer.", "responses": { "200": { "description": "Ticket list" } } },
       "post": {
         "tags": ["Customer"],
         "summary": "Create a support ticket",
         "security": [{ "bearerAuth": [] }],
         "description": "Requires role: customer.",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["subject", "category", "message"], "properties": { "subject": { "type": "string" }, "category": { "type": "string" }, "message": { "type": "string" } } } } }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["subject", "category", "message"], "properties": { "subject": { "type": "string" }, "category": { "type": "string" }, "message": { "type": "string" } } } } } },
         "responses": { "201": { "description": "Ticket created successfully" } }
       }
     },
     "/customer/report/full": {
+      "get": { "tags": ["Customer"], "summary": "Download a full PDF investment report", "security": [{ "bearerAuth": [] }], "description": "Requires role: customer. Returns a binary PDF, not JSON.", "responses": { "200": { "description": "PDF file", "content": { "application/pdf": {} } } } }
+    },
+    "/customer/report/monthly": {
       "get": {
         "tags": ["Customer"],
-        "summary": "Download a full PDF investment report",
+        "summary": "Download a single month's PDF report (FR-CUST-09)",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: customer. Returns a binary PDF, not JSON.",
-        "responses": { "200": { "description": "PDF file", "content": { "application/pdf": {} } } }
+        "description": "Requires role: customer.",
+        "parameters": [
+          { "name": "month", "in": "query", "required": true, "schema": { "type": "integer", "minimum": 1, "maximum": 12 } },
+          { "name": "year", "in": "query", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "PDF file", "content": { "application/pdf": {} } }, "404": { "description": "No records for that month" } }
       }
     },
     "/board/dashboard": {
-      "get": {
-        "tags": ["Board"],
-        "summary": "Board member's assigned-client summary",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or business_head. See Known Issues — currently returns zero for business_head.",
-        "responses": { "200": { "description": "Stats", "content": { "application/json": { "example": { "status": "success", "data": { "total_clients": "1", "total_aum": "50000.00" } } } } } }
-      }
+      "get": { "tags": ["Board"], "summary": "Board member's assigned-client summary", "security": [{ "bearerAuth": [] }], "description": "Requires role: investment_head or business_head. See Known Issues — currently returns zero for business_head.", "responses": { "200": { "description": "Stats" } } }
     },
     "/board/clients": {
+      "get": { "tags": ["Board"], "summary": "List clients visible to this board member", "security": [{ "bearerAuth": [] }], "description": "Requires role: investment_head or business_head. investment_head sees only clients with assigned_to = self; business_head sees all customers.", "responses": { "200": { "description": "Client list" } } }
+    },
+    "/board/clients/{id}": {
       "get": {
         "tags": ["Board"],
-        "summary": "List clients visible to this board member",
+        "summary": "Full detail view of a single client (FR-IH-03)",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or business_head. investment_head sees only clients with assigned_to = self; business_head sees all customers.",
-        "responses": { "200": { "description": "Client list" } }
+        "description": "Requires role: investment_head or business_head. Returns profile, investment list, and a YTD summary.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Client detail" }, "404": { "description": "Client not found" } }
       }
     },
     "/board/clients/{id}/investments/active": {
@@ -447,21 +196,42 @@
         "tags": ["Board"],
         "summary": "Get a client's active investments",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or business_head. No ownership check against assigned_to — any board member can query any customer id.",
+        "description": "Requires role: investment_head or business_head. No ownership check against assigned_to — see Known Issues.",
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" }, "description": "Customer id" }],
-        "responses": { "200": { "description": "List of active investments for that customer" } }
+        "responses": { "200": { "description": "Active investments for that customer" } }
       }
+    },
+    "/board/clients/{id}/send-report": {
+      "post": {
+        "tags": ["Board"],
+        "summary": "Generate and email a client's PDF report (FR-IH-06)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: investment_head or super_admin.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Report sent successfully" }, "403": { "description": "Forbidden" }, "404": { "description": "Client not found" } }
+      }
+    },
+    "/board/clients/{id}/send-email": {
+      "post": {
+        "tags": ["Board"],
+        "summary": "Compose and send a custom email to a client (FR-IH-07)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: investment_head or super_admin.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["subject", "message"], "properties": { "subject": { "type": "string" }, "message": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Email sent successfully" }, "403": { "description": "Forbidden" }, "404": { "description": "Client not found" } }
+      }
+    },
+    "/board/return-rate": {
+      "get": { "tags": ["Board"], "summary": "Read-only global monthly return rate default (FR-IH-12)", "security": [{ "bearerAuth": [] }], "description": "Requires role: investment_head or business_head.", "responses": { "200": { "description": "Current rate" } } }
     },
     "/board/investments": {
       "post": {
         "tags": ["Board"],
         "summary": "Record an investment for an assigned client",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head (enforced again inside the controller).",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["customerId", "amount", "investmentDate", "weekOfMonth"], "properties": { "customerId": { "type": "string", "format": "uuid" }, "amount": { "type": "number" }, "investmentDate": { "type": "string", "format": "date" }, "weekOfMonth": { "type": "integer" }, "notes": { "type": "string" } } } } }
-        },
+        "description": "Requires role: investment_head (enforced again inside the controller). Wrapped in a DB transaction with its audit log entry (NFR-REL-04).",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["customerId", "amount", "investmentDate", "weekOfMonth"], "properties": { "customerId": { "type": "string", "format": "uuid" }, "amount": { "type": "number" }, "investmentDate": { "type": "string", "format": "date" }, "weekOfMonth": { "type": "integer" }, "notes": { "type": "string" } } } } } },
         "responses": { "201": { "description": "Investment recorded successfully" }, "400": { "description": "Amount below 5000 or not a multiple of 5000" } }
       }
     },
@@ -484,10 +254,7 @@
         "summary": "Process a monthly payout for an investment",
         "security": [{ "bearerAuth": [] }],
         "description": "Requires role: investment_head (enforced again inside the controller).",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["investmentId", "month", "year", "returnPct"], "properties": { "investmentId": { "type": "string", "format": "uuid" }, "month": { "type": "integer" }, "year": { "type": "integer" }, "returnPct": { "type": "number" } } } } }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["investmentId", "month", "year", "returnPct"], "properties": { "investmentId": { "type": "string", "format": "uuid" }, "month": { "type": "integer" }, "year": { "type": "integer" }, "returnPct": { "type": "number" } } } } } },
         "responses": { "200": { "description": "Payout processed", "content": { "application/json": { "example": { "status": "success", "data": { "payoutAmount": 1000 } } } } }, "400": { "description": "Payout already processed for this month" } }
       }
     },
@@ -496,130 +263,237 @@
         "tags": ["Board"],
         "summary": "Void a processed payout",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or business_head. Sets payout_status to 'voided' (keeps the row for historical integrity) and writes an audit_logs entry.",
+        "description": "Requires role: investment_head or business_head. Sets payout_status to 'voided' (keeps the row for historical integrity) and writes an audit_logs entry including the prior status as old_value.",
         "parameters": [{ "name": "returnId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
         "responses": { "200": { "description": "Payout voided successfully" } }
       }
     },
     "/board/chat/{conversationId}": {
-      "get": {
-        "tags": ["Board"],
-        "summary": "Get the last 50 messages in a conversation",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or business_head. Use `group_all` for the shared board conversation.",
-        "parameters": [{ "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Chat history, oldest first" } }
-      }
+      "get": { "tags": ["Board"], "summary": "Get the last 50 messages in a conversation", "security": [{ "bearerAuth": [] }], "description": "Requires role: investment_head or business_head. Use `group_all` for the shared board conversation.", "parameters": [{ "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Chat history, oldest first" } } }
     },
     "/board/portfolio": {
-      "get": {
-        "tags": ["Board"],
-        "summary": "Get the board member's live personal portfolio",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or business_head. Enriches each position with a live price from the Twelve Data API (cached 5 min in Redis) and computed P&L.",
-        "responses": { "200": { "description": "Enriched positions" } }
-      },
+      "get": { "tags": ["Board"], "summary": "Get the board member's live personal portfolio", "security": [{ "bearerAuth": [] }], "description": "Requires role: investment_head or business_head. Enriches each position with a live price from the Twelve Data API (cached 5 min in Redis) and computed P&L.", "responses": { "200": { "description": "Enriched positions" } } },
       "post": {
         "tags": ["Board"],
         "summary": "Add a manual portfolio position",
         "security": [{ "bearerAuth": [] }],
         "description": "Requires role: investment_head or business_head.",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["symbol", "quantity", "buyPrice"], "properties": { "symbol": { "type": "string" }, "quantity": { "type": "integer", "minimum": 1 }, "buyPrice": { "type": "number" } } } } }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["symbol", "quantity", "buyPrice"], "properties": { "symbol": { "type": "string" }, "quantity": { "type": "integer", "minimum": 1 }, "buyPrice": { "type": "number" } } } } } },
         "responses": { "201": { "description": "Position added" } }
       }
     },
     "/board/portfolio/{id}": {
-      "delete": {
-        "tags": ["Board"],
-        "summary": "Remove one of this board member's own portfolio positions",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: investment_head or business_head. Scoped to owner_id = the caller's own id, so it can only delete the caller's own positions.",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Position removed (succeeds even if no row matched)" } }
-      }
+      "delete": { "tags": ["Board"], "summary": "Remove one of this board member's own portfolio positions", "security": [{ "bearerAuth": [] }], "description": "Requires role: investment_head or business_head. Scoped to owner_id = the caller's own id.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Position removed (succeeds even if no row matched)" } } }
     },
     "/admin/dashboard": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "System-wide analytics",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: super_admin.",
-        "responses": { "200": { "description": "Stats", "content": { "application/json": { "example": { "status": "success", "data": { "totalClients": 1, "totalAum": 50000, "monthlyPayouts": 0 } } } } } }
-      }
+      "get": { "tags": ["Admin"], "summary": "System-wide analytics", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "responses": { "200": { "description": "Stats", "content": { "application/json": { "example": { "status": "success", "data": { "totalClients": 1, "totalAum": 50000, "monthlyPayouts": 0 } } } } } } }
     },
     "/admin/users": {
       "get": {
         "tags": ["Admin"],
-        "summary": "List every user in the system",
+        "summary": "List users, with optional filters (FR-ADMIN-05)",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: super_admin.",
+        "description": "Requires role: super_admin. Response is a flat array in `data` (not paginated in this UI).",
+        "parameters": [
+          { "name": "role", "in": "query", "schema": { "type": "string", "enum": ["customer", "investment_head", "business_head", "super_admin"] } },
+          { "name": "assignedTo", "in": "query", "schema": { "type": "string", "format": "uuid" }, "description": "Filter customers by their assigned investment head" },
+          { "name": "isActive", "in": "query", "schema": { "type": "string", "enum": ["true", "false"] } }
+        ],
         "responses": { "200": { "description": "User list" } }
       },
       "post": {
         "tags": ["Admin"],
-        "summary": "Create a new user (staff or customer)",
+        "summary": "Create a new user (staff or customer) — FR-ADMIN-04/08",
         "security": [{ "bearerAuth": [] }],
         "description": "Requires role: super_admin. Sets must_change_password = true for the new account.",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["name", "email", "password", "role"], "properties": { "name": { "type": "string" }, "email": { "type": "string", "format": "email" }, "password": { "type": "string", "format": "password" }, "role": { "type": "string", "enum": ["customer", "investment_head", "business_head", "super_admin"] }, "phone": { "type": "string" }, "assignedTo": { "type": "string", "format": "uuid" } } } } }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["name", "email", "password", "role"], "properties": { "name": { "type": "string" }, "email": { "type": "string", "format": "email" }, "password": { "type": "string", "format": "password" }, "role": { "type": "string", "enum": ["customer", "investment_head", "business_head", "super_admin"] }, "phone": { "type": "string" }, "assignedTo": { "type": "string", "format": "uuid" } } } } } },
         "responses": { "201": { "description": "User created" }, "400": { "description": "Email already exists" } }
       }
     },
-    "/admin/join-requests": {
+    "/admin/users/{id}": {
+      "get": { "tags": ["Admin"], "summary": "Get a single user by id", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "User found" }, "404": { "description": "Not found" } } },
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Edit a user's profile / assignment (FR-ADMIN-06)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin. Allowed fields: name, email, role, phone, assigned_to, shareholding_pct.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "email": { "type": "string" }, "role": { "type": "string" }, "phone": { "type": "string" }, "assigned_to": { "type": "string", "format": "uuid" }, "shareholding_pct": { "type": "number" } } } } } },
+        "responses": { "200": { "description": "User updated successfully" }, "400": { "description": "No valid fields to update" }, "404": { "description": "User not found" } }
+      }
+    },
+    "/admin/users/{id}/toggle-active": {
+      "patch": { "tags": ["Admin"], "summary": "Suspend/activate a user (FR-ADMIN-07)", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin. Flips is_active (no request body).", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "User activated/deactivated successfully" }, "404": { "description": "User not found" } } }
+    },
+    "/admin/investments": {
       "get": {
         "tags": ["Admin"],
-        "summary": "List public join requests",
+        "summary": "View all investments across all clients (FR-ADMIN-14)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin. Paginated, filterable by customer_id/status.",
+        "parameters": [
+          { "name": "customer_id", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["active", "exited", "suspended"] } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "Paginated investment list" } }
+      }
+    },
+    "/admin/investments/{id}": {
+      "get": { "tags": ["Admin"], "summary": "Get a single investment by id", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Investment found" }, "404": { "description": "Not found" } } }
+    },
+    "/admin/investments/{id}/status": {
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Update an investment's status",
         "security": [{ "bearerAuth": [] }],
         "description": "Requires role: super_admin.",
-        "responses": { "200": { "description": "Join request list" } }
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["status"], "properties": { "status": { "type": "string", "enum": ["active", "exited", "suspended"] }, "exit_date": { "type": "string", "format": "date", "nullable": true } } } } } },
+        "responses": { "200": { "description": "Investment status updated successfully" } }
       }
+    },
+    "/admin/investments/{id}/payouts": {
+      "get": { "tags": ["Admin"], "summary": "All monthly returns for one investment", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Monthly return list" } } }
+    },
+    "/admin/payouts/{id}/status": {
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Correct a payout's status",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["payout_status"], "properties": { "payout_status": { "type": "string", "enum": ["pending", "paid", "skipped", "voided"] }, "payout_date": { "type": "string", "format": "date", "nullable": true } } } } } },
+        "responses": { "200": { "description": "Payout status updated successfully" } }
+      }
+    },
+    "/admin/financials": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Global financial summary + CSV export (FR-ADMIN-14/15/16)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin. Add `?format=csv` to download the investment list as CSV instead of JSON.",
+        "parameters": [{ "name": "format", "in": "query", "schema": { "type": "string", "enum": ["json", "csv"] } }],
+        "responses": { "200": { "description": "Summary (JSON) or investment export (CSV)", "content": { "application/json": {}, "text/csv": {} } } }
+      }
+    },
+    "/admin/audit-logs": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Paginated, filtered audit trail (FR-ADMIN-22, read-only/immutable per FR-ADMIN-23)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin.",
+        "parameters": [
+          { "name": "actorId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "entityType", "in": "query", "schema": { "type": "string" } },
+          { "name": "startDate", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } }
+        ],
+        "responses": { "200": { "description": "Paginated audit log entries" } }
+      }
+    },
+    "/admin/return-rate": {
+      "get": { "tags": ["Admin"], "summary": "Get the global monthly return rate (FR-ADMIN-13)", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "responses": { "200": { "description": "Current rate" } } },
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Set the global monthly return rate",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin. Used as the default rate Investment Heads see when processing payouts.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["returnPct"], "properties": { "returnPct": { "type": "number", "minimum": 0, "maximum": 100 } } } } } },
+        "responses": { "200": { "description": "Updated" }, "400": { "description": "returnPct must be a number between 0 and 100" } }
+      }
+    },
+    "/admin/join-requests": {
+      "get": { "tags": ["Admin"], "summary": "List public join requests", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "responses": { "200": { "description": "Join request list" } } }
     },
     "/admin/join-requests/{id}/status": {
       "put": {
         "tags": ["Admin"],
         "summary": "Approve or reject a join request",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: super_admin. Approving does not currently auto-create the user account.",
+        "description": "Requires role: super_admin. Approving does not currently auto-create the user account (FR-ADMIN-11 not fully implemented).",
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["status"], "properties": { "status": { "type": "string", "enum": ["Approved", "Rejected"] } } } } }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["status"], "properties": { "status": { "type": "string", "enum": ["Approved", "Rejected"] } } } } } },
         "responses": { "200": { "description": "Request marked as Approved/Rejected" } }
       }
     },
     "/admin/portfolio/{id}": {
-      "delete": {
-        "tags": ["Admin"],
-        "summary": "Remove a portfolio position",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: super_admin. KNOWN ISSUE: scoped to owner_id = the caller's own id (copied from the board version), so as written a super_admin can never actually delete another user's position — the delete matches zero rows and still returns success. See Known Issues.",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Returns success even when no row was deleted" } }
-      }
+      "delete": { "tags": ["Admin"], "summary": "Remove a portfolio position", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin. See Known Issues — never actually deletes anything since super_admin owns no portfolio positions.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Returns success even when no row was deleted" } } }
     },
     "/admin/support": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "List every support ticket, across all customers",
-        "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: super_admin.",
-        "responses": { "200": { "description": "Ticket list, newest first, joined with customer name/email" } }
-      }
+      "get": { "tags": ["Admin"], "summary": "List every support ticket, across all customers (FR-ADMIN-24)", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "responses": { "200": { "description": "Ticket list, newest first, joined with customer name/email" } } }
     },
     "/admin/support/{id}/resolve": {
+      "patch": { "tags": ["Admin"], "summary": "Mark a support ticket as resolved (FR-ADMIN-26)", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Ticket marked as resolved" } } }
+    },
+    "/admin/support/{id}/assign": {
       "patch": {
         "tags": ["Admin"],
-        "summary": "Mark a support ticket as resolved",
+        "summary": "Assign a ticket to a board member (FR-ADMIN-25)",
         "security": [{ "bearerAuth": [] }],
         "description": "Requires role: super_admin.",
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Ticket marked as resolved" } }
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["boardMemberId"], "properties": { "boardMemberId": { "type": "string", "format": "uuid" } } } } } },
+        "responses": { "200": { "description": "Ticket assigned" }, "404": { "description": "Ticket not found" } }
+      }
+    },
+    "/admin/blog": {
+      "get": { "tags": ["Admin"], "summary": "List every blog post, published or not", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "responses": { "200": { "description": "Post list" } } },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Create a blog post (FR-ADMIN-17)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin. Slug is auto-generated from the title.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["title", "content"], "properties": { "title": { "type": "string" }, "content": { "type": "string" }, "isPublished": { "type": "boolean" } } } } } },
+        "responses": { "201": { "description": "Blog post created" }, "400": { "description": "A post with a matching slug already exists" } }
+      }
+    },
+    "/admin/blog/{id}": {
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Update a blog post",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "title": { "type": "string" }, "content": { "type": "string" }, "isPublished": { "type": "boolean" } } } } } },
+        "responses": { "200": { "description": "Blog post updated" }, "404": { "description": "Not found" } }
+      },
+      "delete": { "tags": ["Admin"], "summary": "Delete a blog post", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Blog post deleted" } } }
+    },
+    "/admin/testimonials": {
+      "get": { "tags": ["Admin"], "summary": "List every testimonial, visible or not", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "responses": { "200": { "description": "Testimonial list" } } },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Create a testimonial (FR-ADMIN-18)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["clientName", "content"], "properties": { "clientName": { "type": "string" }, "content": { "type": "string" }, "rating": { "type": "integer", "minimum": 1, "maximum": 5 }, "isVisible": { "type": "boolean" } } } } } },
+        "responses": { "201": { "description": "Testimonial created" } }
+      }
+    },
+    "/admin/testimonials/{id}": {
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Update a testimonial",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "clientName": { "type": "string" }, "content": { "type": "string" }, "rating": { "type": "integer" }, "isVisible": { "type": "boolean" } } } } } },
+        "responses": { "200": { "description": "Testimonial updated" }, "404": { "description": "Not found" } }
+      },
+      "delete": { "tags": ["Admin"], "summary": "Delete a testimonial", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Testimonial deleted" } } }
+    },
+    "/admin/public-returns": {
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Upsert a month's public return-history data point (FR-ADMIN-19)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin. Feeds the landing page's returns chart.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["month", "year", "returnPct"], "properties": { "month": { "type": "integer", "minimum": 1, "maximum": 12 }, "year": { "type": "integer" }, "returnPct": { "type": "number" }, "notes": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Public return data updated" } }
       }
     },
     "/public/join-request": {
@@ -628,11 +502,61 @@
         "summary": "Submit a public \"request to invest\" form",
         "security": [],
         "description": "No authentication required. Used by the marketing site's lead-capture form.",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "required": ["name", "email"], "properties": { "name": { "type": "string" }, "email": { "type": "string", "format": "email" }, "phone": { "type": "string" }, "amount": { "type": "string" }, "message": { "type": "string" } } } } }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["name", "email"], "properties": { "name": { "type": "string" }, "email": { "type": "string", "format": "email" }, "phone": { "type": "string" }, "amount": { "type": "string" }, "message": { "type": "string" } } } } } },
         "responses": { "201": { "description": "Request submitted successfully" } }
+      }
+    },
+    "/public/returns": {
+      "get": { "tags": ["Public"], "summary": "Monthly return history for the landing page chart (FR-PUBLIC-10/11)", "security": [], "responses": { "200": { "description": "Return history, chronological" } } }
+    },
+    "/public/testimonials": {
+      "get": { "tags": ["Public"], "summary": "Visible client testimonials (FR-PUBLIC-17)", "security": [], "responses": { "200": { "description": "Testimonial list" } } }
+    },
+    "/public/blog": {
+      "get": { "tags": ["Public"], "summary": "Published blog posts (FR-PUBLIC-23)", "security": [], "responses": { "200": { "description": "Post list with excerpts" } } }
+    },
+    "/public/blog/{slug}": {
+      "get": { "tags": ["Public"], "summary": "A single published blog post (FR-PUBLIC-24)", "security": [], "parameters": [{ "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Full post content" }, "404": { "description": "Not found or not published" } } }
+    },
+    "/public/calculators/sip": {
+      "get": {
+        "tags": ["Public"],
+        "summary": "SIP calculator (FR-PUBLIC-13)",
+        "security": [],
+        "description": "Pure computation, no auth. FR-PUBLIC-16 says the frontend also computes this client-side — this endpoint exists to match the SRS's own endpoint catalogue (Section 7) either way.",
+        "parameters": [
+          { "name": "monthlyInvestment", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "expectedReturnPct", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "years", "in": "query", "required": true, "schema": { "type": "number" } }
+        ],
+        "responses": { "200": { "description": "investedAmount, estimatedReturns, totalValue" }, "400": { "description": "Invalid input" } }
+      }
+    },
+    "/public/calculators/emi": {
+      "get": {
+        "tags": ["Public"],
+        "summary": "EMI calculator (FR-PUBLIC-14)",
+        "security": [],
+        "parameters": [
+          { "name": "principal", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "annualRate", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "tenureMonths", "in": "query", "required": true, "schema": { "type": "number" } }
+        ],
+        "responses": { "200": { "description": "monthlyEMI, totalInterest, totalPayment" }, "400": { "description": "Invalid input" } }
+      }
+    },
+    "/public/calculators/retirement": {
+      "get": {
+        "tags": ["Public"],
+        "summary": "Retirement corpus calculator (FR-PUBLIC-15)",
+        "security": [],
+        "parameters": [
+          { "name": "currentAge", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "retirementAge", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "monthlySavings", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "expectedReturnPct", "in": "query", "required": true, "schema": { "type": "number" } }
+        ],
+        "responses": { "200": { "description": "corpusAtRetirement" }, "400": { "description": "Invalid input" } }
       }
     }
   }

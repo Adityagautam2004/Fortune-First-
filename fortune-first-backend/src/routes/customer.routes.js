@@ -4,7 +4,7 @@ const { getDashboardStats, getInvestmentHistory } = require('../controllers/cust
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireRole } = require('../middleware/role.middleware');
 const { getProfile, createSupportTicket, getSupportTickets } = require('../controllers/customer.controller');
-const {downloadFullReport} = require('../controllers/customer.controller');
+const {downloadFullReport, downloadMonthlyReport} = require('../controllers/customer.controller');
 const { submitKYC } = require('../controllers/customer.controller');
 
 router.use(requireAuth);
@@ -16,6 +16,7 @@ router.get('/profile', getProfile);
 router.post('/support', createSupportTicket);
 router.get('/support', getSupportTickets);
 router.get('/report/full', downloadFullReport);
+router.get('/report/monthly', downloadMonthlyReport);
 router.post('/kyc', submitKYC);
 
 module.exports = router;

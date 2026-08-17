@@ -50,4 +50,39 @@ const sendPasswordResetEmail = async (customerEmail, resetToken) => {
   }
 };
 
-module.exports = { sendPayoutEmail, sendPasswordResetEmail };
+// FR-IH-07: board member composes and sends an arbitrary email to a client
+const sendCustomEmail = async (customerEmail, subject, message) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Fortune First <info@fortunefirst.com>',
+      to: [customerEmail],
+      subject,
+      html: `<p>${message.replace(/\n/g, '<br/>')}</p><br/><p>Regards,<br/>The Fortune First Team</p>`,
+    });
+
+    if (error) console.error('Resend API Error:', error);
+    return data;
+  } catch (err) {
+    console.error('Custom email failed:', err);
+  }
+};
+
+// FR-IH-06: board member generates + emails a client's PDF report, with the PDF attached
+const sendReportEmail = async (customerEmail, customerName, pdfBuffer) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Fortune First <info@fortunefirst.com>',
+      to: [customerEmail],
+      subject: 'Your Fortune First Investment Report',
+      html: `<h2>Hello ${customerName},</h2><p>Please find your latest investment report attached.</p><br/><p>Regards,<br/>The Fortune First Team</p>`,
+      attachments: [{ filename: 'Fortune_First_Report.pdf', content: pdfBuffer.toString('base64') }],
+    });
+
+    if (error) console.error('Resend API Error:', error);
+    return data;
+  } catch (err) {
+    console.error('Report email failed:', err);
+  }
+};
+
+module.exports = { sendPayoutEmail, sendPasswordResetEmail, sendCustomEmail, sendReportEmail };

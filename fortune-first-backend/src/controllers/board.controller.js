@@ -382,4 +382,66 @@ const getPendingPayouts = async (req, res) => {
   }
 };
 
-module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory, getBoardDashboardStats, voidPayout, getClientActiveInvestments, getClientDetail, getPendingPayouts };
+// POST /board/clients/:id/send-report — FR-IH-06: generate + email the client's PDF report
+const sendClientReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { generateReportPDF } = require('../utils/pdf');
+    const mailer = require('../utils/mailer');
+
+    const clientRes = await db.query(`SELECT name, email FROM users WHERE id = $1 AND role = 'customer'`, [id]);
+    if (clientRes.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Client not found' });
+    }
+    const client = clientRes.rows[0];
+
+    const historyRes = await db.query(
+      `SELECT mr.month, mr.year, i.amount AS invested_amount, mr.return_pct, mr.payout_amount
+       FROM monthly_returns mr
+       JOIN investments i ON mr.investment_id = i.id
+       WHERE i.customer_id = $1 ORDER BY mr.year DESC, mr.month DESC`,
+      [id]
+    );
+
+    const pdfBuffer = await generateReportPDF(client.name, historyRes.rows);
+    await mailer.sendReportEmail(client.email, client.name, pdfBuffer);
+
+    return res.status(200).json({ status: 'success', message: 'Report sent successfully' });
+  } catch (error) {
+    console.error('Send Report Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to send report' });
+  }
+};
+
+// POST /board/clients/:id/send-email — FR-IH-07: compose + send a custom email to the client
+const sendClientEmail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject, message } = req.body;
+
+    const clientRes = await db.query(`SELECT email FROM users WHERE id = $1 AND role = 'customer'`, [id]);
+    if (clientRes.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Client not found' });
+    }
+
+    const mailer = require('../utils/mailer');
+    await mailer.sendCustomEmail(clientRes.rows[0].email, subject, message);
+
+    return res.status(200).json({ status: 'success', message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('Send Email Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to send email' });
+  }
+};
+
+// GET /board/return-rate — read-only access to the global default (FR-IH-12)
+const getBoardReturnRate = async (req, res) => {
+  try {
+    const result = await db.query(`SELECT global_return_pct FROM platform_settings WHERE id = 1`);
+    return res.status(200).json({ status: 'success', data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch return rate' });
+  }
+};
+
+module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory, getBoardDashboardStats, voidPayout, getClientActiveInvestments, getClientDetail, getPendingPayouts, sendClientReport, sendClientEmail, getBoardReturnRate };
