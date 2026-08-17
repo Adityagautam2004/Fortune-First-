@@ -1,4 +1,5 @@
 const { Resend } = require('resend');
+const { primaryOrigin } = require('./corsOrigins');
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder_key');
 
@@ -27,7 +28,7 @@ const sendPayoutEmail = async (customerEmail, customerName, payoutAmount, month,
 
 const sendPasswordResetEmail = async (customerEmail, resetToken) => {
   try {
-    const resetLink = `${process.env.CORS_ORIGIN}/reset-password?token=${resetToken}`;
+    const resetLink = `${primaryOrigin}/reset-password?token=${resetToken}`;
 
     const { data, error } = await resend.emails.send({
       from: 'Fortune First Security <info@fortunefirst.com>',

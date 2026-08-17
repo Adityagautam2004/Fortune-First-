@@ -13,20 +13,21 @@ const swaggerUi = require('swagger-ui-express');
 const openapiSpec = require('./docs/openapi.json');
 const ApiError = require('./utils/apiError');
 const errorHandler = require('./middleware/errorHandler');
+const { allowedOrigins } = require('./utils/corsOrigins');
 
 const app = express();
 const server = http.createServer(app); // Wrap Express in HTTP server
 
-// Initialize Socket.io with CORS aligned to your frontend
+// Initialize Socket.io with CORS aligned to your frontend(s)
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true
   }
 });
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3000', credentials: true }));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
