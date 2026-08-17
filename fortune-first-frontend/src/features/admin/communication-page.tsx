@@ -1,7 +1,11 @@
-import { ChatMembersList } from './components/chat-members-list';
-import { ChatPanel } from './components/chat-panel';
+'use client';
+
+import { useAuth } from '@/hooks/useAuth';
+import { TeamChat } from '@/features/chat/TeamChat';
 
 export function CommunicationPage() {
+  const { user } = useAuth();
+
   return (
     <div className="space-y-6">
       <div>
@@ -9,10 +13,7 @@ export function CommunicationPage() {
         <p className="mt-1 text-sm text-gray-500">Communicate with your team.</p>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row">
-        <ChatMembersList />
-        <ChatPanel />
-      </div>
+      <TeamChat basePath="admin" currentUserId={user?.id} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 const db = require('../models/db');
 const redis = require('../utils/redis');
-const { encrypt, decrypt } = require('../utils/crypto');
+const { encrypt, decrypt, maskPan, maskAccountNumber } = require('../utils/crypto');
+const { uploadBuffer } = require('../utils/cloudinary');
 
 const getDashboardStats = async (req, res) => {
   try {
@@ -76,7 +77,8 @@ const getProfile = async (req, res) => {
     
     const profileQuery = await db.query(
       `SELECT u.name, u.email, u.phone, u.created_at,
-              k.pan_number_enc, k.bank_name, k.account_number_enc, k.ifsc_code, k.verified
+              k.pan_number_enc, k.bank_name, k.account_number_enc, k.ifsc_code,
+              k.document_url, k.verified
        FROM users u
        LEFT JOIN kyc_details k ON u.id = k.user_id
        WHERE u.id = $1`,
@@ -91,14 +93,8 @@ const getProfile = async (req, res) => {
 
     // Decrypt server-side only long enough to mask, then discard the plaintext —
     // the raw encrypted columns and full decrypted values never leave this function.
-    if (data.pan_number_enc) {
-      const pan = decrypt(data.pan_number_enc);
-      data.pan_masked = pan ? pan.substring(0, 5) + '****' + pan.substring(9) : null;
-    }
-    if (data.account_number_enc) {
-      const account = decrypt(data.account_number_enc);
-      data.account_masked = account ? '*'.repeat(Math.max(account.length - 4, 0)) + account.slice(-4) : null;
-    }
+    data.pan_masked = data.pan_number_enc ? maskPan(decrypt(data.pan_number_enc)) : null;
+    data.account_masked = data.account_number_enc ? maskAccountNumber(decrypt(data.account_number_enc)) : null;
     delete data.pan_number_enc;
     delete data.account_number_enc;
 
@@ -230,4 +226,32 @@ const submitKYC = async (req, res) => {
   }
 };
 
-module.exports = { getDashboardStats, getInvestmentHistory,getProfile,createSupportTicket,getSupportTickets,downloadFullReport, downloadMonthlyReport, submitKYC };
+// POST /customer/kyc/document — FR-CUST KYC: upload the ID/address proof document
+// (PAN card, Aadhaar, bank statement, etc.) referenced by kyc_details.document_url.
+const uploadKYCDocument = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ status: 'error', message: 'No file uploaded' });
+    }
+    const userId = req.user.userId;
+    const result = await uploadBuffer(req.file.buffer, 'kyc_documents');
+
+    await db.query(
+      `INSERT INTO kyc_details (user_id, document_url)
+       VALUES ($1, $2)
+       ON CONFLICT (user_id) DO UPDATE SET document_url = EXCLUDED.document_url`,
+      [userId, result.secure_url]
+    );
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Document uploaded successfully',
+      data: { documentUrl: result.secure_url },
+    });
+  } catch (error) {
+    console.error('KYC Document Upload Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Document upload failed' });
+  }
+};
+
+module.exports = { getDashboardStats, getInvestmentHistory,getProfile,createSupportTicket,getSupportTickets,downloadFullReport, downloadMonthlyReport, submitKYC, uploadKYCDocument };

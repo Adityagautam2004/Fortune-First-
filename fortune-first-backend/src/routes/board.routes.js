@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedClients, addInvestment , processPayout, getChatHistory, getBoardDashboardStats, voidPayout, getClientActiveInvestments, getClientDetail, getPendingPayouts, sendClientReport, sendClientEmail, getBoardReturnRate } = require('../controllers/board.controller');
+const { getAssignedClients, addInvestment , processPayout, getChatHistory, getChatContacts, getBoardDashboardStats, voidPayout, getClientActiveInvestments, getClientDetail, getPendingPayouts, sendClientReport, sendClientEmail, getBoardReturnRate } = require('../controllers/board.controller');
 const { getLivePortfolio, addPosition, removePosition } = require('../controllers/portfolio.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireRole } = require('../middleware/role.middleware');
@@ -28,6 +28,7 @@ router.post('/investments', addInvestment)
 router.get('/payouts/pending', getPendingPayouts);
 router.post('/payouts', processPayout)
 router.patch('/payouts/:returnId/void', voidPayout);
+router.get('/chat/contacts', getChatContacts);
 router.get('/chat/:conversationId', getChatHistory);
 router.get('/portfolio', getLivePortfolio);
 router.post('/portfolio', addPosition);

@@ -5,6 +5,7 @@ const validate = require('../middleware/validate');
 
 const {
   getUsers, createUser, getUserByIdAdmin, updateUserAdmin, toggleUserActiveAdmin,
+  getUserKYC, verifyUserKYC,
   getJoinRequests, updateJoinRequestStatus, getDashboardStats, removePosition,
   getAllSupportTickets, resolveSupportTicket, assignSupportTicket,
   getAllInvestmentsAdmin, getInvestmentByIdAdmin, updateInvestmentStatusAdmin, getInvestmentPayoutsAdmin,
@@ -13,7 +14,7 @@ const {
   getAllTestimonialsAdmin, createTestimonial, updateTestimonial, deleteTestimonial,
   updatePublicReturns,
 }= require('../controllers/admin.controller');
-const { processPayout, getChatHistory, getPendingPayouts } = require('../controllers/board.controller');
+const { processPayout, getChatHistory, getChatContacts, getPendingPayouts } = require('../controllers/board.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const {requireRole}=require('../middleware/role.middleware')
 const { USER_ROLES, INVESTMENT_STATUS, PAYOUT_STATUS } = require('../utils/constants');
@@ -29,6 +30,12 @@ router.post('/users', createUser);
 router.get('/users/:id', getUserByIdAdmin);
 router.patch('/users/:id', updateUserAdmin);
 router.patch('/users/:id/toggle-active', toggleUserActiveAdmin);
+router.get('/users/:id/kyc', getUserKYC);
+router.patch(
+  '/users/:id/kyc/verify',
+  validate(Joi.object({ verified: Joi.boolean().required() })),
+  verifyUserKYC
+);
 
 // ── Join requests (FR-ADMIN-10..12) ───────────────────────
 router.get('/join-requests', getJoinRequests);
@@ -75,6 +82,7 @@ router.patch(
 // so investment_head/business_head's existing access isn't widened further).
 router.get('/payouts/pending', getPendingPayouts);
 router.post('/payouts/process', processPayout);
+router.get('/chat/contacts', getChatContacts);
 router.get('/chat/:conversationId', getChatHistory);
 
 // ── Audit logs (FR-ADMIN-20..23, read-only/immutable) ─────

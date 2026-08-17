@@ -1,12 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { FileText } from 'lucide-react';
 import api from '@/lib/api';
+
+interface KycData {
+  bank_name: string | null;
+  ifsc_code: string | null;
+  document_url: string | null;
+  verified: boolean;
+  pan_masked: string | null;
+  account_masked: string | null;
+}
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'customer', phone: '', assignedTo: '' });
+  const [kycUser, setKycUser] = useState<any>(null);
+  const [kycData, setKycData] = useState<KycData | null>(null);
+  const [kycLoading, setKycLoading] = useState(false);
 
   const fetchUsers = async () => {
     const res = await api.get('/admin/users');
@@ -16,6 +29,30 @@ export default function AdminUsersPage() {
   useEffect(() => { fetchUsers(); }, []);
 
   const heads = users.filter((u: any) => u.role === 'investment_head');
+
+  const openKyc = async (user: any) => {
+    setKycUser(user);
+    setKycLoading(true);
+    try {
+      const res = await api.get(`/admin/users/${user.id}/kyc`);
+      setKycData(res.data.data);
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to load KYC details');
+      setKycUser(null);
+    } finally {
+      setKycLoading(false);
+    }
+  };
+
+  const toggleVerified = async () => {
+    if (!kycUser || !kycData) return;
+    try {
+      const res = await api.patch(`/admin/users/${kycUser.id}/kyc/verify`, { verified: !kycData.verified });
+      setKycData({ ...kycData, verified: res.data.data.verified });
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to update KYC status');
+    }
+  };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +83,7 @@ export default function AdminUsersPage() {
               <th className="p-4 text-sm font-medium">Email</th>
               <th className="p-4 text-sm font-medium">Role</th>
               <th className="p-4 text-sm font-medium">Status</th>
+              <th className="p-4 text-sm font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -59,11 +97,66 @@ export default function AdminUsersPage() {
                     {u.is_active ? 'Active' : 'Suspended'}
                   </span>
                 </td>
+                <td className="p-4 text-sm">
+                  {u.role === 'customer' && (
+                    <button onClick={() => openKyc(u)} className="text-brand-orange font-medium hover:underline">
+                      View KYC
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* KYC Review Modal */}
+      {kycUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-xl w-[420px]">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">KYC — {kycUser.name}</h2>
+              <span className={`px-2 py-1 text-xs rounded-full ${kycData?.verified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                {kycData?.verified ? 'Verified' : 'Pending'}
+              </span>
+            </div>
+
+            {kycLoading ? (
+              <p className="text-sm text-gray-500">Loading...</p>
+            ) : !kycData ? (
+              <p className="text-sm text-gray-500">This customer has not submitted KYC details yet.</p>
+            ) : (
+              <div className="space-y-3 text-sm">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><p className="text-gray-500">PAN</p><p className="font-medium">{kycData.pan_masked || 'Not Submitted'}</p></div>
+                  <div><p className="text-gray-500">Account No.</p><p className="font-medium">{kycData.account_masked || 'Not Submitted'}</p></div>
+                  <div><p className="text-gray-500">Bank</p><p className="font-medium">{kycData.bank_name || 'Not Submitted'}</p></div>
+                  <div><p className="text-gray-500">IFSC</p><p className="font-medium">{kycData.ifsc_code || 'Not Submitted'}</p></div>
+                </div>
+                <div>
+                  <p className="text-gray-500 mb-1">Document</p>
+                  {kycData.document_url ? (
+                    <a href={kycData.document_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-brand-orange hover:underline">
+                      <FileText size={16} /> View uploaded document
+                    </a>
+                  ) : (
+                    <p className="text-gray-400">Not uploaded</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-2 mt-6">
+              <button onClick={() => { setKycUser(null); setKycData(null); }} className="px-4 py-2 bg-gray-200 rounded">Close</button>
+              {kycData && (
+                <button onClick={toggleVerified} className="px-4 py-2 bg-brand-navy text-white rounded">
+                  {kycData.verified ? 'Mark Unverified' : 'Mark Verified'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Basic Create Modal */}
       {showModal && (

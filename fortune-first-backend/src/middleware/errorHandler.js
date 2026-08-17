@@ -35,6 +35,13 @@ const errorHandler = (err, _req, res, _next) => {
     status = 'fail';
   }
 
+  // Multer upload errors (e.g. file too large)
+  if (err.name === 'MulterError') {
+    statusCode = 400;
+    message = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large (max 5MB)' : err.message;
+    status = 'fail';
+  }
+
   // Log unexpected (non-operational) errors for debugging
   if (!(err instanceof ApiError) || !err.isOperational) {
     console.error('💥 Unexpected error:', err);

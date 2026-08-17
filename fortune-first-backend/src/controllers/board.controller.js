@@ -167,7 +167,7 @@ const getChatHistory = async (req, res) => {
     const { conversationId } = req.params;
 
     const history = await db.query(
-      `SELECT c.id, c.sender_id, u.name AS sender_name, c.content, c.created_at 
+      `SELECT c.id, c.sender_id, u.name AS sender_name, c.content, c.read_by, c.created_at
        FROM chat_messages c
        JOIN users u ON c.sender_id = u.id
        WHERE c.conversation_id = $1
@@ -180,6 +180,20 @@ const getChatHistory = async (req, res) => {
     return res.status(200).json({ status: 'success', data: history.rows.reverse() });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to load chat history' });
+  }
+};
+
+// GET /board/chat/contacts, /admin/chat/contacts — staff directory for the
+// team chat sidebar (group channel + one entry per DM-able colleague).
+const getChatContacts = async (req, res) => {
+  try {
+    const contacts = await db.query(
+      `SELECT id, name, role FROM users WHERE role != 'customer' AND id != $1 ORDER BY name ASC`,
+      [req.user.userId]
+    );
+    return res.status(200).json({ status: 'success', data: contacts.rows });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to load chat contacts' });
   }
 };
 
@@ -444,4 +458,4 @@ const getBoardReturnRate = async (req, res) => {
   }
 };
 
-module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory, getBoardDashboardStats, voidPayout, getClientActiveInvestments, getClientDetail, getPendingPayouts, sendClientReport, sendClientEmail, getBoardReturnRate };
+module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory, getChatContacts, getBoardDashboardStats, voidPayout, getClientActiveInvestments, getClientDetail, getPendingPayouts, sendClientReport, sendClientEmail, getBoardReturnRate };

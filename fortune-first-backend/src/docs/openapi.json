@@ -148,6 +148,16 @@
         "responses": { "200": { "description": "KYC submitted for verification" } }
       }
     },
+    "/customer/kyc/document": {
+      "post": {
+        "tags": ["Customer"],
+        "summary": "Upload a KYC identity/address proof document",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: customer. multipart/form-data with a single `document` field (PDF/JPG/PNG, max 5MB). Streams the file to Cloudinary and stores the resulting URL as kyc_details.document_url — upserts if no KYC row exists yet.",
+        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "document": { "type": "string", "format": "binary" } } } } } },
+        "responses": { "200": { "description": "Document uploaded successfully" }, "400": { "description": "No file uploaded, unsupported type, or file exceeds 5MB" } }
+      }
+    },
     "/customer/support": {
       "get": { "tags": ["Customer"], "summary": "List the customer's own support tickets", "security": [{ "bearerAuth": [] }], "description": "Requires role: customer.", "responses": { "200": { "description": "Ticket list" } } },
       "post": {
@@ -268,8 +278,11 @@
         "responses": { "200": { "description": "Payout voided successfully" } }
       }
     },
+    "/board/chat/contacts": {
+      "get": { "tags": ["Board"], "summary": "Staff directory for the chat sidebar", "security": [{ "bearerAuth": [] }], "description": "Requires role: investment_head or business_head. Every non-customer user except the caller — used to pick a DM target.", "responses": { "200": { "description": "Contact list" } } }
+    },
     "/board/chat/{conversationId}": {
-      "get": { "tags": ["Board"], "summary": "Get the last 50 messages in a conversation", "security": [{ "bearerAuth": [] }], "description": "Requires role: investment_head or business_head. Use `group_all` for the shared board conversation.", "parameters": [{ "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Chat history, oldest first" } } }
+      "get": { "tags": ["Board"], "summary": "Get the last 50 messages in a conversation", "security": [{ "bearerAuth": [] }], "description": "Requires role: investment_head or business_head. Use `group_all` for the shared team channel, or `dm_<idA>_<idB>` (ids sorted) for a direct message thread. Real-time delivery/typing/presence/read-receipts happen over Socket.io (see socket.service.js) — this endpoint is just the initial history load.", "parameters": [{ "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Chat history, oldest first" } } }
     },
     "/board/portfolio": {
       "get": { "tags": ["Board"], "summary": "Get the board member's live personal portfolio", "security": [{ "bearerAuth": [] }], "description": "Requires role: investment_head or business_head. Enriches each position with a live price from the Twelve Data API (cached 5 min in Redis) and computed P&L.", "responses": { "200": { "description": "Enriched positions" } } },
@@ -324,6 +337,20 @@
     },
     "/admin/users/{id}/toggle-active": {
       "patch": { "tags": ["Admin"], "summary": "Suspend/activate a user (FR-ADMIN-07)", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin. Flips is_active (no request body).", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "User activated/deactivated successfully" }, "404": { "description": "User not found" } } }
+    },
+    "/admin/users/{id}/kyc": {
+      "get": { "tags": ["Admin"], "summary": "View a customer's KYC submission for review", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin. PAN/account numbers are returned masked (same rule as the customer's own profile view), plus bank_name/ifsc_code/document_url/verified. Returns `data: null` if the customer hasn't submitted KYC yet.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "KYC details (or null)" } } }
+    },
+    "/admin/users/{id}/kyc/verify": {
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Mark a customer's KYC as verified/unverified",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["verified"], "properties": { "verified": { "type": "boolean" } } } } } },
+        "responses": { "200": { "description": "KYC status updated" }, "404": { "description": "This user has not submitted KYC details yet" } }
+      }
     },
     "/admin/investments": {
       "get": {
@@ -422,6 +449,12 @@
     },
     "/admin/portfolio/{id}": {
       "delete": { "tags": ["Admin"], "summary": "Remove a portfolio position", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin. See Known Issues — never actually deletes anything since super_admin owns no portfolio positions.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Returns success even when no row was deleted" } } }
+    },
+    "/admin/chat/contacts": {
+      "get": { "tags": ["Admin"], "summary": "Staff directory for the chat sidebar", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin. Every non-customer user except the caller — used to pick a DM target. Reuses board.controller's getChatContacts.", "responses": { "200": { "description": "Contact list" } } }
+    },
+    "/admin/chat/{conversationId}": {
+      "get": { "tags": ["Admin"], "summary": "Get the last 50 messages in a conversation", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin. Use `group_all` for the shared team channel, or `dm_<idA>_<idB>` (ids sorted) for a direct message thread. Reuses board.controller's getChatHistory.", "parameters": [{ "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Chat history, oldest first" } } }
     },
     "/admin/support": {
       "get": { "tags": ["Admin"], "summary": "List every support ticket, across all customers (FR-ADMIN-24)", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "responses": { "200": { "description": "Ticket list, newest first, joined with customer name/email" } } }

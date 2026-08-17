@@ -1,5 +1,6 @@
 const db = require('../models/db');
 const { hashPassword } = require('../utils/auth.utils');
+const { decrypt, maskPan, maskAccountNumber } = require('../utils/crypto');
 const userService = require('../services/userService');
 const investmentService = require('../services/investmentService');
 const payoutService = require('../services/payout.service');
@@ -512,12 +513,64 @@ const updatePublicReturns = async (req, res) => {
   }
 };
 
+// GET /admin/users/:id/kyc — view a customer's KYC submission for review
+// (PAN/account numbers stay masked here exactly as they do on the customer's
+// own profile view — admins verify against the uploaded document, not the raw number).
+const getUserKYC = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT pan_number_enc, bank_name, account_number_enc, ifsc_code, document_url, verified
+       FROM kyc_details WHERE user_id = $1`,
+      [req.params.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(200).json({ status: 'success', data: null });
+    }
+
+    const data = rows[0];
+    data.pan_masked = data.pan_number_enc ? maskPan(decrypt(data.pan_number_enc)) : null;
+    data.account_masked = data.account_number_enc ? maskAccountNumber(decrypt(data.account_number_enc)) : null;
+    delete data.pan_number_enc;
+    delete data.account_number_enc;
+
+    return res.status(200).json({ status: 'success', data });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch KYC details' });
+  }
+};
+
+// PATCH /admin/users/:id/kyc/verify — mark a customer's KYC as verified/rejected
+const verifyUserKYC = async (req, res) => {
+  try {
+    const { verified } = req.body;
+    const { rows } = await db.query(
+      `UPDATE kyc_details SET verified = $1 WHERE user_id = $2 RETURNING user_id, verified`,
+      [verified, req.params.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'This user has not submitted KYC details yet' });
+    }
+
+    return res.status(200).json({
+      status: 'success',
+      message: `KYC marked as ${verified ? 'verified' : 'unverified'}`,
+      data: rows[0],
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to update KYC status' });
+  }
+};
+
 module.exports = {
   getUsers,
   createUser,
   getUserByIdAdmin,
   updateUserAdmin,
   toggleUserActiveAdmin,
+  getUserKYC,
+  verifyUserKYC,
   getJoinRequests,
   updateJoinRequestStatus,
   getDashboardStats,

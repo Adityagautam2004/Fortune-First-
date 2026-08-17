@@ -32,4 +32,9 @@ const decrypt = (cipherText) => {
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 };
 
-module.exports = { encrypt, decrypt };
+// Shared masking rules so the customer's own profile view and the admin KYC
+// review view render PAN/account numbers identically.
+const maskPan = (pan) => (pan ? `${pan.substring(0, 5)}****${pan.substring(9)}` : null);
+const maskAccountNumber = (acc) => (acc ? '*'.repeat(Math.max(acc.length - 4, 0)) + acc.slice(-4) : null);
+
+module.exports = { encrypt, decrypt, maskPan, maskAccountNumber };
