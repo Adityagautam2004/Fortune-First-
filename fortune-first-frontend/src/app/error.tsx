@@ -2,12 +2,12 @@
 
 import { useEffect } from 'react';
 
-export default function GlobalError({
+export default function ErrorPage({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
   useEffect(() => {
     console.error('Frontend Crash Caught:', error);
@@ -18,7 +18,7 @@ export default function GlobalError({
       <h2 className="text-2xl font-bold text-brand-navy mb-4">Something went wrong!</h2>
       <p className="text-gray-600 mb-6">We encountered an unexpected error.</p>
       <button
-        onClick={() => reset()}
+        onClick={() => retry()}
         className="bg-brand-orange text-white px-6 py-2 rounded-md font-medium"
       >
         Try again

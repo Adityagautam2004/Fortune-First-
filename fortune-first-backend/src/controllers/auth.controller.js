@@ -42,11 +42,15 @@ const login = async (req, res) => {
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user);
 
-    // Set Refresh Token in HTTP-Only Cookie
+    // Set Refresh Token in HTTP-Only Cookie. In production the frontend
+    // (Vercel) and backend (Render) live on different domains, so the cookie
+    // must be SameSite=None to be sent cross-site — which browsers only honor
+    // alongside Secure. Locally, frontend/backend share the "localhost" site
+    // (only the port differs) so Lax is enough and doesn't require HTTPS.
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: user.role === 'customer' ? 7 * 24 * 3600 * 1000 : 24 * 3600 * 1000
     });
 
@@ -101,7 +105,13 @@ const logout = async (req, res) => {
     if (req.user?.userId) {
       await revokeRefreshToken(req.user.userId);
     }
-    res.clearCookie('refreshToken');
+    // clearCookie must be called with the same attributes the cookie was set
+    // with, or browsers silently keep the original cookie around.
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    });
     return res.status(200).json({ status: 'success', message: 'Logged out successfully' });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to logout' });
