@@ -7,13 +7,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import {
   LayoutGrid,
-  User,
-  Bitcoin,
-  ArrowLeftRight,
-  Receipt,
+  Users,
+  UserPlus,
+  Landmark,
+  ClipboardList,
   History,
   Headphones,
-  FileText,
+  Download,
   LogOut,
   ChevronLeft,
 } from 'lucide-react';
@@ -23,14 +23,13 @@ import type { AppDispatch } from '@/store/store';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { name: 'Board Overview', href: '/admin', icon: LayoutGrid },
-  { name: 'Client Details', href: '/admin/client-details', icon: User },
-  { name: 'Investments', href: '/admin/investments', icon: Bitcoin },
-  { name: 'Transactions', href: '/admin/transactions', icon: ArrowLeftRight },
-  { name: 'Process Payouts', href: '/admin/payouts', icon: Receipt },
-  { name: 'Payout History', href: '/admin/payout-history', icon: History },
-  { name: 'Communication', href: '/admin/communication', icon: Headphones },
-  { name: 'Reports', href: '/admin/reports', icon: FileText },
+  { name: 'Dashboard Overview', href: '/admin', icon: LayoutGrid },
+  { name: 'User Management', href: '/admin/users', icon: Users },
+  { name: 'Join Requests', href: '/admin/join-requests', icon: UserPlus },
+  { name: 'Financial Operations', href: '/admin/financial-operations', icon: Landmark },
+  { name: 'Content Management', href: '/admin/content-management', icon: ClipboardList },
+  { name: 'Audit Logs', href: '/admin/audit-logs', icon: History },
+  { name: 'Support Ticket Management', href: '/admin/support', icon: Headphones },
 ];
 
 export function AdminSidebar() {
@@ -96,7 +95,24 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="p-3">
+      <div className="space-y-3 p-3">
+        <Link
+          href="/admin/content-management"
+          className={cn(
+            'flex items-center gap-3 rounded-xl border border-brand-border px-3 py-2.5 text-left transition-colors hover:bg-gray-50',
+            collapsed && 'justify-center'
+          )}
+          title={collapsed ? 'Download Reports' : undefined}
+        >
+          <Download size={18} className="shrink-0 text-primary" />
+          {!collapsed && (
+            <span className="leading-tight">
+              <span className="block text-sm font-semibold text-gray-900">Download Reports</span>
+              <span className="block text-xs text-gray-500">Monthly, Quarterly, Yearly</span>
+            </span>
+          )}
+        </Link>
+
         <button
           onClick={handleLogout}
           className={cn(
