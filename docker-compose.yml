@@ -1,46 +1,8 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      - POSTGRES_DB=fortunefirst
-      - POSTGRES_USER=ff_user
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-local_dev_password}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ff_user -d fortunefirst"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
   backend:
     build: ./fortune-first-backend
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     env_file:
       - ./fortune-first-backend/.env
-    environment:
-      - DATABASE_URL=postgresql://ff_user:${POSTGRES_PASSWORD:-local_dev_password}@postgres:5432/fortunefirst
-      - REDIS_URL=redis://redis:6379
-      - PORT=4000
     ports:
       - "4000:4000"
     restart: unless-stopped
-
-volumes:
-  postgres_data:

@@ -16,8 +16,8 @@ const getDashboardStats = async (req, res) => {
 
     // 2. Cache Miss - Query PostgreSQL
     const activeInvestments = await db.query(
-      `SELECT COALESCE(SUM(amount), 0) AS total_invested 
-       FROM investments 
+      `SELECT COALESCE(SUM(amount), 0) AS total_invested, COUNT(*) AS active_plans
+       FROM investments
        WHERE customer_id = $1 AND status = 'active'`,
       [customerId]
     );
@@ -25,9 +25,10 @@ const getDashboardStats = async (req, res) => {
     // Placeholder math for initial structure - exact payout logic will be integrated later
     const statsData = {
       totalInvested: parseFloat(activeInvestments.rows[0].total_invested),
-      currentValue: parseFloat(activeInvestments.rows[0].total_invested), 
+      currentValue: parseFloat(activeInvestments.rows[0].total_invested),
       cagr: 0.0,
-      thisMonthReturn: 0.0
+      thisMonthReturn: 0.0,
+      activePlans: parseInt(activeInvestments.rows[0].active_plans, 10)
     };
 
     // 3. Store in Redis with 5-minute TTL

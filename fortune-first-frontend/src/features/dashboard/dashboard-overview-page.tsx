@@ -15,6 +15,7 @@ interface DashboardStats {
   currentValue: number;
   cagr: number;
   thisMonthReturn: number;
+  activePlans: number;
 }
 
 function formatRupees(value: number) {
@@ -25,7 +26,6 @@ export function DashboardOverviewPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [history, setHistory] = useState<MonthlyReturn[]>([]);
-  const [activePlans, setActivePlans] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,22 +49,6 @@ export function DashboardOverviewPage() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
-
-    api
-      .get('/investments', { params: { customer_id: user.id, status: 'active', limit: 1 } })
-      .then((res) => {
-        if (!cancelled) setActivePlans(res.data.data.pagination.total);
-      })
-      .catch((error) => console.error('Failed to load active plans count', error));
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
 
   const firstName = user?.name?.split(' ')[0] || 'there';
   const today = new Date().toLocaleDateString('en-GB', {
@@ -110,7 +94,7 @@ export function DashboardOverviewPage() {
         <StatCard
           icon={Users}
           label="Active Plans"
-          value={activePlans === null ? '—' : String(activePlans)}
+          value={stats === null ? '—' : String(stats.activePlans)}
           footnote="Total Active Plans"
         />
       </div>
