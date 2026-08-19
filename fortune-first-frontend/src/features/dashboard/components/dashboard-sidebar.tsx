@@ -59,7 +59,7 @@ export function DashboardSidebar() {
         <ChevronLeft size={14} className={cn('transition-transform', collapsed && 'rotate-180')} />
       </button>
 
-      <div className="flex items-center gap-3 px-6 py-6">
+      <div className="flex items-center gap-3 border-b border-brand-border px-6 py-5">
         <Image
           src="/logo_circle.png"
           alt="Fortune First Logo"

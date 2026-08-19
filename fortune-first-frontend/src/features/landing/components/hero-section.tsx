@@ -10,7 +10,7 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative flex h-[450px] w-full flex-col justify-center overflow-hidden sm:h-[520px] md:h-[600px] lg:h-[650px]"
+      className="relative flex h-screen min-h-[600px] w-full flex-col justify-center overflow-hidden"
     >
       <div className="absolute inset-0 z-0">
         <Image
