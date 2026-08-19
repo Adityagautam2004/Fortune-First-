@@ -6,10 +6,10 @@ import api from '@/lib/api';
 interface AuditLog {
   id: string;
   created_at: string;
-  actor_name: string;
-  actor_email: string;
+  actor_name: string | null;
   action: string;
-  target: string;
+  entity_type: string;
+  entity_id: string;
 }
 
 export default function AuditLogsPage() {
@@ -23,8 +23,8 @@ export default function AuditLogsPage() {
     setIsLoading(true);
     try {
       const res = await api.get(`/admin/audit-logs?page=${pageNum}&limit=${limit}`);
-      setLogs(res.data.data);
-      setTotalPages(res.data.totalPages || Math.ceil(res.data.total / limit) || 1);
+      setLogs(res.data.data.logs);
+      setTotalPages(res.data.data.pagination?.totalPages || 1);
     } catch (error) {
       console.error('Failed to fetch audit logs', error);
     } finally {
@@ -68,17 +68,16 @@ export default function AuditLogsPage() {
                   <td className="p-4 text-sm text-gray-600">
                     {new Date(log.created_at).toLocaleString()}
                   </td>
-                  <td className="p-4 text-sm">
-                    <span className="font-medium text-gray-900">{log.actor_name}</span>
-                    <br />
-                    <span className="text-xs text-gray-400">{log.actor_email}</span>
-                  </td>
+                  <td className="p-4 text-sm font-medium text-gray-900">{log.actor_name || 'System'}</td>
                   <td className="p-4 text-sm">
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700">
                       {log.action}
                     </span>
                   </td>
-                  <td className="p-4 text-sm text-gray-600">{log.target}</td>
+                  <td className="p-4 text-sm text-gray-600">
+                    {log.entity_type}
+                    <span className="text-gray-400"> #{log.entity_id}</span>
+                  </td>
                 </tr>
               ))
             )}

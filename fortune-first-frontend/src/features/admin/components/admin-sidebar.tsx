@@ -58,16 +58,16 @@ export function AdminSidebar() {
         <ChevronLeft size={14} className={cn('transition-transform', collapsed && 'rotate-180')} />
       </button>
 
-      <div className="flex items-center gap-3 px-6 py-6">
+      <div className="flex items-center gap-3 border-b border-brand-border px-5 py-3">
         <Image
           src="/logo_circle.png"
           alt="Fortune First Logo"
-          width={40}
-          height={40}
-          className="h-10 w-10 shrink-0 rounded-full object-contain"
+          width={36}
+          height={36}
+          className="h-9 w-9 shrink-0 rounded-full object-contain"
         />
         {!collapsed && (
-          <span className="text-lg font-extrabold leading-tight tracking-tight text-gray-900">
+          <span className="text-base font-extrabold leading-tight tracking-tight text-gray-900">
             Fortune First
           </span>
         )}
