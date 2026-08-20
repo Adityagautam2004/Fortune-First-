@@ -3,7 +3,7 @@ const { hashPassword } = require('../utils/auth.utils');
 
 const seedAdmin = async () => {
   try {
-    const adminEmail = 'admin@fortunefirst.com';
+    const adminEmail = 'aditya@fortunefirst.com';
     const existing = await db.query('SELECT id FROM users WHERE email = $1', [adminEmail]);
 
     if (existing.rows.length > 0) {
@@ -11,7 +11,7 @@ const seedAdmin = async () => {
       process.exit(0);
     }
 
-    const hashedPassword = await hashPassword('Admin@12345');
+    const hashedPassword = await hashPassword('Aditya@#*$&');
 
     await db.query(
       `INSERT INTO users (name, email, password_hash, role, must_change_password)
@@ -19,7 +19,7 @@ const seedAdmin = async () => {
       ['Aditya Gautam', adminEmail, hashedPassword, 'super_admin', false]
     );
 
-    console.log('✅ Super Admin created: admin@fortunefirst.com / Admin@12345');
+    console.log('✅ Super Admin created: aditya@fortunefirst.com / Aditya@#*$&');
     process.exit(0);
   } catch (error) {
     console.error('❌ Seeding Error:', error);

@@ -2,8 +2,20 @@
 
 import { Provider } from 'react-redux';
 import { store } from '@/store/store';
-import React from 'react';
+import { fetchCurrentUser } from '@/store/authSlice';
+import React, { useEffect } from 'react';
+function AuthBootstrap() {
+  useEffect(() => {
+    store.dispatch(fetchCurrentUser());
+  }, []);
+  return null;
+}
 
 export default function StoreProvider({ children }: { children: React.ReactNode }) {
-  return <Provider store={store}>{children}</Provider>;
+  return (
+    <Provider store={store}>
+      <AuthBootstrap />
+      {children}
+    </Provider>
+  );
 }

@@ -100,6 +100,36 @@ const refresh = async (req, res) => {
   }
 };
 
+// GET /auth/me — re-hydrates the frontend's in-memory session (Redux state +
+// access token are both wiped by a hard page reload) using whatever access
+// token the request has, refreshing it first via the interceptor if needed.
+const getMe = async (req, res) => {
+  try {
+    const userResult = await db.query(
+      'SELECT id, name, email, role, is_active, must_change_password FROM users WHERE id = $1',
+      [req.user.userId]
+    );
+
+    if (userResult.rows.length === 0 || !userResult.rows[0].is_active) {
+      return res.status(401).json({ status: 'error', message: 'User inactive or non-existent' });
+    }
+
+    const user = userResult.rows[0];
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        mustChangePassword: user.must_change_password
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch current user' });
+  }
+};
+
 const logout = async (req, res) => {
   try {
     if (req.user?.userId) {
@@ -197,4 +227,4 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { login, refresh, logout, changeInitialPassword, forgotPassword, resetPassword };
+module.exports = { login, refresh, logout, getMe, changeInitialPassword, forgotPassword, resetPassword };

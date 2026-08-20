@@ -7,6 +7,8 @@ const redis = new Redis(process.env.REDIS_URL || 'redis://redis:6379', {
     const delay = Math.min(times * 50, 2000);
     return delay;
   },
+  connectTimeout: 10_000,
+  commandTimeout: 10_000,
 });
 
 redis.on('connect', () => {

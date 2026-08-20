@@ -1,4 +1,5 @@
 const db = require('../models/db');
+const redis = require('../utils/redis');
 const { hashPassword } = require('../utils/auth.utils');
 const { decrypt, maskPan, maskAccountNumber } = require('../utils/crypto');
 const userService = require('../services/userService');
@@ -399,6 +400,7 @@ const createBlogPost = async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [title, slug, content, req.user.userId, published, published ? new Date() : null]
     );
+    await redis.del('public:blog:list');
     return res.status(201).json({ status: 'success', message: 'Blog post created', data: result.rows[0] });
   } catch (error) {
     if (error.code === '23505') {
@@ -425,6 +427,7 @@ const updateBlogPost = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Blog post not found' });
     }
+    await redis.del('public:blog:list', `public:blog:post:${result.rows[0].slug}`);
     return res.status(200).json({ status: 'success', message: 'Blog post updated', data: result.rows[0] });
   } catch (error) {
     console.error('Update Blog Error:', error);
@@ -434,7 +437,10 @@ const updateBlogPost = async (req, res) => {
 
 const deleteBlogPost = async (req, res) => {
   try {
-    await db.query(`DELETE FROM blog_posts WHERE id = $1`, [req.params.id]);
+    const result = await db.query(`DELETE FROM blog_posts WHERE id = $1 RETURNING slug`, [req.params.id]);
+    if (result.rows.length > 0) {
+      await redis.del('public:blog:list', `public:blog:post:${result.rows[0].slug}`);
+    }
     return res.status(200).json({ status: 'success', message: 'Blog post deleted' });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to delete blog post' });
@@ -460,6 +466,7 @@ const createTestimonial = async (req, res) => {
        VALUES ($1, $2, $3, $4) RETURNING *`,
       [clientName, content, rating || 5, isVisible !== false]
     );
+    await redis.del('public:testimonials');
     return res.status(201).json({ status: 'success', message: 'Testimonial created', data: result.rows[0] });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to create testimonial' });
@@ -480,6 +487,7 @@ const updateTestimonial = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Testimonial not found' });
     }
+    await redis.del('public:testimonials');
     return res.status(200).json({ status: 'success', message: 'Testimonial updated', data: result.rows[0] });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to update testimonial' });
@@ -489,6 +497,7 @@ const updateTestimonial = async (req, res) => {
 const deleteTestimonial = async (req, res) => {
   try {
     await db.query(`DELETE FROM testimonials WHERE id = $1`, [req.params.id]);
+    await redis.del('public:testimonials');
     return res.status(200).json({ status: 'success', message: 'Testimonial deleted' });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to delete testimonial' });
@@ -507,6 +516,7 @@ const updatePublicReturns = async (req, res) => {
        RETURNING *`,
       [month, year, returnPct, notes || null]
     );
+    await redis.del('public:returns');
     return res.status(200).json({ status: 'success', message: 'Public return data updated', data: result.rows[0] });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to update public returns' });

@@ -18,6 +18,12 @@ const { allowedOrigins } = require('./utils/corsOrigins');
 const app = express();
 const server = http.createServer(app); // Wrap Express in HTTP server
 
+// Backstop for any request that hangs (e.g. a stalled DB/Redis connection
+// that outlives its own client-level timeout) — cuts it off with a clean
+// error instead of leaving the frontend spinning forever. Comfortably above
+// the DB (10-15s) and Redis (10s) timeouts, and above normal PDF-generation time.
+server.requestTimeout = 30_000;
+
 // Initialize Socket.io with CORS aligned to your frontend(s)
 const io = new Server(server, {
   cors: {

@@ -1,5 +1,11 @@
 const db = require('../models/db');
+const redis = require('../utils/redis');
 // const { resend } = require('../utils/mailer'); // Assuming you set up Resend earlier
+
+// These four are the highest-traffic, most shareable routes in the app —
+// unauthenticated landing-page content read by every visitor, written only
+// occasionally by admins — so they're the clearest caching win in the app.
+const PUBLIC_CACHE_TTL_SECONDS = 600;
 
 const submitJoinRequest = async (req, res) => {
   try {
@@ -31,10 +37,17 @@ const submitJoinRequest = async (req, res) => {
 // GET /public/returns — FR-PUBLIC-10/11: monthly return history for the landing page chart
 const getPublicReturns = async (req, res) => {
   try {
+    const cacheKey = 'public:returns';
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({ status: 'success', source: 'cache', data: JSON.parse(cached) });
+    }
+
     const returns = await db.query(
       `SELECT month, year, return_pct, notes FROM public_returns ORDER BY year ASC, month ASC`
     );
-    return res.status(200).json({ status: 'success', data: returns.rows });
+    await redis.set(cacheKey, JSON.stringify(returns.rows), 'EX', PUBLIC_CACHE_TTL_SECONDS);
+    return res.status(200).json({ status: 'success', source: 'database', data: returns.rows });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch return history' });
   }
@@ -43,10 +56,17 @@ const getPublicReturns = async (req, res) => {
 // GET /public/testimonials — FR-PUBLIC-17: visible client testimonials
 const getPublicTestimonials = async (req, res) => {
   try {
+    const cacheKey = 'public:testimonials';
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({ status: 'success', source: 'cache', data: JSON.parse(cached) });
+    }
+
     const testimonials = await db.query(
       `SELECT client_name, content, rating FROM testimonials WHERE is_visible = TRUE ORDER BY created_at DESC`
     );
-    return res.status(200).json({ status: 'success', data: testimonials.rows });
+    await redis.set(cacheKey, JSON.stringify(testimonials.rows), 'EX', PUBLIC_CACHE_TTL_SECONDS);
+    return res.status(200).json({ status: 'success', source: 'database', data: testimonials.rows });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch testimonials' });
   }
@@ -55,12 +75,19 @@ const getPublicTestimonials = async (req, res) => {
 // GET /public/blog — FR-PUBLIC-23: published posts only
 const getPublishedBlogPosts = async (req, res) => {
   try {
+    const cacheKey = 'public:blog:list';
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({ status: 'success', source: 'cache', data: JSON.parse(cached) });
+    }
+
     const posts = await db.query(
       `SELECT id, title, slug, published_at,
               LEFT(content, 200) AS excerpt, author_id
        FROM blog_posts WHERE is_published = TRUE ORDER BY published_at DESC`
     );
-    return res.status(200).json({ status: 'success', data: posts.rows });
+    await redis.set(cacheKey, JSON.stringify(posts.rows), 'EX', PUBLIC_CACHE_TTL_SECONDS);
+    return res.status(200).json({ status: 'success', source: 'database', data: posts.rows });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch blog posts' });
   }
@@ -69,6 +96,12 @@ const getPublishedBlogPosts = async (req, res) => {
 // GET /public/blog/:slug — FR-PUBLIC-24: single published post
 const getBlogPostBySlug = async (req, res) => {
   try {
+    const cacheKey = `public:blog:post:${req.params.slug}`;
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({ status: 'success', source: 'cache', data: JSON.parse(cached) });
+    }
+
     const post = await db.query(
       `SELECT b.id, b.title, b.slug, b.content, b.published_at, u.name AS author_name
        FROM blog_posts b LEFT JOIN users u ON u.id = b.author_id
@@ -78,7 +111,8 @@ const getBlogPostBySlug = async (req, res) => {
     if (post.rows.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Post not found' });
     }
-    return res.status(200).json({ status: 'success', data: post.rows[0] });
+    await redis.set(cacheKey, JSON.stringify(post.rows[0]), 'EX', PUBLIC_CACHE_TTL_SECONDS);
+    return res.status(200).json({ status: 'success', source: 'database', data: post.rows[0] });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch blog post' });
   }
