@@ -4,8 +4,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 
+interface BoardClient {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  total_invested: string;
+}
+
 export default function BoardClientsPage() {
-  const [clients, setClients] = useState([]);
+  const [clients, setClients] = useState<BoardClient[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,7 +40,7 @@ export default function BoardClientsPage() {
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr><td colSpan={5} className="p-4 text-center">Loading clients...</td></tr>
-            ) : clients.map((client: any) => (
+            ) : clients.map((client) => (
               <tr key={client.id} className="hover:bg-gray-50">
                 <td className="p-4 text-sm font-medium">{client.name}</td>
                 <td className="p-4 text-sm">{client.email}</td>

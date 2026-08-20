@@ -14,7 +14,7 @@ export default function ChangePasswordPage() {
       await api.post('/auth/change-password', { newPassword });
       alert('Password updated. Please log in again.');
       router.push('/login');
-    } catch (error) {
+    } catch {
       alert('Failed to update password.');
     }
   };

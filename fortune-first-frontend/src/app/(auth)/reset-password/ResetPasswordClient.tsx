@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/utils';
 
 function ResetPasswordForm() {
   const [newPassword, setNewPassword] = useState('');
@@ -28,10 +29,10 @@ function ResetPasswordForm() {
       const res = await api.post('/auth/reset-password', { token, newPassword });
       setStatus({ type: 'success', message: res.data.message });
       setTimeout(() => router.push('/login'), 3000);
-    } catch (error: any) {
+    } catch (error) {
       setStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Failed to reset password.'
+        message: getErrorMessage(error, 'Failed to reset password.'),
       });
     } finally {
       setLoading(false);

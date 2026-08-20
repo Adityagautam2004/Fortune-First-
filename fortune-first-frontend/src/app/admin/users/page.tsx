@@ -3,6 +3,15 @@
 import { useEffect, useState } from 'react';
 import { FileText } from 'lucide-react';
 import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/utils';
+
+interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+}
 
 interface KycData {
   bank_name: string | null;
@@ -14,10 +23,10 @@ interface KycData {
 }
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'customer', phone: '', assignedTo: '' });
-  const [kycUser, setKycUser] = useState<any>(null);
+  const [kycUser, setKycUser] = useState<AdminUser | null>(null);
   const [kycData, setKycData] = useState<KycData | null>(null);
   const [kycLoading, setKycLoading] = useState(false);
 
@@ -28,16 +37,16 @@ export default function AdminUsersPage() {
 
   useEffect(() => { fetchUsers(); }, []);
 
-  const heads = users.filter((u: any) => u.role === 'investment_head');
+  const heads = users.filter((u) => u.role === 'investment_head');
 
-  const openKyc = async (user: any) => {
+  const openKyc = async (user: AdminUser) => {
     setKycUser(user);
     setKycLoading(true);
     try {
       const res = await api.get(`/admin/users/${user.id}/kyc`);
       setKycData(res.data.data);
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to load KYC details');
+    } catch (error) {
+      alert(getErrorMessage(error, 'Failed to load KYC details'));
       setKycUser(null);
     } finally {
       setKycLoading(false);
@@ -49,8 +58,8 @@ export default function AdminUsersPage() {
     try {
       const res = await api.patch(`/admin/users/${kycUser.id}/kyc/verify`, { verified: !kycData.verified });
       setKycData({ ...kycData, verified: res.data.data.verified });
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update KYC status');
+    } catch (error) {
+      alert(getErrorMessage(error, 'Failed to update KYC status'));
     }
   };
 
@@ -61,8 +70,8 @@ export default function AdminUsersPage() {
       alert('User created successfully');
       setShowModal(false);
       fetchUsers();
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to create user');
+    } catch (error) {
+      alert(getErrorMessage(error, 'Failed to create user'));
     }
   };
 
@@ -87,7 +96,7 @@ export default function AdminUsersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {users.map((u: any) => (
+            {users.map((u) => (
               <tr key={u.id} className="hover:bg-gray-50">
                 <td className="p-4 text-sm font-medium">{u.name}</td>
                 <td className="p-4 text-sm">{u.email}</td>
@@ -181,7 +190,7 @@ export default function AdminUsersPage() {
                   onChange={e => setForm({...form, assignedTo: e.target.value})}
                 >
                   <option value="">Assign to Investment Head...</option>
-                  {heads.map((head: any) => (
+                  {heads.map((head) => (
                     <option key={head.id} value={head.id}>{head.name}</option>
                   ))}
                 </select>
