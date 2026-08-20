@@ -16,7 +16,18 @@ const errorHandler = require('./middleware/errorHandler');
 const { allowedOrigins } = require('./utils/corsOrigins');
 
 const app = express();
+// Render (and most PaaS) terminate TLS and forward requests to the container
+// over plain HTTP — without this, req.secure is always false and req.ip is
+// always the proxy's own address, never the real client's (breaking the
+// login rate limiter, which buckets by req.ip, and any secure-cookie logic).
+app.set('trust proxy', 1);
 const server = http.createServer(app); // Wrap Express in HTTP server
+
+// Backstop for any request that hangs (e.g. a stalled DB/Redis connection
+// that outlives its own client-level timeout) — cuts it off with a clean
+// error instead of leaving the frontend spinning forever. Comfortably above
+// the DB (10-15s) and Redis (10s) timeouts, and above normal PDF-generation time.
+server.requestTimeout = 30_000;
 
 // Initialize Socket.io with CORS aligned to your frontend(s)
 const io = new Server(server, {

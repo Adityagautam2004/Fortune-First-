@@ -13,6 +13,7 @@ import {
   ClipboardList,
   History,
   Headphones,
+  MessageCircle,
   Download,
   LogOut,
   ChevronLeft,
@@ -30,6 +31,7 @@ const navItems = [
   { name: 'Content Management', href: '/admin/content-management', icon: ClipboardList },
   { name: 'Audit Logs', href: '/admin/audit-logs', icon: History },
   { name: 'Support Ticket Management', href: '/admin/support', icon: Headphones },
+  { name: 'Communication', href: '/admin/communication', icon: MessageCircle },
 ];
 
 export function AdminSidebar() {

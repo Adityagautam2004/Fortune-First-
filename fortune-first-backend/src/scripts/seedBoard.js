@@ -3,8 +3,8 @@ const { hashPassword } = require('../utils/auth.utils');
 
 const seedBoard = async () => {
   try {
-    const investmentHeadEmail = 'amit.singh@fortunefirst.com';
-    const businessHeadEmail = 'board@fortunefirst.com';
+    const investmentHeadEmail = 'krashish.1103@gmail.com';
+    const businessHeadEmail = 'himanshukr06092004@gmail.com';
 
     const existing = await db.query('SELECT id FROM users WHERE email IN ($1, $2)', [
       investmentHeadEmail,
@@ -16,19 +16,19 @@ const seedBoard = async () => {
       process.exit(0);
     }
 
-    const hashedPassword = await hashPassword('Board@123');
+    const hashedPassword = await hashPassword('Ashish@123');
 
     const ihRes = await db.query(
       `INSERT INTO users (name, email, password_hash, role, phone, must_change_password)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      ['Amit Singh', investmentHeadEmail, hashedPassword, 'investment_head', '9876500001', false]
+      ['Ashish Kumar', investmentHeadEmail, hashedPassword, 'investment_head', '9122406128', false]
     );
     const investmentHeadId = ihRes.rows[0].id;
 
     await db.query(
       `INSERT INTO users (name, email, password_hash, role, phone, must_change_password)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      ['Rohan Mehta', businessHeadEmail, hashedPassword, 'business_head', '9876500002', false]
+      ['Himanshu Kumar', businessHeadEmail, hashedPassword, 'business_head', '9973761092', false]
     );
 
     // Assign the existing dummy customer (client@example.com) to this Investment Head,
@@ -37,9 +37,9 @@ const seedBoard = async () => {
       investmentHeadId,
     ]);
 
-    console.log('✅ Dummy Investment Head created: amit.singh@fortunefirst.com / Board@123');
-    console.log('✅ Dummy Business Head created: board@fortunefirst.com / Board@123');
-    console.log('✅ Assigned client@example.com to Amit Singh.');
+    console.log('✅ Dummy Investment Head created: krashish.1103@gmail.com / Ashish@123');
+    console.log('✅ Dummy Business Head created: himanshukr06092004@gmail.com / Ashish@123');
+    console.log('✅ Assigned client@example.com to Ashish Kumar.');
     process.exit(0);
   } catch (error) {
     console.error('❌ Seeding Error:', error);

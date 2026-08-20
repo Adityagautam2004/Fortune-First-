@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-  submitJoinRequest, getPublicReturns, getPublicTestimonials,
+  submitJoinRequest, getPublicReturns, getPublicTestimonials, getPublicDashboard,
   getPublishedBlogPosts, getBlogPostBySlug,
   sipCalculator, emiCalculator, retirementCalculator,
 } = require('../controllers/public.controller');
@@ -10,6 +10,7 @@ const {
 router.post('/join-request', submitJoinRequest);
 router.get('/returns', getPublicReturns);
 router.get('/testimonials', getPublicTestimonials);
+router.get('/dashboard', getPublicDashboard);
 router.get('/blog', getPublishedBlogPosts);
 router.get('/blog/:slug', getBlogPostBySlug);
 router.get('/calculators/sip', sipCalculator);
