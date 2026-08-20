@@ -573,18 +573,12 @@
         "responses": { "201": { "description": "Request submitted successfully" } }
       }
     },
-    "/public/returns": {
-      "get": { "tags": ["Public"], "summary": "Full monthly return history, chronological (FR-PUBLIC-10/11)", "security": [], "description": "No authentication required. Cached 10 minutes; invalidated on any admin public-returns write. For the landing page's summary widget, prefer /public/dashboard (last 12 months only).", "responses": { "200": { "description": "Return history, oldest first" } } }
-    },
-    "/public/testimonials": {
-      "get": { "tags": ["Public"], "summary": "Visible client testimonials (FR-PUBLIC-17)", "security": [], "description": "No authentication required. Cached 10 minutes; invalidated on any admin testimonial write.", "responses": { "200": { "description": "Testimonial list, newest first, each with client_name/city/content/rating" } } }
-    },
     "/public/dashboard": {
       "get": {
         "tags": ["Public"],
         "summary": "Combined landing-page dashboard data: last 12 months of returns + all visible testimonials",
         "security": [],
-        "description": "No authentication required. One call instead of two for the landing page's dashboard section. Cached 10 minutes; invalidated whenever an admin writes to either public-returns or testimonials.",
+        "description": "No authentication required. The single call the landing page's dashboard section uses — no separate /public/returns or /public/testimonials endpoints exist. Cached 10 minutes; invalidated whenever an admin writes to either public-returns or testimonials.",
         "responses": {
           "200": {
             "description": "Combined payload",
@@ -609,47 +603,6 @@
     },
     "/public/blog/{slug}": {
       "get": { "tags": ["Public"], "summary": "A single published blog post (FR-PUBLIC-24)", "security": [], "parameters": [{ "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Full post content" }, "404": { "description": "Not found or not published" } } }
-    },
-    "/public/calculators/sip": {
-      "get": {
-        "tags": ["Public"],
-        "summary": "SIP calculator (FR-PUBLIC-13)",
-        "security": [],
-        "description": "Pure computation, no auth. FR-PUBLIC-16 says the frontend also computes this client-side — this endpoint exists to match the SRS's own endpoint catalogue (Section 7) either way.",
-        "parameters": [
-          { "name": "monthlyInvestment", "in": "query", "required": true, "schema": { "type": "number" } },
-          { "name": "expectedReturnPct", "in": "query", "required": true, "schema": { "type": "number" } },
-          { "name": "years", "in": "query", "required": true, "schema": { "type": "number" } }
-        ],
-        "responses": { "200": { "description": "investedAmount, estimatedReturns, totalValue" }, "400": { "description": "Invalid input" } }
-      }
-    },
-    "/public/calculators/emi": {
-      "get": {
-        "tags": ["Public"],
-        "summary": "EMI calculator (FR-PUBLIC-14)",
-        "security": [],
-        "parameters": [
-          { "name": "principal", "in": "query", "required": true, "schema": { "type": "number" } },
-          { "name": "annualRate", "in": "query", "required": true, "schema": { "type": "number" } },
-          { "name": "tenureMonths", "in": "query", "required": true, "schema": { "type": "number" } }
-        ],
-        "responses": { "200": { "description": "monthlyEMI, totalInterest, totalPayment" }, "400": { "description": "Invalid input" } }
-      }
-    },
-    "/public/calculators/retirement": {
-      "get": {
-        "tags": ["Public"],
-        "summary": "Retirement corpus calculator (FR-PUBLIC-15)",
-        "security": [],
-        "parameters": [
-          { "name": "currentAge", "in": "query", "required": true, "schema": { "type": "number" } },
-          { "name": "retirementAge", "in": "query", "required": true, "schema": { "type": "number" } },
-          { "name": "monthlySavings", "in": "query", "required": true, "schema": { "type": "number" } },
-          { "name": "expectedReturnPct", "in": "query", "required": true, "schema": { "type": "number" } }
-        ],
-        "responses": { "200": { "description": "corpusAtRetirement" }, "400": { "description": "Invalid input" } }
-      }
     }
   }
 }
