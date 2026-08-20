@@ -42,15 +42,19 @@ const login = async (req, res) => {
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user);
 
-    // Set Refresh Token in HTTP-Only Cookie. In production the frontend
-    // (Vercel) and backend (Render) live on different domains, so the cookie
-    // must be SameSite=None to be sent cross-site — which browsers only honor
-    // alongside Secure. Locally, frontend/backend share the "localhost" site
-    // (only the port differs) so Lax is enough and doesn't require HTTPS.
+    // Set Refresh Token in HTTP-Only Cookie. When the request actually arrived
+    // over HTTPS (req.secure — accurate now that 'trust proxy' is set), the
+    // frontend and backend are almost certainly on different domains (Vercel/
+    // Render), so the cookie must be SameSite=None to be sent cross-site —
+    // which browsers only honor alongside Secure. Plain HTTP (local dev) means
+    // frontend/backend share the "localhost" site (only the port differs), so
+    // Lax is enough and doesn't require HTTPS. Deliberately not keyed off
+    // NODE_ENV — that's a value some hosts don't set for you, and getting it
+    // wrong here means the browser silently never sends the cookie at all.
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: req.secure,
+      sameSite: req.secure ? 'none' : 'lax',
       maxAge: user.role === 'customer' ? 7 * 24 * 3600 * 1000 : 24 * 3600 * 1000
     });
 
@@ -139,8 +143,8 @@ const logout = async (req, res) => {
     // with, or browsers silently keep the original cookie around.
     res.clearCookie('refreshToken', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: req.secure,
+      sameSite: req.secure ? 'none' : 'lax',
     });
     return res.status(200).json({ status: 'success', message: 'Logged out successfully' });
   } catch (error) {

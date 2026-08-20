@@ -16,6 +16,11 @@ const errorHandler = require('./middleware/errorHandler');
 const { allowedOrigins } = require('./utils/corsOrigins');
 
 const app = express();
+// Render (and most PaaS) terminate TLS and forward requests to the container
+// over plain HTTP — without this, req.secure is always false and req.ip is
+// always the proxy's own address, never the real client's (breaking the
+// login rate limiter, which buckets by req.ip, and any secure-cookie logic).
+app.set('trust proxy', 1);
 const server = http.createServer(app); // Wrap Express in HTTP server
 
 // Backstop for any request that hangs (e.g. a stalled DB/Redis connection
