@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/utils';
 
 function PayoutForm() {
   const searchParams = useSearchParams();
@@ -30,8 +31,8 @@ function PayoutForm() {
       });
       alert(`Success! Calculated payout amount: ₹${res.data.data.payoutAmount}`);
       router.back(); // Send them back to the client profile
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Payout processing failed');
+    } catch (error) {
+      alert(getErrorMessage(error, 'Payout processing failed'));
     } finally {
       setLoading(false);
     }

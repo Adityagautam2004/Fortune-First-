@@ -3,8 +3,17 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 
+interface Position {
+  id: string;
+  symbol: string;
+  quantity: number;
+  buy_price: number;
+  currentPrice: number;
+  pnl: number;
+}
+
 export default function PortfolioPage() {
-  const [positions, setPositions] = useState([]);
+  const [positions, setPositions] = useState<Position[]>([]);
   const [form, setForm] = useState({ symbol: '', quantity: 1, buyPrice: 0 });
 
   const fetchPortfolio = async () => {
@@ -26,12 +35,12 @@ export default function PortfolioPage() {
     try {
       await api.delete(`/board/portfolio/${id}`);
       fetchPortfolio();
-    } catch (error) {
+    } catch {
       alert('Failed to remove position.');
     }
   };
 
-  const totalPnL = positions.reduce((acc, pos: any) => acc + pos.pnl, 0);
+  const totalPnL = positions.reduce((acc, pos) => acc + pos.pnl, 0);
 
   return (
     <div>
@@ -48,7 +57,7 @@ export default function PortfolioPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {positions.map((pos: any) => (
+            {positions.map((pos) => (
               <div key={pos.id} className="bg-white p-6 rounded-xl shadow-sm border border-brand-border">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-bold text-lg">{pos.symbol}</h3>

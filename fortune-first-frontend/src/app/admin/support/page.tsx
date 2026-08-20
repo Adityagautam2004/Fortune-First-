@@ -3,8 +3,18 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 
+interface SupportTicket {
+  id: string;
+  subject: string;
+  customer_name: string;
+  email: string;
+  category: string;
+  message: string;
+  status: 'Open' | 'Resolved';
+}
+
 export default function AdminSupportPage() {
-  const [tickets, setTickets] = useState([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
 
   const fetchTickets = async () => {
     const res = await api.get('/admin/support');
@@ -17,7 +27,7 @@ export default function AdminSupportPage() {
     try {
       await api.patch(`/admin/support/${id}/resolve`);
       fetchTickets();
-    } catch (error) {
+    } catch {
       alert('Failed to resolve ticket');
     }
   };
@@ -26,7 +36,7 @@ export default function AdminSupportPage() {
     <div>
       <h1 className="text-3xl font-bold text-brand-navy mb-6">Support Tickets</h1>
       <div className="space-y-4">
-        {tickets.map((t: any) => (
+        {tickets.map((t) => (
           <div key={t.id} className="bg-white p-6 rounded-xl shadow-sm border border-brand-border">
             <div className="flex justify-between items-start mb-4">
               <div>

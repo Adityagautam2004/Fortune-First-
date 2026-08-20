@@ -41,7 +41,10 @@ export function useTeamChat(basePath: 'admin' | 'board', currentUserId: string |
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const conversationRef = useRef(conversation.id);
-  conversationRef.current = conversation.id;
+
+  useEffect(() => {
+    conversationRef.current = conversation.id;
+  }, [conversation.id]);
 
   useEffect(() => {
     api

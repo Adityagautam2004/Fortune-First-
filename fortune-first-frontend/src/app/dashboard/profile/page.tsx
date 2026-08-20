@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FileText, UploadCloud, CheckCircle2 } from 'lucide-react';
 import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/utils';
 
 interface CustomerProfileData {
   name: string;
@@ -49,8 +50,8 @@ export default function CustomerProfile() {
       await api.post('/customer/kyc', form);
       setKycMessage('KYC details submitted for verification.');
       loadProfile();
-    } catch (error: any) {
-      setKycMessage(error.response?.data?.message || 'Failed to submit KYC details');
+    } catch (error) {
+      setKycMessage(getErrorMessage(error, 'Failed to submit KYC details'));
     } finally {
       setSavingKyc(false);
     }
@@ -66,8 +67,8 @@ export default function CustomerProfile() {
       formData.append('document', file);
       await api.post('/customer/kyc/document', formData);
       loadProfile();
-    } catch (error: any) {
-      setUploadError(error.response?.data?.message || 'Failed to upload document');
+    } catch (error) {
+      setUploadError(getErrorMessage(error, 'Failed to upload document'));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

@@ -3,8 +3,18 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 
+interface JoinRequest {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  amount: string;
+  message: string | null;
+  status: 'Pending' | 'Approved' | 'Rejected';
+}
+
 export default function JoinRequestsPage() {
-  const [requests, setRequests] = useState([]);
+  const [requests, setRequests] = useState<JoinRequest[]>([]);
 
   const fetchRequests = async () => {
     const res = await api.get('/admin/join-requests');
@@ -17,7 +27,7 @@ export default function JoinRequestsPage() {
     try {
       await api.patch(`/admin/join-requests/${id}`, { status });
       fetchRequests();
-    } catch (error) {
+    } catch {
       alert('Failed to update status');
     }
   };
@@ -26,13 +36,13 @@ export default function JoinRequestsPage() {
     <div>
       <h1 className="text-3xl font-bold text-brand-navy mb-6">Join Requests</h1>
       <div className="space-y-4">
-        {requests.map((req: any) => (
+        {requests.map((req) => (
           <div key={req.id} className="bg-white p-6 rounded-xl shadow-sm border border-brand-border flex justify-between items-center">
             <div>
               <h3 className="font-bold text-lg">{req.name}</h3>
               <p className="text-sm text-gray-500">{req.email} | {req.phone}</p>
               <p className="text-sm mt-2"><strong>Intended Amount:</strong> {req.amount}</p>
-              {req.message && <p className="text-sm italic mt-1">"{req.message}"</p>}
+              {req.message && <p className="text-sm italic mt-1">&quot;{req.message}&quot;</p>}
             </div>
             <div className="flex flex-col items-end space-y-2">
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${

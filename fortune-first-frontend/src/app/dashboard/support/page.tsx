@@ -3,8 +3,15 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 
+interface SupportTicket {
+  id: string;
+  subject: string;
+  category: string;
+  status: 'Open' | 'Resolved';
+}
+
 export default function SupportPage() {
-  const [tickets, setTickets] = useState([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [form, setForm] = useState({ subject: '', category: 'Payout Issue', message: '' });
 
   const fetchTickets = async () => {
@@ -62,7 +69,7 @@ export default function SupportPage() {
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Tickets</h2>
         <div className="space-y-4">
-          {tickets.map((t: any) => (
+          {tickets.map((t) => (
             <div key={t.id} className="bg-white p-4 rounded-xl shadow-sm border border-brand-border">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-semibold">{t.subject}</span>
