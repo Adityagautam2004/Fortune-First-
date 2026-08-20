@@ -497,14 +497,24 @@
       "delete": { "tags": ["Admin"], "summary": "Delete a blog post", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Blog post deleted" } } }
     },
     "/admin/testimonials": {
-      "get": { "tags": ["Admin"], "summary": "List every testimonial, visible or not", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "responses": { "200": { "description": "Testimonial list" } } },
+      "get": {
+        "tags": ["Admin"],
+        "summary": "List every testimonial, visible or not, paginated (FR-ADMIN-18)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin. Newest first.",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } }
+        ],
+        "responses": { "200": { "description": "Paginated testimonial list", "content": { "application/json": { "example": { "status": "success", "data": { "testimonials": [{ "id": "uuid", "client_name": "Aditya Gautam", "city": "Delhi", "content": "Great returns, transparent process.", "rating": 5, "is_visible": true, "created_at": "2026-08-01T00:00:00Z" }], "pagination": { "total": 1, "page": 1, "limit": 20, "totalPages": 1 } } } } } } }
+      },
       "post": {
         "tags": ["Admin"],
         "summary": "Create a testimonial (FR-ADMIN-18)",
         "security": [{ "bearerAuth": [] }],
         "description": "Requires role: super_admin.",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["clientName", "content"], "properties": { "clientName": { "type": "string" }, "content": { "type": "string" }, "rating": { "type": "integer", "minimum": 1, "maximum": 5 }, "isVisible": { "type": "boolean" } } } } } },
-        "responses": { "201": { "description": "Testimonial created" } }
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["clientName", "content"], "properties": { "clientName": { "type": "string", "maxLength": 100 }, "city": { "type": "string", "maxLength": 100 }, "content": { "type": "string" }, "rating": { "type": "integer", "minimum": 1, "maximum": 5, "default": 5 }, "isVisible": { "type": "boolean", "default": true } } } } } },
+        "responses": { "201": { "description": "Testimonial created" }, "400": { "description": "Validation error" } }
       }
     },
     "/admin/testimonials/{id}": {
@@ -512,22 +522,46 @@
         "tags": ["Admin"],
         "summary": "Update a testimonial",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: super_admin.",
+        "description": "Requires role: super_admin. All fields optional — only provided ones change.",
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "clientName": { "type": "string" }, "content": { "type": "string" }, "rating": { "type": "integer" }, "isVisible": { "type": "boolean" } } } } } },
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "clientName": { "type": "string", "maxLength": 100 }, "city": { "type": "string", "maxLength": 100 }, "content": { "type": "string" }, "rating": { "type": "integer", "minimum": 1, "maximum": 5 }, "isVisible": { "type": "boolean" } } } } } },
         "responses": { "200": { "description": "Testimonial updated" }, "404": { "description": "Not found" } }
       },
-      "delete": { "tags": ["Admin"], "summary": "Delete a testimonial", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Testimonial deleted" } } }
+      "delete": { "tags": ["Admin"], "summary": "Delete a testimonial", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Testimonial deleted" }, "404": { "description": "Not found" } } }
     },
     "/admin/public-returns": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "List monthly public-return entries, paginated (FR-ADMIN-19)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin. Most recent month first; one row per calendar month, including backfilled past months.",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } },
+          { "name": "year", "in": "query", "schema": { "type": "integer" }, "description": "Filter to a single year" }
+        ],
+        "responses": { "200": { "description": "Paginated return-history list", "content": { "application/json": { "example": { "status": "success", "data": { "returns": [{ "id": "uuid", "month": 7, "year": 2026, "return_pct": 1.8, "notes": null, "created_at": "2026-08-01T00:00:00Z" }], "pagination": { "total": 1, "page": 1, "limit": 20, "totalPages": 1 } } } } } } }
+      },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Create one month's public-return entry (FR-ADMIN-19)",
+        "security": [{ "bearerAuth": [] }],
+        "description": "Requires role: super_admin. Rejects a duplicate (month, year) with 409 — use PATCH to correct an existing entry instead of overwriting it. returnPct is constrained to this product's actual payout band, 1.5-2%.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["month", "year", "returnPct"], "properties": { "month": { "type": "integer", "minimum": 1, "maximum": 12 }, "year": { "type": "integer", "minimum": 2020, "maximum": 2100 }, "returnPct": { "type": "number", "minimum": 1.5, "maximum": 2 }, "notes": { "type": "string", "maxLength": 500 } } } } } },
+        "responses": { "201": { "description": "Public return created" }, "400": { "description": "Validation error (e.g. returnPct outside 1.5-2)" }, "409": { "description": "An entry for that month/year already exists" } }
+      }
+    },
+    "/admin/public-returns/{id}": {
       "patch": {
         "tags": ["Admin"],
-        "summary": "Upsert a month's public return-history data point (FR-ADMIN-19)",
+        "summary": "Correct a month's returnPct/notes (FR-ADMIN-19)",
         "security": [{ "bearerAuth": [] }],
-        "description": "Requires role: super_admin. Feeds the landing page's returns chart.",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["month", "year", "returnPct"], "properties": { "month": { "type": "integer", "minimum": 1, "maximum": 12 }, "year": { "type": "integer" }, "returnPct": { "type": "number" }, "notes": { "type": "string" } } } } } },
-        "responses": { "200": { "description": "Public return data updated" } }
-      }
+        "description": "Requires role: super_admin. month/year are immutable by design — delete and recreate if an entry needs to move to a different month.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "returnPct": { "type": "number", "minimum": 1.5, "maximum": 2 }, "notes": { "type": "string", "maxLength": 500 } } } } } },
+        "responses": { "200": { "description": "Public return updated" }, "404": { "description": "Not found" } }
+      },
+      "delete": { "tags": ["Admin"], "summary": "Delete a month's public-return entry", "security": [{ "bearerAuth": [] }], "description": "Requires role: super_admin.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Public return deleted" }, "404": { "description": "Not found" } } }
     },
     "/public/join-request": {
       "post": {
@@ -540,10 +574,35 @@
       }
     },
     "/public/returns": {
-      "get": { "tags": ["Public"], "summary": "Monthly return history for the landing page chart (FR-PUBLIC-10/11)", "security": [], "responses": { "200": { "description": "Return history, chronological" } } }
+      "get": { "tags": ["Public"], "summary": "Full monthly return history, chronological (FR-PUBLIC-10/11)", "security": [], "description": "No authentication required. Cached 10 minutes; invalidated on any admin public-returns write. For the landing page's summary widget, prefer /public/dashboard (last 12 months only).", "responses": { "200": { "description": "Return history, oldest first" } } }
     },
     "/public/testimonials": {
-      "get": { "tags": ["Public"], "summary": "Visible client testimonials (FR-PUBLIC-17)", "security": [], "responses": { "200": { "description": "Testimonial list" } } }
+      "get": { "tags": ["Public"], "summary": "Visible client testimonials (FR-PUBLIC-17)", "security": [], "description": "No authentication required. Cached 10 minutes; invalidated on any admin testimonial write.", "responses": { "200": { "description": "Testimonial list, newest first, each with client_name/city/content/rating" } } }
+    },
+    "/public/dashboard": {
+      "get": {
+        "tags": ["Public"],
+        "summary": "Combined landing-page dashboard data: last 12 months of returns + all visible testimonials",
+        "security": [],
+        "description": "No authentication required. One call instead of two for the landing page's dashboard section. Cached 10 minutes; invalidated whenever an admin writes to either public-returns or testimonials.",
+        "responses": {
+          "200": {
+            "description": "Combined payload",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "source": "database",
+                  "data": {
+                    "returns": [{ "month": 8, "year": 2025, "return_pct": 1.75, "notes": null }],
+                    "testimonials": [{ "client_name": "Aditya Gautam", "city": "Delhi", "content": "Great returns, transparent process.", "rating": 5 }]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/public/blog": {
       "get": { "tags": ["Public"], "summary": "Published blog posts (FR-PUBLIC-23)", "security": [], "responses": { "200": { "description": "Post list with excerpts" } } }

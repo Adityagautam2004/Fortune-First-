@@ -12,7 +12,7 @@ const {
   updatePayoutStatusAdmin, getFinancialsSummary, getAuditLogs, getReturnRate, setReturnRate,
   getAllBlogPostsAdmin, createBlogPost, updateBlogPost, deleteBlogPost,
   getAllTestimonialsAdmin, createTestimonial, updateTestimonial, deleteTestimonial,
-  updatePublicReturns,
+  getAllPublicReturnsAdmin, createPublicReturn, updatePublicReturn, deletePublicReturn,
 }= require('../controllers/admin.controller');
 const { processPayout, getChatHistory, getChatContacts, getPendingPayouts } = require('../controllers/board.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
@@ -101,21 +101,50 @@ router.delete('/blog/:id', deleteBlogPost);
 router.get('/testimonials', getAllTestimonialsAdmin);
 router.post(
   '/testimonials',
-  validate(Joi.object({ clientName: Joi.string().max(100).required(), content: Joi.string().required(), rating: Joi.number().integer().min(1).max(5), isVisible: Joi.boolean() })),
+  validate(Joi.object({
+    clientName: Joi.string().max(100).required(),
+    city: Joi.string().max(100).allow('', null),
+    content: Joi.string().required(),
+    rating: Joi.number().integer().min(1).max(5),
+    isVisible: Joi.boolean(),
+  })),
   createTestimonial
 );
-router.patch('/testimonials/:id', updateTestimonial);
+router.patch(
+  '/testimonials/:id',
+  validate(Joi.object({
+    clientName: Joi.string().max(100),
+    city: Joi.string().max(100).allow('', null),
+    content: Joi.string(),
+    rating: Joi.number().integer().min(1).max(5),
+    isVisible: Joi.boolean(),
+  })),
+  updateTestimonial
+);
 router.delete('/testimonials/:id', deleteTestimonial);
 
-router.patch(
+// ── Public returns (FR-ADMIN-19) — one entry per calendar month, including
+// backfilled past months. returnPct is deliberately constrained to the
+// 1.5-2% band this product actually pays out, not an arbitrary 0-100 range.
+router.get('/public-returns', getAllPublicReturnsAdmin);
+router.post(
   '/public-returns',
   validate(Joi.object({
     month: Joi.number().integer().min(1).max(12).required(),
     year: Joi.number().integer().min(2020).max(2100).required(),
-    returnPct: Joi.number().min(0).max(100).required(),
+    returnPct: Joi.number().min(1.5).max(2).required(),
     notes: Joi.string().max(500).allow('', null),
   })),
-  updatePublicReturns
+  createPublicReturn
 );
+router.patch(
+  '/public-returns/:id',
+  validate(Joi.object({
+    returnPct: Joi.number().min(1.5).max(2),
+    notes: Joi.string().max(500).allow('', null),
+  })),
+  updatePublicReturn
+);
+router.delete('/public-returns/:id', deletePublicReturn);
 
 module.exports = router;

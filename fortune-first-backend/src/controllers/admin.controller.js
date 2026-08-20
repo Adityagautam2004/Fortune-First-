@@ -449,10 +449,26 @@ const deleteBlogPost = async (req, res) => {
 
 // ── Testimonials CMS (FR-ADMIN-18) ───────────────────────────────
 
+// GET /admin/testimonials — paginated, newest first
 const getAllTestimonialsAdmin = async (req, res) => {
   try {
-    const testimonials = await db.query(`SELECT * FROM testimonials ORDER BY created_at DESC`);
-    return res.status(200).json({ status: 'success', data: testimonials.rows });
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const offset = (page - 1) * limit;
+
+    const [testimonials, countRes] = await Promise.all([
+      db.query(`SELECT * FROM testimonials ORDER BY created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]),
+      db.query(`SELECT COUNT(*) FROM testimonials`),
+    ]);
+    const total = parseInt(countRes.rows[0].count, 10);
+
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        testimonials: testimonials.rows,
+        pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      },
+    });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch testimonials' });
   }
@@ -460,13 +476,13 @@ const getAllTestimonialsAdmin = async (req, res) => {
 
 const createTestimonial = async (req, res) => {
   try {
-    const { clientName, content, rating, isVisible } = req.body;
+    const { clientName, city, content, rating, isVisible } = req.body;
     const result = await db.query(
-      `INSERT INTO testimonials (client_name, content, rating, is_visible)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [clientName, content, rating || 5, isVisible !== false]
+      `INSERT INTO testimonials (client_name, city, content, rating, is_visible)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [clientName, city || null, content, rating || 5, isVisible !== false]
     );
-    await redis.del('public:testimonials');
+    await redis.del('public:testimonials', 'public:dashboard');
     return res.status(201).json({ status: 'success', message: 'Testimonial created', data: result.rows[0] });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to create testimonial' });
@@ -476,18 +492,19 @@ const createTestimonial = async (req, res) => {
 const updateTestimonial = async (req, res) => {
   try {
     const { id } = req.params;
-    const { clientName, content, rating, isVisible } = req.body;
+    const { clientName, city, content, rating, isVisible } = req.body;
     const result = await db.query(
       `UPDATE testimonials
-       SET client_name = COALESCE($1, client_name), content = COALESCE($2, content),
-           rating = COALESCE($3, rating), is_visible = COALESCE($4, is_visible)
-       WHERE id = $5 RETURNING *`,
-      [clientName || null, content || null, rating || null, isVisible === undefined ? null : isVisible, id]
+       SET client_name = COALESCE($1, client_name), city = COALESCE($2, city),
+           content = COALESCE($3, content), rating = COALESCE($4, rating),
+           is_visible = COALESCE($5, is_visible)
+       WHERE id = $6 RETURNING *`,
+      [clientName || null, city || null, content || null, rating || null, isVisible === undefined ? null : isVisible, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Testimonial not found' });
     }
-    await redis.del('public:testimonials');
+    await redis.del('public:testimonials', 'public:dashboard');
     return res.status(200).json({ status: 'success', message: 'Testimonial updated', data: result.rows[0] });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to update testimonial' });
@@ -496,30 +513,109 @@ const updateTestimonial = async (req, res) => {
 
 const deleteTestimonial = async (req, res) => {
   try {
-    await db.query(`DELETE FROM testimonials WHERE id = $1`, [req.params.id]);
-    await redis.del('public:testimonials');
+    const result = await db.query(`DELETE FROM testimonials WHERE id = $1 RETURNING id`, [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Testimonial not found' });
+    }
+    await redis.del('public:testimonials', 'public:dashboard');
     return res.status(200).json({ status: 'success', message: 'Testimonial deleted' });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to delete testimonial' });
   }
 };
 
-// ── Public returns chart data (FR-ADMIN-19) ──────────────────────
+// ── Public returns chart data (FR-ADMIN-19) — full CRUD ──────────
+// One row per calendar month (past months included, for backfilling
+// history), enforced by the (month, year) UNIQUE constraint on the table.
 
-const updatePublicReturns = async (req, res) => {
+// GET /admin/public-returns — paginated, most recent month first;
+// optional ?year= filter for jumping to a specific year's entries.
+const getAllPublicReturnsAdmin = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const offset = (page - 1) * limit;
+    const { year } = req.query;
+
+    const whereClause = year ? 'WHERE year = $1' : '';
+    const listParams = year ? [year, limit, offset] : [limit, offset];
+    const countParams = year ? [year] : [];
+
+    const [returns, countRes] = await Promise.all([
+      db.query(
+        `SELECT * FROM public_returns ${whereClause}
+         ORDER BY year DESC, month DESC
+         LIMIT $${listParams.length - 1} OFFSET $${listParams.length}`,
+        listParams
+      ),
+      db.query(`SELECT COUNT(*) FROM public_returns ${whereClause}`, countParams),
+    ]);
+    const total = parseInt(countRes.rows[0].count, 10);
+
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        returns: returns.rows,
+        pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch public returns' });
+  }
+};
+
+// POST /admin/public-returns — create one month's entry (rejects a duplicate
+// month/year rather than silently overwriting it — use PATCH to correct one).
+const createPublicReturn = async (req, res) => {
   try {
     const { month, year, returnPct, notes } = req.body;
     const result = await db.query(
-      `INSERT INTO public_returns (month, year, return_pct, notes)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (month, year) DO UPDATE SET return_pct = EXCLUDED.return_pct, notes = EXCLUDED.notes
-       RETURNING *`,
+      `INSERT INTO public_returns (month, year, return_pct, notes) VALUES ($1, $2, $3, $4) RETURNING *`,
       [month, year, returnPct, notes || null]
     );
-    await redis.del('public:returns');
-    return res.status(200).json({ status: 'success', message: 'Public return data updated', data: result.rows[0] });
+    await redis.del('public:returns', 'public:dashboard');
+    return res.status(201).json({ status: 'success', message: 'Public return created', data: result.rows[0] });
   } catch (error) {
-    return res.status(500).json({ status: 'error', message: 'Failed to update public returns' });
+    if (error.code === '23505') {
+      return res.status(409).json({ status: 'error', message: 'An entry for that month already exists — use PATCH to update it' });
+    }
+    return res.status(500).json({ status: 'error', message: 'Failed to create public return' });
+  }
+};
+
+// PATCH /admin/public-returns/:id — correct returnPct/notes for an existing
+// month. month/year are intentionally immutable here — delete and recreate
+// if an entry needs to move to a different month.
+const updatePublicReturn = async (req, res) => {
+  try {
+    const { returnPct, notes } = req.body;
+    const result = await db.query(
+      `UPDATE public_returns
+       SET return_pct = COALESCE($1, return_pct), notes = COALESCE($2, notes)
+       WHERE id = $3 RETURNING *`,
+      [returnPct === undefined ? null : returnPct, notes === undefined ? null : notes, req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Public return entry not found' });
+    }
+    await redis.del('public:returns', 'public:dashboard');
+    return res.status(200).json({ status: 'success', message: 'Public return updated', data: result.rows[0] });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to update public return' });
+  }
+};
+
+// DELETE /admin/public-returns/:id
+const deletePublicReturn = async (req, res) => {
+  try {
+    const result = await db.query(`DELETE FROM public_returns WHERE id = $1 RETURNING id`, [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Public return entry not found' });
+    }
+    await redis.del('public:returns', 'public:dashboard');
+    return res.status(200).json({ status: 'success', message: 'Public return deleted' });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to delete public return' });
   }
 };
 
@@ -605,5 +701,8 @@ module.exports = {
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
-  updatePublicReturns,
+  getAllPublicReturnsAdmin,
+  createPublicReturn,
+  updatePublicReturn,
+  deletePublicReturn,
 };
