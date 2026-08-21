@@ -69,6 +69,7 @@ export default function AdminUsersPage() {
       await api.post('/admin/users', form);
       alert('User created successfully');
       setShowModal(false);
+      setForm({ name: '', email: '', password: '', role: 'customer', phone: '', assignedTo: '' });
       fetchUsers();
     } catch (error) {
       alert(getErrorMessage(error, 'Failed to create user'));
@@ -175,7 +176,8 @@ export default function AdminUsersPage() {
             <form onSubmit={handleCreateUser} className="space-y-4">
               <input required placeholder="Full Name" className="w-full border p-2 rounded" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
               <input required type="email" placeholder="Email" className="w-full border p-2 rounded" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
-              <input required type="password" placeholder="Temporary Password" className="w-full border p-2 rounded" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
+              <input required type="password" minLength={8} placeholder="Temporary Password (min 8 characters)" className="w-full border p-2 rounded" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
+              <input type="tel" placeholder="Phone (optional)" className="w-full border p-2 rounded" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
               <select className="w-full border p-2 rounded" value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
                 <option value="customer">Customer</option>
                 <option value="investment_head">Investment Head</option>
