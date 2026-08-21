@@ -1,30 +1,13 @@
-import { Star, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, User } from 'lucide-react';
 
 import { Card } from '@/components/ui/Card';
+import type { Testimonial } from '../lib/types';
 
-const TESTIMONIALS: { quote: string; name: string; location: string; rating: number }[] = [
-  {
-    quote: "It's been a great way of save my money and grow safely.",
-    name: 'Avinash Kumar',
-    location: 'Client, Delhi',
-    rating: 5,
-  },
-  {
-    quote:
-      'I am satisfied with my investment returns and having a great journey with fortune first.',
-    name: 'Vrishabh Bansod',
-    location: 'Client, Mumbai',
-    rating: 5,
-  },
-  {
-    quote: 'I am very satisfied after investing in this company.',
-    name: 'Sharmishtha',
-    location: 'Client, Kolkata',
-    rating: 5,
-  },
-];
+interface TrustedSectionProps {
+  testimonials: Testimonial[];
+}
 
-export function TrustedSection() {
+export function TrustedSection({ testimonials }: TrustedSectionProps) {
   return (
     <section id="trusted" className="border-t border-gray-100 bg-muted py-12 md:py-16">
       <div className="container-max text-center">
@@ -41,28 +24,22 @@ export function TrustedSection() {
           ))}
         </div>
 
-        <div className="relative mx-auto max-w-5xl px-4 md:px-0">
-          <button
-            type="button"
-            aria-label="Previous testimonial"
-            className="absolute left-0 top-1/2 z-10 hidden h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-primary/30 bg-white text-primary shadow-sm transition-colors hover:bg-primary/10 md:flex"
-          >
-            <ChevronLeft size={18} />
-          </button>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {TESTIMONIALS.map((testimonial) => (
+        {testimonials.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Client testimonials coming soon.</p>
+        ) : (
+          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-4 md:grid-cols-3 md:px-0">
+            {testimonials.map((testimonial, i) => (
               <Card
-                key={testimonial.name}
+                key={`${testimonial.client_name}-${i}`}
                 className="flex flex-col items-start border-0 bg-white p-6 text-left shadow-[0_4px_20px_rgb(0,0,0,0.06)]"
               >
                 <p className="mb-4 text-sm italic leading-relaxed text-gray-700">
-                  &ldquo;{testimonial.quote}&rdquo;
+                  &ldquo;{testimonial.content}&rdquo;
                 </p>
 
                 <div className="mb-5 flex items-center gap-1">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <Star key={i} size={16} className="fill-primary text-primary" />
+                  {Array.from({ length: testimonial.rating }).map((_, starIdx) => (
+                    <Star key={starIdx} size={16} className="fill-primary text-primary" />
                   ))}
                 </div>
 
@@ -71,22 +48,16 @@ export function TrustedSection() {
                     <User size={18} className="text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-800">{testimonial.name}</p>
-                    <p className="text-xs text-muted-foreground">{testimonial.location}</p>
+                    <p className="text-sm font-bold text-gray-800">{testimonial.client_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {testimonial.city ? `Client, ${testimonial.city}` : 'Client'}
+                    </p>
                   </div>
                 </div>
               </Card>
             ))}
           </div>
-
-          <button
-            type="button"
-            aria-label="Next testimonial"
-            className="absolute right-0 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-primary/30 bg-white text-primary shadow-sm transition-colors hover:bg-primary/10 md:flex"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
+        )}
       </div>
     </section>
   );
