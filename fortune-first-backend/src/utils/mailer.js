@@ -51,6 +51,121 @@ const sendPasswordResetEmail = async (customerEmail, resetToken) => {
   }
 };
 
+// FR-PUBLIC-19/ADMIN-10: auto-reply sent the moment a public "join now" form
+// is submitted, before any admin has looked at it.
+const sendJoinRequestReceivedEmail = async (email, name) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Fortune First <info@fortunefirst.com>',
+      to: [email],
+      subject: "We've received your request to join Fortune First",
+      html: `
+        <h2>Hello ${name},</h2>
+        <p>Thank you for your interest in Fortune First. We've received your request to join and our team is currently reviewing it.</p>
+        <p>You'll receive an update on your request shortly — usually within 2-3 business days.</p>
+        <br/>
+        <p>Regards,<br/>The Fortune First Team</p>
+      `,
+    });
+
+    if (error) console.error('Resend API Error:', error);
+    return data;
+  } catch (err) {
+    console.error('Join request email failed:', err);
+  }
+};
+
+// FR-ADMIN-11: sent the moment an admin marks a join request "Approved" —
+// before the account itself exists, so it deliberately promises a head
+// assignment and credentials "soon" rather than including any of that yet.
+const sendJoinRequestApprovedEmail = async (email, name) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Fortune First <info@fortunefirst.com>',
+      to: [email],
+      subject: 'Your Fortune First request has been accepted!',
+      html: `
+        <h2>Congratulations, ${name}!</h2>
+        <p>We're pleased to let you know that your request to join Fortune First has been accepted.</p>
+        <p>You will soon be a part of the Fortune First family. An investment head will be assigned to you shortly, and you will receive your account credentials by email once that's done.</p>
+        <br/>
+        <p>Regards,<br/>The Fortune First Team</p>
+      `,
+    });
+
+    if (error) console.error('Resend API Error:', error);
+    return data;
+  } catch (err) {
+    console.error('Join request approval email failed:', err);
+  }
+};
+
+// FR-ADMIN-11: sent the moment an admin marks a join request "Rejected"
+const sendJoinRequestRejectedEmail = async (email, name) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Fortune First <info@fortunefirst.com>',
+      to: [email],
+      subject: 'Update on your Fortune First request',
+      html: `
+        <h2>Hello ${name},</h2>
+        <p>Thank you for your interest in Fortune First. After careful review, we're unable to move forward with your request to join at this time.</p>
+        <p>We appreciate the time you took to apply and wish you the best going forward.</p>
+        <br/>
+        <p>Regards,<br/>The Fortune First Team</p>
+      `,
+    });
+
+    if (error) console.error('Resend API Error:', error);
+    return data;
+  } catch (err) {
+    console.error('Join request rejection email failed:', err);
+  }
+};
+
+// FR-ADMIN-11: sent when an admin actually creates the account in User
+// Management — the final onboarding step, carrying the login credentials
+// and (for a customer with an investment head already assigned) that
+// head's contact details. investmentHead is null for roles/accounts that
+// don't have one, in which case that block is simply omitted.
+const sendOnboardingEmail = async (email, name, tempPassword, investmentHead) => {
+  try {
+    const headSection = investmentHead
+      ? `
+        <p>Your dedicated investment head has been assigned:</p>
+        <ul>
+          <li><strong>Name:</strong> ${investmentHead.name}</li>
+          <li><strong>Phone:</strong> ${investmentHead.phone || 'N/A'}</li>
+        </ul>
+      `
+      : '';
+
+    const { data, error } = await resend.emails.send({
+      from: 'Fortune First <info@fortunefirst.com>',
+      to: [email],
+      subject: 'Welcome to Fortune First — your account is ready',
+      html: `
+        <h2>Welcome to Fortune First, ${name}!</h2>
+        <p>You're officially part of the Fortune First family. Your account has been created and is ready to use.</p>
+        ${headSection}
+        <p>Your login credentials:</p>
+        <ul>
+          <li><strong>Email:</strong> ${email}</li>
+          <li><strong>Temporary Password:</strong> ${tempPassword}</li>
+        </ul>
+        <p>For your security, you'll be asked to set a new password the first time you log in.</p>
+        <br/>
+        <p>Regards,<br/>The Fortune First Team</p>
+      `,
+    });
+
+    if (error) console.error('Resend API Error:', error);
+    return data;
+  } catch (err) {
+    console.error('Onboarding email failed:', err);
+  }
+};
+
 // FR-IH-07: board member composes and sends an arbitrary email to a client
 const sendCustomEmail = async (customerEmail, subject, message) => {
   try {
@@ -86,4 +201,13 @@ const sendReportEmail = async (customerEmail, customerName, pdfBuffer) => {
   }
 };
 
-module.exports = { sendPayoutEmail, sendPasswordResetEmail, sendCustomEmail, sendReportEmail };
+module.exports = {
+  sendPayoutEmail,
+  sendPasswordResetEmail,
+  sendJoinRequestReceivedEmail,
+  sendJoinRequestApprovedEmail,
+  sendJoinRequestRejectedEmail,
+  sendOnboardingEmail,
+  sendCustomEmail,
+  sendReportEmail,
+};

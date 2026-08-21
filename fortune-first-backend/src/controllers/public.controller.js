@@ -1,6 +1,6 @@
 const db = require('../models/db');
 const redis = require('../utils/redis');
-// const { resend } = require('../utils/mailer'); // Assuming you set up Resend earlier
+const { sendJoinRequestReceivedEmail } = require('../utils/mailer');
 
 // These four are the highest-traffic, most shareable routes in the app —
 // unauthenticated landing-page content read by every visitor, written only
@@ -17,15 +17,10 @@ const submitJoinRequest = async (req, res) => {
       [name, email, phone, amount, message]
     );
 
-    // Optional: Send auto-reply to the user (as per SRS)
-    /*
-    await resend.emails.send({
-      from: 'Fortune First <info@fortunefirst.com>',
-      to: email,
-      subject: 'We received your request to join Fortune First',
-      html: '<p>Thank you for your interest. We will contact you within 2-3 business days.</p>'
-    });
-    */
+    // The mailer swallows its own errors (logs + returns undefined) rather
+    // than throwing, so a Resend outage never turns a successful submission
+    // into a 500 for the applicant.
+    await sendJoinRequestReceivedEmail(email, name);
 
     return res.status(201).json({ status: 'success', message: 'Request submitted successfully' });
   } catch (error) {

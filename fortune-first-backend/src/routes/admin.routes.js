@@ -26,7 +26,18 @@ router.get('/dashboard', getDashboardStats);
 
 // ── Users (FR-ADMIN-04..09) ───────────────────────────────
 router.get('/users', getUsers);
-router.post('/users', createUser);
+router.post(
+  '/users',
+  validate(Joi.object({
+    name: Joi.string().max(100).required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().min(8).required(),
+    role: Joi.string().valid(...Object.values(USER_ROLES)).required(),
+    phone: Joi.string().max(15).allow('', null),
+    assignedTo: Joi.string().uuid().when('role', { is: USER_ROLES.CUSTOMER, then: Joi.required(), otherwise: Joi.optional().allow('', null) }),
+  })),
+  createUser
+);
 router.get('/users/:id', getUserByIdAdmin);
 router.patch('/users/:id', updateUserAdmin);
 router.patch('/users/:id/toggle-active', toggleUserActiveAdmin);
@@ -39,7 +50,11 @@ router.patch(
 
 // ── Join requests (FR-ADMIN-10..12) ───────────────────────
 router.get('/join-requests', getJoinRequests);
-router.put('/join-requests/:id/status', updateJoinRequestStatus);
+router.patch(
+  '/join-requests/:id',
+  validate(Joi.object({ status: Joi.string().valid('Approved', 'Rejected').required() })),
+  updateJoinRequestStatus
+);
 
 // ── Investments & payouts (FR-ADMIN-14..16) ───────────────
 router.get('/investments', getAllInvestmentsAdmin);

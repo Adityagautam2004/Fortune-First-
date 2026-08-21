@@ -1,6 +1,11 @@
 const db = require('../models/db');
 const redis = require('../utils/redis');
 const { hashPassword } = require('../utils/auth.utils');
+const {
+  sendJoinRequestApprovedEmail,
+  sendJoinRequestRejectedEmail,
+  sendOnboardingEmail,
+} = require('../utils/mailer');
 const { decrypt, maskPan, maskAccountNumber } = require('../utils/crypto');
 const userService = require('../services/userService');
 const investmentService = require('../services/investmentService');
@@ -62,15 +67,25 @@ const toggleUserActiveAdmin = async (req, res) => {
 const createUser = async (req, res) => {
   try {
     const { name, email, password, role, phone, assignedTo } = req.body;
-    
+
     // Hash the temporary password assigned by the admin
     const hashedPassword = await hashPassword(password);
-    
+
     const newUser = await db.query(
       `INSERT INTO users (name, email, password_hash, role, phone, assigned_to, must_change_password)
        VALUES ($1, $2, $3, $4, $5, $6, TRUE) RETURNING id, name, email`,
       [name, email, hashedPassword, role, phone, assignedTo || null]
     );
+
+    // FR-ADMIN-11: final onboarding step — the account now exists, so the
+    // temp password (still in plaintext here, pre-hash) and the assigned
+    // investment head's contact details (if any) go out immediately.
+    let investmentHead = null;
+    if (assignedTo) {
+      const headRes = await db.query(`SELECT name, phone FROM users WHERE id = $1`, [assignedTo]);
+      investmentHead = headRes.rows[0] || null;
+    }
+    await sendOnboardingEmail(email, name, password, investmentHead);
 
     return res.status(201).json({ status: 'success', message: 'User created', data: newUser.rows[0] });
   } catch (error) {
@@ -94,11 +109,26 @@ const updateJoinRequestStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body; // 'Approved' or 'Rejected'
-    
+
+    const existing = await db.query(`SELECT name, email, status FROM join_requests WHERE id = $1`, [id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Join request not found' });
+    }
+    const request = existing.rows[0];
+    if (request.status !== 'Pending') {
+      return res.status(409).json({ status: 'error', message: `Request has already been ${request.status.toLowerCase()}` });
+    }
+
     await db.query(`UPDATE join_requests SET status = $1 WHERE id = $2`, [status, id]);
-    
-    // Note: If Approved, you would typically trigger the createUser logic here automatically.
-    
+
+    // FR-ADMIN-11: the decision email — actual account creation (and its own
+    // onboarding email) happens separately, later, from User Management.
+    if (status === 'Approved') {
+      await sendJoinRequestApprovedEmail(request.email, request.name);
+    } else if (status === 'Rejected') {
+      await sendJoinRequestRejectedEmail(request.email, request.name);
+    }
+
     return res.status(200).json({ status: 'success', message: `Request marked as ${status}` });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to update request' });

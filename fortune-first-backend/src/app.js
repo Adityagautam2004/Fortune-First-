@@ -9,8 +9,6 @@ require('dotenv').config();
 const db = require('./models/db');
 const apiRoutes = require('./routes');
 const setupSocket = require('./services/socket.service'); // We will build this next
-const swaggerUi = require('swagger-ui-express');
-const openapiSpec = require('./docs/openapi.json');
 const ApiError = require('./utils/apiError');
 const errorHandler = require('./middleware/errorHandler');
 const { allowedOrigins } = require('./utils/corsOrigins');
@@ -57,7 +55,6 @@ app.get('/api/v1/health', async (req, res) => {
 });
 
 app.use('/api/v1', apiRoutes);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 // 404 catch-all for unmatched routes
 app.all('*', (req, _res, next) => {
