@@ -29,7 +29,7 @@ export function SiteFooter() {
               </div>
               <div className="flex items-center gap-2">
                 <Mail size={14} className="text-primary" />
-                <span>info@fortunefirst.com</span>
+                <span>info@fortunefirst.in</span>
               </div>
             </div>
           </div>
