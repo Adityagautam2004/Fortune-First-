@@ -4,7 +4,6 @@ import { FileText } from 'lucide-react';
 
 import { Tabs } from '@/components/ui/Tabs';
 import { ComingSoon } from '@/components/shared/coming-soon';
-import { CommunicationPage } from './communication-page';
 import { TestimonialsManagement } from './testimonials-management';
 import { PublicReturnsManagement } from './public-returns-management';
 
@@ -12,7 +11,6 @@ const TABS = [
   { key: 'reports', label: 'Reports' },
   { key: 'testimonials', label: 'Testimonials' },
   { key: 'returns', label: 'Past Returns' },
-  { key: 'communication', label: 'Communication' },
 ];
 
 export function ContentManagementPage() {
@@ -20,14 +18,13 @@ export function ContentManagementPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-extrabold text-gray-900">Content Management</h1>
-        <p className="mt-1 text-sm text-gray-500">Landing page content and team communication.</p>
+        <p className="mt-1 text-sm text-gray-500">Landing page content.</p>
       </div>
 
       <Tabs items={TABS} defaultKey="reports">
         {(active) => {
           if (active === 'testimonials') return <TestimonialsManagement />;
           if (active === 'returns') return <PublicReturnsManagement />;
-          if (active === 'communication') return <CommunicationPage />;
           return (
             <ComingSoon
               icon={FileText}

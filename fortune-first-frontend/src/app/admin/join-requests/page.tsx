@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { isAxiosError } from 'axios';
 import api from '@/lib/api';
 
 interface JoinRequest {
@@ -27,7 +28,14 @@ export default function JoinRequestsPage() {
     try {
       await api.patch(`/admin/join-requests/${id}`, { status });
       fetchRequests();
-    } catch {
+    } catch (error) {
+      // 409 means this request was already decided (e.g. a double-click, or
+      // another admin got there first) — not a real error, just re-sync the
+      // list so the stale "Pending" state in front of the admin goes away.
+      if (isAxiosError(error) && error.response?.status === 409) {
+        fetchRequests();
+        return;
+      }
       alert('Failed to update status');
     }
   };
