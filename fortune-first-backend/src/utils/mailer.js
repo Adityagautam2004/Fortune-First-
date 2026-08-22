@@ -6,7 +6,7 @@ const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder_key');
 const sendPayoutEmail = async (customerEmail, customerName, payoutAmount, month, year) => {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Fortune First <info@fortunefirst.com>',
+      from: 'Fortune First <info@fortunefirst.in>',
       to: [customerEmail],
       subject: `Your Fortune First Payout for ${month}/${year} is Processed`,
       html: `
@@ -31,7 +31,7 @@ const sendPasswordResetEmail = async (customerEmail, resetToken) => {
     const resetLink = `${primaryOrigin}/reset-password?token=${resetToken}`;
 
     const { data, error } = await resend.emails.send({
-      from: 'Fortune First Security <info@fortunefirst.com>',
+      from: 'Fortune First Security <info@fortunefirst.in>',
       to: [customerEmail],
       subject: 'Fortune First - Password Reset Request',
       html: `
@@ -56,7 +56,7 @@ const sendPasswordResetEmail = async (customerEmail, resetToken) => {
 const sendJoinRequestReceivedEmail = async (email, name) => {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Fortune First <info@fortunefirst.com>',
+      from: 'Fortune First <info@fortunefirst.in>',
       to: [email],
       subject: "We've received your request to join Fortune First",
       html: `
@@ -81,7 +81,7 @@ const sendJoinRequestReceivedEmail = async (email, name) => {
 const sendJoinRequestApprovedEmail = async (email, name) => {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Fortune First <info@fortunefirst.com>',
+      from: 'Fortune First <info@fortunefirst.in>',
       to: [email],
       subject: 'Your Fortune First request has been accepted!',
       html: `
@@ -104,7 +104,7 @@ const sendJoinRequestApprovedEmail = async (email, name) => {
 const sendJoinRequestRejectedEmail = async (email, name) => {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Fortune First <info@fortunefirst.com>',
+      from: 'Fortune First <info@fortunefirst.in>',
       to: [email],
       subject: 'Update on your Fortune First request',
       html: `
@@ -141,7 +141,7 @@ const sendOnboardingEmail = async (email, name, tempPassword, investmentHead) =>
       : '';
 
     const { data, error } = await resend.emails.send({
-      from: 'Fortune First <info@fortunefirst.com>',
+      from: 'Fortune First <info@fortunefirst.in>',
       to: [email],
       subject: 'Welcome to Fortune First — your account is ready',
       html: `
@@ -170,7 +170,7 @@ const sendOnboardingEmail = async (email, name, tempPassword, investmentHead) =>
 const sendCustomEmail = async (customerEmail, subject, message) => {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Fortune First <info@fortunefirst.com>',
+      from: 'Fortune First <info@fortunefirst.in>',
       to: [customerEmail],
       subject,
       html: `<p>${message.replace(/\n/g, '<br/>')}</p><br/><p>Regards,<br/>The Fortune First Team</p>`,
@@ -187,7 +187,7 @@ const sendCustomEmail = async (customerEmail, subject, message) => {
 const sendReportEmail = async (customerEmail, customerName, pdfBuffer) => {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Fortune First <info@fortunefirst.com>',
+      from: 'Fortune First <info@fortunefirst.in>',
       to: [customerEmail],
       subject: 'Your Fortune First Investment Report',
       html: `<h2>Hello ${customerName},</h2><p>Please find your latest investment report attached.</p><br/><p>Regards,<br/>The Fortune First Team</p>`,
