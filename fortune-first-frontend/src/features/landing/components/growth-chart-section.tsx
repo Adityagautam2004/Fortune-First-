@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -12,10 +13,23 @@ import {
 } from 'recharts';
 
 import type { PublicReturn } from '../lib/types';
+import { SliderField } from './slider-field';
 
 const MONTH_LABELS = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
+
+function formatRupees(amount: number) {
+  return `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+}
+
+// Simple interest projection over 1 year: SI = P × R × T, where R is the
+// real average monthly return (annualized ×12) and T is fixed at 1 year —
+// pure client-side math over the same avgReturn already computed for the chart.
+function calculateSimpleInterest(principal: number, avgMonthlyReturnPct: number) {
+  const annualRatePct = avgMonthlyReturnPct * 12;
+  return (principal * annualRatePct) / 100;
+}
 
 interface GrowthChartSectionProps {
   returns: PublicReturn[];
@@ -26,6 +40,7 @@ export function GrowthChartSection({ returns: rawReturns }: GrowthChartSectionPr
   // pg driver quirk), regardless of what the PublicReturn type declares —
   // normalize to real numbers before any arithmetic.
   const returns = rawReturns.map((r) => ({ ...r, return_pct: Number(r.return_pct) }));
+  const [calcAmount, setCalcAmount] = useState(50000);
 
   const chartData = returns.map((r) => ({
     month: `${MONTH_LABELS[r.month - 1]}\n${r.year}`,
@@ -36,9 +51,6 @@ export function GrowthChartSection({ returns: rawReturns }: GrowthChartSectionPr
   const avgReturn = hasData
     ? returns.reduce((sum, r) => sum + r.return_pct, 0) / returns.length
     : 0;
-  const best = hasData
-    ? returns.reduce((max, r) => (r.return_pct > max.return_pct ? r : max), returns[0])
-    : null;
   const maxValue = hasData ? Math.max(...returns.map((r) => r.return_pct)) : 0;
   const yDomainMax = Math.ceil((maxValue + 0.5) * 2) / 2;
 
@@ -122,19 +134,26 @@ export function GrowthChartSection({ returns: rawReturns }: GrowthChartSectionPr
         {hasData && (
           <div className="mx-auto mt-0 max-w-5xl rounded-b-2xl border border-t-0 border-gray-100 bg-muted px-4 py-5 md:px-6">
             <div className="grid grid-cols-1 gap-4 divide-y divide-orange-100 text-center sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-              <div className="py-2 sm:px-4 sm:py-0">
-                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Avg Monthly Return</p>
-                <p className="text-xl font-extrabold text-primary md:text-2xl">{avgReturn.toFixed(2)}%</p>
+              <div className="py-2 text-left sm:px-4 sm:py-0">
+                <SliderField
+                  label="Investment Amount"
+                  value={calcAmount}
+                  onChange={setCalcAmount}
+                  min={5000}
+                  max={500000}
+                  step={5000}
+                  formatValue={formatRupees}
+                />
               </div>
               <div className="py-2 sm:px-4 sm:py-0">
-                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Best Month</p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Total Annual Return</p>
                 <p className="text-xl font-extrabold text-primary md:text-2xl">
-                  {best ? `${MONTH_LABELS[best.month - 1]} ${best.year} — ${best.return_pct.toFixed(2)}%` : '—'}
+                  {formatRupees(Math.round(calculateSimpleInterest(calcAmount, avgReturn)))}
                 </p>
               </div>
               <div className="py-2 sm:px-4 sm:py-0">
-                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Months Tracked</p>
-                <p className="text-xl font-extrabold text-primary md:text-2xl">{returns.length}</p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Average Annual Return</p>
+                <p className="text-xl font-extrabold text-primary md:text-2xl">{(avgReturn * 12).toFixed(2)}%</p>
               </div>
             </div>
           </div>
