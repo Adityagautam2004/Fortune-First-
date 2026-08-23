@@ -190,7 +190,7 @@ export function PublicReturnsManagement() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-brand-surface text-brand-navy">

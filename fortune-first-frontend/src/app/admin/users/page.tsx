@@ -85,7 +85,7 @@ export default function AdminUsersPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-brand-surface text-brand-navy">
@@ -122,8 +122,8 @@ export default function AdminUsersPage() {
 
       {/* KYC Review Modal */}
       {kycUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-xl w-[420px]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-xl w-full max-w-[420px]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">KYC — {kycUser.name}</h2>
               <span className={`px-2 py-1 text-xs rounded-full ${kycData?.verified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -170,8 +170,8 @@ export default function AdminUsersPage() {
 
       {/* Basic Create Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-xl w-96">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Create New Account</h2>
             <form onSubmit={handleCreateUser} className="space-y-4">
               <input required placeholder="Full Name" className="w-full border p-2 rounded" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />

@@ -45,7 +45,7 @@ function PayoutForm() {
         <p className="text-2xl font-bold text-brand-navy">₹{parseFloat(amount || '0').toLocaleString()}</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <label className="block text-sm font-medium">Month (1-12)</label>
           <input
