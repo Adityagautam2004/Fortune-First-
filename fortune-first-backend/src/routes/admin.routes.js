@@ -12,7 +12,8 @@ const {
   updatePayoutStatusAdmin, getFinancialsSummary, getAuditLogs, getReturnRate, setReturnRate,
   getAllBlogPostsAdmin, createBlogPost, updateBlogPost, deleteBlogPost,
   getAllTestimonialsAdmin, createTestimonial, updateTestimonial, deleteTestimonial,
-  getAllPublicReturnsAdmin, createPublicReturn, updatePublicReturn, deletePublicReturn,
+  getAllPublicReturnsAdmin, getPublicReturnYears, getYearlyPayoutSummary,
+  createPublicReturn, updatePublicReturn, deletePublicReturn,
 }= require('../controllers/admin.controller');
 const { processPayout, getChatHistory, getChatContacts, getPendingPayouts } = require('../controllers/board.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
@@ -96,6 +97,7 @@ router.patch(
 // reachable by super_admin via its own routes (board.routes.js stays untouched
 // so investment_head/business_head's existing access isn't widened further).
 router.get('/payouts/pending', getPendingPayouts);
+router.get('/payouts/yearly-summary', getYearlyPayoutSummary);
 router.post('/payouts/process', processPayout);
 router.get('/chat/contacts', getChatContacts);
 router.get('/chat/:conversationId', getChatHistory);
@@ -141,6 +143,7 @@ router.delete('/testimonials/:id', deleteTestimonial);
 // ── Public returns (FR-ADMIN-19) — one entry per calendar month, including
 // backfilled past months. returnPct is deliberately constrained to the
 // 1.5-2% band this product actually pays out, not an arbitrary 0-100 range.
+router.get('/public-returns/years', getPublicReturnYears);
 router.get('/public-returns', getAllPublicReturnsAdmin);
 router.post(
   '/public-returns',

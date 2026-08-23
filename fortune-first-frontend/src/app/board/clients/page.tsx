@@ -26,7 +26,7 @@ export default function BoardClientsPage() {
   return (
     <div>
       <h1 className="text-3xl font-bold text-brand-navy mb-6">My Clients</h1>
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-brand-surface text-brand-navy">

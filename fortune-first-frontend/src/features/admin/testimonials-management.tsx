@@ -117,7 +117,7 @@ export function TestimonialsManagement() {
 
       {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-brand-surface text-brand-navy">

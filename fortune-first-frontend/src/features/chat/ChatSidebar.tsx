@@ -63,8 +63,8 @@ export function ChatSidebar({
         <button
           type="button"
           onClick={onSelectGroup}
-          className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-muted ${
-            activeId === GROUP_CHANNEL.id ? 'bg-muted' : ''
+          className={`flex w-full items-center gap-3 rounded-xl border px-2.5 py-2.5 text-left transition-colors hover:bg-muted ${
+            activeId === GROUP_CHANNEL.id ? 'border-primary/40 bg-primary/10' : 'border-transparent'
           }`}
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/10 text-xs font-bold text-primary">
@@ -85,8 +85,8 @@ export function ChatSidebar({
               type="button"
               key={member.id}
               onClick={() => onSelectContact(member)}
-              className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-muted ${
-                activeId.includes(member.id) ? 'bg-muted' : ''
+              className={`flex w-full items-center gap-3 rounded-xl border px-2.5 py-2.5 text-left transition-colors hover:bg-muted ${
+                activeId.includes(member.id) ? 'border-primary/40 bg-primary/10' : 'border-transparent'
               }`}
             >
               <div className="relative shrink-0">

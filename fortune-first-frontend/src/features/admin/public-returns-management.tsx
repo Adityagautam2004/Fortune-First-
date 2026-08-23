@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, IndianRupee, TrendingUp, CalendarCheck } from 'lucide-react';
 
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/utils';
@@ -17,33 +17,52 @@ interface PublicReturnRow {
   created_at: string;
 }
 
+interface YearlyPayoutSummary {
+  year: number;
+  totalPaid: number;
+  paidCount: number;
+  pendingCount: number;
+}
+
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-const emptyForm = () => ({
+const currentYear = new Date().getFullYear();
+
+const emptyForm = (year: number) => ({
   month: new Date().getMonth() + 1,
-  year: new Date().getFullYear(),
+  year,
   returnPct: 1.75,
   notes: '',
 });
 
+function formatCurrency(amount: number) {
+  return `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+}
+
 export function PublicReturnsManagement() {
+  const [year, setYear] = useState(currentYear);
   const [returns, setReturns] = useState<PublicReturnRow[]>([]);
+  const [payoutSummary, setPayoutSummary] = useState<YearlyPayoutSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyForm());
+  const [form, setForm] = useState(emptyForm(currentYear));
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const fetchReturns = async () => {
+  const fetchYearData = async (y: number) => {
     setIsLoading(true);
     try {
-      const res = await api.get('/admin/public-returns?limit=100');
-      setReturns(res.data.data.returns);
+      const [returnsRes, payoutRes] = await Promise.all([
+        api.get(`/admin/public-returns?year=${y}&limit=12`),
+        api.get(`/admin/payouts/yearly-summary?year=${y}`),
+      ]);
+      setReturns(returnsRes.data.data.returns);
+      setPayoutSummary(payoutRes.data.data);
       setError(null);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load return history'));
@@ -52,11 +71,19 @@ export function PublicReturnsManagement() {
     }
   };
 
-  useEffect(() => { fetchReturns(); }, []);
+  useEffect(() => { fetchYearData(year); }, [year]);
+
+  const hasReturns = returns.length > 0;
+  const avgReturn = hasReturns
+    ? returns.reduce((sum, r) => sum + Number(r.return_pct), 0) / returns.length
+    : 0;
+  const best = hasReturns
+    ? returns.reduce((max, r) => (Number(r.return_pct) > Number(max.return_pct) ? r : max), returns[0])
+    : null;
 
   const openCreate = () => {
     setEditingId(null);
-    setForm(emptyForm());
+    setForm(emptyForm(year));
     setFormError(null);
     setModalOpen(true);
   };
@@ -87,7 +114,7 @@ export function PublicReturnsManagement() {
         });
       }
       setModalOpen(false);
-      fetchReturns();
+      fetchYearData(year);
     } catch (err) {
       setFormError(getErrorMessage(err, 'Failed to save entry'));
     } finally {
@@ -99,7 +126,7 @@ export function PublicReturnsManagement() {
     if (!confirm('Delete this month\'s entry? This cannot be undone.')) return;
     try {
       await api.delete(`/admin/public-returns/${id}`);
-      fetchReturns();
+      fetchYearData(year);
     } catch (err) {
       alert(getErrorMessage(err, 'Failed to delete entry'));
     }
@@ -118,7 +145,52 @@ export function PublicReturnsManagement() {
 
       {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-hidden">
+      {/* Year navigation */}
+      <div className="mb-4 flex items-center justify-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => setYear((y) => y - 1)} aria-label="Previous year">
+          <ChevronLeft size={18} />
+        </Button>
+        <span className="min-w-[5rem] text-center text-lg font-bold text-brand-navy">{year}</span>
+        <Button variant="ghost" size="icon" onClick={() => setYear((y) => y + 1)} aria-label="Next year">
+          <ChevronRight size={18} />
+        </Button>
+      </div>
+
+      {/* Yearly summary — real payout total (monthly_returns) + public return % (public_returns) */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-brand-border bg-white p-4">
+          <div className="mb-1 flex items-center gap-2 text-xs font-medium text-gray-500">
+            <IndianRupee size={14} className="text-primary" /> Total Paid to Customers
+          </div>
+          <p className="text-2xl font-extrabold text-gray-900">
+            {payoutSummary ? formatCurrency(payoutSummary.totalPaid) : '—'}
+          </p>
+          {payoutSummary && (
+            <p className="mt-1 text-xs text-gray-400">
+              {payoutSummary.paidCount} paid{payoutSummary.pendingCount > 0 ? `, ${payoutSummary.pendingCount} pending` : ''}
+            </p>
+          )}
+        </div>
+        <div className="rounded-xl border border-brand-border bg-white p-4">
+          <div className="mb-1 flex items-center gap-2 text-xs font-medium text-gray-500">
+            <TrendingUp size={14} className="text-primary" /> Avg Monthly Return
+          </div>
+          <p className="text-2xl font-extrabold text-gray-900">{hasReturns ? `${avgReturn.toFixed(2)}%` : '—'}</p>
+          {best && (
+            <p className="mt-1 text-xs text-gray-400">
+              Best: {MONTH_NAMES[best.month - 1]} — {best.return_pct}%
+            </p>
+          )}
+        </div>
+        <div className="rounded-xl border border-brand-border bg-white p-4">
+          <div className="mb-1 flex items-center gap-2 text-xs font-medium text-gray-500">
+            <CalendarCheck size={14} className="text-primary" /> Months Tracked
+          </div>
+          <p className="text-2xl font-extrabold text-gray-900">{returns.length} / 12</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-brand-surface text-brand-navy">
@@ -132,7 +204,7 @@ export function PublicReturnsManagement() {
             {isLoading ? (
               <tr><td colSpan={4} className="p-8 text-center text-gray-400">Loading...</td></tr>
             ) : returns.length === 0 ? (
-              <tr><td colSpan={4} className="p-8 text-center text-gray-400">No return history yet.</td></tr>
+              <tr><td colSpan={4} className="p-8 text-center text-gray-400">No return history for {year} yet.</td></tr>
             ) : (
               returns.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-50">

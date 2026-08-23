@@ -594,6 +594,58 @@ const getAllPublicReturnsAdmin = async (req, res) => {
   }
 };
 
+// GET /admin/public-returns/years — distinct years that have either a
+// public_returns entry or a real monthly_returns payout, most recent first.
+// Used by the admin Past Returns page to bound its year prev/next navigation
+// to years that actually have something to show.
+const getPublicReturnYears = async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT year FROM public_returns
+       UNION
+       SELECT year FROM monthly_returns
+       ORDER BY year DESC`
+    );
+    return res.status(200).json({ status: 'success', data: result.rows.map((r) => r.year) });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch available years' });
+  }
+};
+
+// GET /admin/payouts/yearly-summary?year=YYYY — the real total ₹ actually
+// paid out to customers that calendar year (monthly_returns is the ground
+// truth for real payouts; public_returns is just the % shown publicly), for
+// the Past Returns admin page's yearly summary card.
+const getYearlyPayoutSummary = async (req, res) => {
+  try {
+    const year = parseInt(req.query.year, 10);
+    if (!year || year < 2000 || year > 2100) {
+      return res.status(400).json({ status: 'error', message: 'A valid year query param is required' });
+    }
+
+    const result = await db.query(
+      `SELECT
+         COALESCE(SUM(payout_amount) FILTER (WHERE payout_status = 'paid'), 0) AS total_paid,
+         COUNT(*) FILTER (WHERE payout_status = 'paid') AS paid_count,
+         COUNT(*) FILTER (WHERE payout_status = 'pending') AS pending_count
+       FROM monthly_returns WHERE year = $1`,
+      [year]
+    );
+
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        year,
+        totalPaid: parseFloat(result.rows[0].total_paid),
+        paidCount: parseInt(result.rows[0].paid_count, 10),
+        pendingCount: parseInt(result.rows[0].pending_count, 10),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch yearly payout summary' });
+  }
+};
+
 // POST /admin/public-returns — create one month's entry (rejects a duplicate
 // month/year rather than silently overwriting it — use PATCH to correct one).
 const createPublicReturn = async (req, res) => {
@@ -732,6 +784,8 @@ module.exports = {
   updateTestimonial,
   deleteTestimonial,
   getAllPublicReturnsAdmin,
+  getPublicReturnYears,
+  getYearlyPayoutSummary,
   createPublicReturn,
   updatePublicReturn,
   deletePublicReturn,
