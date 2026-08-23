@@ -12,12 +12,14 @@ interface CustomerProfileData {
   pan_masked?: string | null;
   bank_name?: string | null;
   ifsc_code?: string | null;
+  upi_id?: string | null;
+  date_of_birth?: string | null;
   document_url?: string | null;
   account_masked?: string | null;
   verified: boolean;
 }
 
-const EMPTY_FORM = { panNumber: '', bankName: '', accountNumber: '', ifscCode: '' };
+const EMPTY_FORM = { panNumber: '', bankName: '', accountNumber: '', ifscCode: '', upiId: '', dateOfBirth: '' };
 
 export default function CustomerProfile() {
   const [profile, setProfile] = useState<CustomerProfileData | null>(null);
@@ -32,7 +34,14 @@ export default function CustomerProfile() {
     api.get('/customer/profile').then((res) => {
       const data = res.data.data as CustomerProfileData;
       setProfile(data);
-      setForm((prev) => ({ ...prev, bankName: data.bank_name || '', ifscCode: data.ifsc_code || '' }));
+      setForm((prev) => ({
+        ...prev,
+        bankName: data.bank_name || '',
+        ifscCode: data.ifsc_code || '',
+        upiId: data.upi_id || '',
+        // date_of_birth comes back as a full ISO datetime string; <input type="date"> needs just the date part.
+        dateOfBirth: data.date_of_birth ? data.date_of_birth.slice(0, 10) : '',
+      }));
     });
   };
 
@@ -99,6 +108,8 @@ export default function CustomerProfile() {
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div><p className="text-sm text-muted-foreground">PAN Number</p><p className="font-medium">{profile.pan_masked || 'Not Submitted'}</p></div>
           <div><p className="text-sm text-muted-foreground">Bank Account</p><p className="font-medium">{profile.account_masked || 'Not Submitted'}</p></div>
+          <div><p className="text-sm text-muted-foreground">UPI ID</p><p className="font-medium">{profile.upi_id || 'Not Submitted'}</p></div>
+          <div><p className="text-sm text-muted-foreground">Date of Birth</p><p className="font-medium">{profile.date_of_birth ? profile.date_of_birth.slice(0, 10) : 'Not Submitted'}</p></div>
         </div>
 
         {profile.verified ? (
@@ -135,6 +146,22 @@ export default function CustomerProfile() {
                 className="border border-brand-border rounded-md p-2 text-sm uppercase focus:outline-none focus:border-brand-orange"
                 value={form.ifscCode}
                 onChange={(e) => setForm({ ...form, ifscCode: e.target.value.toUpperCase() })}
+              />
+              <input
+                required
+                placeholder="UPI ID (e.g. name@bank)"
+                className="border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-brand-orange"
+                value={form.upiId}
+                onChange={(e) => setForm({ ...form, upiId: e.target.value })}
+              />
+              <input
+                required
+                type="date"
+                placeholder="Date of Birth"
+                max={new Date().toISOString().slice(0, 10)}
+                className="border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-brand-orange"
+                value={form.dateOfBirth}
+                onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
               />
             </div>
             {kycMessage && <p className="text-sm text-foreground">{kycMessage}</p>}

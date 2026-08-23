@@ -79,7 +79,7 @@ const getProfile = async (req, res) => {
     const profileQuery = await db.query(
       `SELECT u.name, u.email, u.phone, u.created_at,
               k.pan_number_enc, k.bank_name, k.account_number_enc, k.ifsc_code,
-              k.document_url, k.verified
+              k.upi_id, k.date_of_birth, k.document_url, k.verified
        FROM users u
        LEFT JOIN kyc_details k ON u.id = k.user_id
        WHERE u.id = $1`,
@@ -209,16 +209,17 @@ const downloadMonthlyReport = async (req, res) => {
 
 const submitKYC = async (req, res) => {
   try {
-    const { panNumber, bankName, accountNumber, ifscCode } = req.body;
+    const { panNumber, bankName, accountNumber, ifscCode, upiId, dateOfBirth } = req.body;
     const userId = req.user.userId;
 
     await db.query(
-      `INSERT INTO kyc_details (user_id, pan_number_enc, bank_name, account_number_enc, ifsc_code)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO kyc_details (user_id, pan_number_enc, bank_name, account_number_enc, ifsc_code, upi_id, date_of_birth)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (user_id) DO UPDATE
        SET pan_number_enc = EXCLUDED.pan_number_enc, bank_name = EXCLUDED.bank_name,
-           account_number_enc = EXCLUDED.account_number_enc, ifsc_code = EXCLUDED.ifsc_code`,
-      [userId, encrypt(panNumber), bankName, encrypt(accountNumber), ifscCode]
+           account_number_enc = EXCLUDED.account_number_enc, ifsc_code = EXCLUDED.ifsc_code,
+           upi_id = EXCLUDED.upi_id, date_of_birth = EXCLUDED.date_of_birth`,
+      [userId, encrypt(panNumber), bankName, encrypt(accountNumber), ifscCode, upiId, dateOfBirth]
     );
 
     return res.status(200).json({ status: 'success', message: 'KYC submitted for verification' });

@@ -707,7 +707,7 @@ const deletePublicReturn = async (req, res) => {
 const getUserKYC = async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT pan_number_enc, bank_name, account_number_enc, ifsc_code, document_url, verified
+      `SELECT pan_number_enc, bank_name, account_number_enc, ifsc_code, upi_id, date_of_birth, document_url, verified
        FROM kyc_details WHERE user_id = $1`,
       [req.params.id]
     );
