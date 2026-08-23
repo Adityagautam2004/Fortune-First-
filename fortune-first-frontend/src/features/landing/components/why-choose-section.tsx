@@ -1,6 +1,10 @@
+'use client';
+
+import { motion } from 'framer-motion';
 import { TrendingUp, ShieldCheck, MessageSquare, BadgePercent, type LucideIcon } from 'lucide-react';
 
 import { Card } from '@/components/ui/Card';
+import { StaggerGroup, StaggerItem } from '@/components/motion/stagger';
 
 const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
   {
@@ -33,20 +37,25 @@ export function WhyChooseSection() {
           <h2 className="text-2xl font-bold text-foreground md:text-4xl">Why Choose Fortune First?</h2>
         </div>
 
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 md:gap-8 md:px-0 lg:grid-cols-4">
+        <StaggerGroup className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 md:gap-8 md:px-0 lg:grid-cols-4">
           {FEATURES.map((feature) => (
-            <Card
+            <StaggerItem
               key={feature.title}
-              className="flex flex-col items-center border-0 p-6 text-center transition-shadow duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] md:p-8"
+              whileHover={{ y: -6 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             >
-              <feature.icon size={32} strokeWidth={2} className="mb-4 text-primary" />
-              <h3 className="mb-2 text-sm font-bold text-foreground md:text-base">{feature.title}</h3>
-              <p className="text-xs leading-relaxed text-muted-foreground md:text-sm">
-                {feature.description}
-              </p>
-            </Card>
+              <Card className="flex flex-col items-center border-0 p-6 text-center transition-shadow duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] md:p-8">
+                <motion.div whileHover={{ scale: 1.15, rotate: 5 }} transition={{ type: 'spring', stiffness: 300 }}>
+                  <feature.icon size={32} strokeWidth={2} className="mb-4 text-primary" />
+                </motion.div>
+                <h3 className="mb-2 text-sm font-bold text-foreground md:text-base">{feature.title}</h3>
+                <p className="text-xs leading-relaxed text-muted-foreground md:text-sm">
+                  {feature.description}
+                </p>
+              </Card>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerGroup>
       </div>
     </section>
   );

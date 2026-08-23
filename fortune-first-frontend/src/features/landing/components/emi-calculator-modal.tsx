@@ -68,7 +68,7 @@ export function EmiCalculatorModal({ isOpen, onClose }: EmiCalculatorModalProps)
         <BreakdownDonutChart
           ready={chartReady}
           segments={[
-            { label: 'Principal', value: result.principal, color: '#111827' },
+            { label: 'Principal', value: result.principal, color: 'var(--muted-foreground)' },
             { label: 'Interest', value: result.totalInterest, color: '#f97316' },
           ]}
         />

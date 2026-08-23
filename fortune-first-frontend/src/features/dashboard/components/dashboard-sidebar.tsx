@@ -7,11 +7,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import {
   LayoutGrid,
-  Bitcoin,
-  NotebookText,
   ArrowLeftRight,
   MessageSquareWarning,
-  Target,
   Info,
   Settings,
   LogOut,
@@ -25,13 +22,10 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
-  { name: 'Investment', href: '/dashboard/investment', icon: Bitcoin },
-  { name: 'My plans', href: '/dashboard/plans', icon: NotebookText },
   { name: 'Transactions', href: '/dashboard/history', icon: ArrowLeftRight },
   { name: 'Reports', href: '/dashboard/reports', icon: MessageSquareWarning },
-  { name: 'Goals', href: '/dashboard/goals', icon: Target },
   { name: 'Support', href: '/dashboard/support', icon: Info },
-  { name: 'Settings', href: '/dashboard/profile', icon: Settings },
+  { name: 'Profile & KYC', href: '/dashboard/profile', icon: Settings },
 ];
 
 interface DashboardSidebarProps {

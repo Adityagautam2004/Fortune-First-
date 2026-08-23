@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
 import api from '@/lib/api';
@@ -45,7 +46,13 @@ export function JoinSection() {
           </p>
         </div>
 
-        <div className="mx-auto max-w-md rounded-2xl bg-card p-8 shadow-2xl md:p-10">
+        <motion.div
+          className="mx-auto max-w-md rounded-2xl bg-card p-8 shadow-2xl md:p-10"
+          initial={{ opacity: 0, y: 30, scale: 0.96 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label htmlFor="join-name" className="mb-1.5 block text-sm font-bold text-foreground">
@@ -120,18 +127,32 @@ export function JoinSection() {
               </Button>
             </div>
 
-            {status === 'success' && (
-              <p className="text-center text-sm font-medium text-green-600">
-                Thank you! We will contact you soon.
-              </p>
-            )}
-            {status === 'error' && (
-              <p className="text-center text-sm font-medium text-destructive">
-                Something went wrong. Please try again.
-              </p>
-            )}
+            <AnimatePresence mode="wait">
+              {status === 'success' && (
+                <motion.p
+                  key="success"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center text-sm font-medium text-green-600"
+                >
+                  Thank you! We will contact you soon.
+                </motion.p>
+              )}
+              {status === 'error' && (
+                <motion.p
+                  key="error"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center text-sm font-medium text-destructive"
+                >
+                  Something went wrong. Please try again.
+                </motion.p>
+              )}
+            </AnimatePresence>
           </form>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

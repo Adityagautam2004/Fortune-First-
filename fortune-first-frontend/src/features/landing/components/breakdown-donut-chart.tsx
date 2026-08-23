@@ -36,7 +36,17 @@ export function BreakdownDonutChart({ ready, segments }: BreakdownDonutChartProp
                   <Cell key={entry.label} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value) => formatRupees(Number(value))} />
+              <Tooltip
+                formatter={(value) => formatRupees(Number(value))}
+                contentStyle={{
+                  backgroundColor: 'var(--popover)',
+                  borderColor: 'var(--border)',
+                  borderRadius: '0.5rem',
+                  color: 'var(--popover-foreground)',
+                }}
+                itemStyle={{ color: 'var(--popover-foreground)' }}
+                labelStyle={{ color: 'var(--popover-foreground)' }}
+              />
             </PieChart>
           </ResponsiveContainer>
         )}

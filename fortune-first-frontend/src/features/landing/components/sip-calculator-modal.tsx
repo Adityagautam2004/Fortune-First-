@@ -68,7 +68,7 @@ export function SipCalculatorModal({ isOpen, onClose }: SipCalculatorModalProps)
         <BreakdownDonutChart
           ready={chartReady}
           segments={[
-            { label: 'Invested', value: result.investedAmount, color: '#111827' },
+            { label: 'Invested', value: result.investedAmount, color: 'var(--muted-foreground)' },
             { label: 'Returns', value: result.estimatedReturns, color: '#f97316' },
           ]}
         />

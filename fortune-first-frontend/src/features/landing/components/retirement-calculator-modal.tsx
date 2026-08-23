@@ -99,7 +99,7 @@ export function RetirementCalculatorModal({ isOpen, onClose }: RetirementCalcula
         <BreakdownDonutChart
           ready={chartReady}
           segments={[
-            { label: 'Your Contributions', value: result.totalContributions, color: '#111827' },
+            { label: 'Your Contributions', value: result.totalContributions, color: 'var(--muted-foreground)' },
             { label: 'Growth', value: result.growthFromReturns, color: '#f97316' },
           ]}
         />

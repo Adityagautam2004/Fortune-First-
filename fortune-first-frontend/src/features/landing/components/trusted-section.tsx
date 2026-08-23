@@ -1,6 +1,10 @@
+'use client';
+
+import { motion } from 'framer-motion';
 import { Star, User } from 'lucide-react';
 
 import { Card } from '@/components/ui/Card';
+import { StaggerGroup, StaggerItem } from '@/components/motion/stagger';
 import type { Testimonial } from '../lib/types';
 
 interface TrustedSectionProps {
@@ -18,45 +22,62 @@ export function TrustedSection({ testimonials }: TrustedSectionProps) {
           Best financial platform for personal investments
         </p>
 
-        <div className="mb-10 flex items-center justify-center gap-1.5">
+        <motion.div
+          className="mb-10 flex items-center justify-center gap-1.5"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.6 }}
+          variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+        >
           {[1, 2, 3, 4, 5].map((star) => (
-            <Star key={star} size={24} className="fill-primary text-primary" />
+            <motion.div
+              key={star}
+              variants={{
+                hidden: { opacity: 0, scale: 0, rotate: -90 },
+                visible: { opacity: 1, scale: 1, rotate: 0, transition: { type: 'spring', stiffness: 300, damping: 15 } },
+              }}
+            >
+              <Star size={24} className="fill-primary text-primary" />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {testimonials.length === 0 ? (
           <p className="text-sm text-muted-foreground">Client testimonials coming soon.</p>
         ) : (
-          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-4 md:grid-cols-3 md:px-0">
+          <StaggerGroup className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-4 md:grid-cols-3 md:px-0">
             {testimonials.map((testimonial, i) => (
-              <Card
+              <StaggerItem
                 key={`${testimonial.client_name}-${i}`}
-                className="flex flex-col items-start border-0 bg-card p-6 text-left shadow-[0_4px_20px_rgb(0,0,0,0.06)]"
+                whileHover={{ y: -6 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               >
-                <p className="mb-4 text-sm italic leading-relaxed text-foreground">
-                  &ldquo;{testimonial.content}&rdquo;
-                </p>
+                <Card className="flex flex-col items-start border-0 bg-card p-6 text-left shadow-[0_4px_20px_rgb(0,0,0,0.06)]">
+                  <p className="mb-4 text-sm italic leading-relaxed text-foreground">
+                    &ldquo;{testimonial.content}&rdquo;
+                  </p>
 
-                <div className="mb-5 flex items-center gap-1">
-                  {Array.from({ length: testimonial.rating }).map((_, starIdx) => (
-                    <Star key={starIdx} size={16} className="fill-primary text-primary" />
-                  ))}
-                </div>
+                  <div className="mb-5 flex items-center gap-1">
+                    {Array.from({ length: testimonial.rating }).map((_, starIdx) => (
+                      <Star key={starIdx} size={16} className="fill-primary text-primary" />
+                    ))}
+                  </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-muted">
-                    <User size={18} className="text-primary" />
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-muted">
+                      <User size={18} className="text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-foreground">{testimonial.client_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {testimonial.city ? `Client, ${testimonial.city}` : 'Client'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">{testimonial.client_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {testimonial.city ? `Client, ${testimonial.city}` : 'Client'}
-                    </p>
-                  </div>
-                </div>
-              </Card>
+                </Card>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGroup>
         )}
       </div>
     </section>
