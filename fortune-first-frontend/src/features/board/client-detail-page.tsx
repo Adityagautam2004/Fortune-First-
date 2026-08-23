@@ -36,11 +36,11 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
   }, [fetchDetail]);
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-500">Loading client details...</div>;
+    return <div className="p-6 text-sm text-muted-foreground">Loading client details...</div>;
   }
 
   if (!detail) {
-    return <div className="p-6 text-sm text-gray-500">Client not found.</div>;
+    return <div className="p-6 text-sm text-muted-foreground">Client not found.</div>;
   }
 
   const totalAum = Number(detail.summary.total_aum);
@@ -49,8 +49,8 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900">Client Detail</h1>
-        <p className="mt-1 text-sm text-gray-500">View complete client portfolio</p>
+        <h1 className="text-2xl font-extrabold text-foreground">Client Detail</h1>
+        <p className="mt-1 text-sm text-muted-foreground">View complete client portfolio</p>
       </div>
 
       <ClientInfoCard profile={detail.profile} />

@@ -114,30 +114,30 @@ export function BoardOverviewPage() {
   };
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-500">Loading board overview...</div>;
+    return <div className="p-6 text-sm text-muted-foreground">Loading board overview...</div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-2xl border border-brand-border bg-white p-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border border-brand-border bg-card p-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">Board Overview</h1>
-          <p className="mt-1 text-sm text-gray-500">Get a consolidated view of your business and clients.</p>
+          <h1 className="text-2xl font-extrabold text-foreground">Board Overview</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Get a consolidated view of your business and clients.</p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <div className="flex items-center gap-2 rounded-lg border border-brand-border px-3 py-2 text-sm text-gray-600">
+          <div className="flex items-center gap-2 rounded-lg border border-brand-border px-3 py-2 text-sm text-foreground">
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border-none bg-transparent p-0 text-sm text-gray-700 focus:outline-none"
+              className="border-none bg-transparent p-0 text-sm text-foreground focus:outline-none"
             />
-            <span className="text-gray-400">-</span>
+            <span className="text-muted-foreground">-</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="border-none bg-transparent p-0 text-sm text-gray-700 focus:outline-none"
+              className="border-none bg-transparent p-0 text-sm text-foreground focus:outline-none"
             />
           </div>
           <button

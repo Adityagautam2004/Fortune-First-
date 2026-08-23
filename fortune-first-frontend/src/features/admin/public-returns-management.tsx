@@ -135,7 +135,7 @@ export function PublicReturnsManagement() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           One entry per calendar month. Feeds the &quot;Track Your Growth&quot; chart on the public landing page.
         </p>
         <Button size="sm" onClick={openCreate}>
@@ -150,7 +150,7 @@ export function PublicReturnsManagement() {
         <Button variant="ghost" size="icon" onClick={() => setYear((y) => y - 1)} aria-label="Previous year">
           <ChevronLeft size={18} />
         </Button>
-        <span className="min-w-[5rem] text-center text-lg font-bold text-brand-navy">{year}</span>
+        <span className="min-w-[5rem] text-center text-lg font-bold text-foreground">{year}</span>
         <Button variant="ghost" size="icon" onClick={() => setYear((y) => y + 1)} aria-label="Next year">
           <ChevronRight size={18} />
         </Button>
@@ -158,69 +158,69 @@ export function PublicReturnsManagement() {
 
       {/* Yearly summary — real payout total (monthly_returns) + public return % (public_returns) */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-brand-border bg-white p-4">
-          <div className="mb-1 flex items-center gap-2 text-xs font-medium text-gray-500">
+        <div className="rounded-xl border border-brand-border bg-card p-4">
+          <div className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <IndianRupee size={14} className="text-primary" /> Total Paid to Customers
           </div>
-          <p className="text-2xl font-extrabold text-gray-900">
+          <p className="text-2xl font-extrabold text-foreground">
             {payoutSummary ? formatCurrency(payoutSummary.totalPaid) : '—'}
           </p>
           {payoutSummary && (
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1 text-xs text-muted-foreground">
               {payoutSummary.paidCount} paid{payoutSummary.pendingCount > 0 ? `, ${payoutSummary.pendingCount} pending` : ''}
             </p>
           )}
         </div>
-        <div className="rounded-xl border border-brand-border bg-white p-4">
-          <div className="mb-1 flex items-center gap-2 text-xs font-medium text-gray-500">
+        <div className="rounded-xl border border-brand-border bg-card p-4">
+          <div className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <TrendingUp size={14} className="text-primary" /> Avg Monthly Return
           </div>
-          <p className="text-2xl font-extrabold text-gray-900">{hasReturns ? `${avgReturn.toFixed(2)}%` : '—'}</p>
+          <p className="text-2xl font-extrabold text-foreground">{hasReturns ? `${avgReturn.toFixed(2)}%` : '—'}</p>
           {best && (
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1 text-xs text-muted-foreground">
               Best: {MONTH_NAMES[best.month - 1]} — {best.return_pct}%
             </p>
           )}
         </div>
-        <div className="rounded-xl border border-brand-border bg-white p-4">
-          <div className="mb-1 flex items-center gap-2 text-xs font-medium text-gray-500">
+        <div className="rounded-xl border border-brand-border bg-card p-4">
+          <div className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <CalendarCheck size={14} className="text-primary" /> Months Tracked
           </div>
-          <p className="text-2xl font-extrabold text-gray-900">{returns.length} / 12</p>
+          <p className="text-2xl font-extrabold text-foreground">{returns.length} / 12</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-x-auto">
+      <div className="bg-card rounded-xl shadow-sm border border-brand-border overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-brand-surface text-brand-navy">
+            <tr className="bg-brand-surface text-foreground">
               <th className="p-4 text-sm font-medium">Month</th>
               <th className="p-4 text-sm font-medium">Return %</th>
               <th className="p-4 text-sm font-medium">Notes</th>
               <th className="p-4 text-sm font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-border">
             {isLoading ? (
-              <tr><td colSpan={4} className="p-8 text-center text-gray-400">Loading...</td></tr>
+              <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Loading...</td></tr>
             ) : returns.length === 0 ? (
-              <tr><td colSpan={4} className="p-8 text-center text-gray-400">No return history for {year} yet.</td></tr>
+              <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No return history for {year} yet.</td></tr>
             ) : (
               returns.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <td className="p-4 text-sm font-medium text-gray-900">{MONTH_NAMES[r.month - 1]} {r.year}</td>
+                <tr key={r.id} className="hover:bg-muted">
+                  <td className="p-4 text-sm font-medium text-foreground">{MONTH_NAMES[r.month - 1]} {r.year}</td>
                   <td className="p-4 text-sm">
-                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-orange-50 text-primary">
+                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-orange-50 text-primary dark:bg-orange-500/15">
                       {r.return_pct}%
                     </span>
                   </td>
-                  <td className="p-4 text-sm text-gray-500">{r.notes || '—'}</td>
+                  <td className="p-4 text-sm text-muted-foreground">{r.notes || '—'}</td>
                   <td className="p-4 text-sm">
                     <div className="flex items-center gap-3">
-                      <button onClick={() => openEdit(r)} className="text-gray-500 hover:text-brand-navy" title="Edit">
+                      <button onClick={() => openEdit(r)} className="text-muted-foreground hover:text-foreground" title="Edit">
                         <Pencil size={16} />
                       </button>
-                      <button onClick={() => handleDelete(r.id)} className="text-gray-500 hover:text-red-600" title="Delete">
+                      <button onClick={() => handleDelete(r.id)} className="text-muted-foreground hover:text-red-600" title="Delete">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -236,10 +236,10 @@ export function PublicReturnsManagement() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Month</label>
+              <label className="mb-1 block text-sm font-medium text-foreground">Month</label>
               <select
                 disabled={!!editingId}
-                className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary disabled:bg-gray-100 disabled:text-gray-400"
+                className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary disabled:bg-muted disabled:text-muted-foreground"
                 value={form.month}
                 onChange={(e) => setForm({ ...form, month: Number(e.target.value) })}
               >
@@ -249,24 +249,24 @@ export function PublicReturnsManagement() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Year</label>
+              <label className="mb-1 block text-sm font-medium text-foreground">Year</label>
               <input
                 type="number"
                 required
                 disabled={!!editingId}
                 min={2020}
                 max={2100}
-                className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary disabled:bg-gray-100 disabled:text-gray-400"
+                className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary disabled:bg-muted disabled:text-muted-foreground"
                 value={form.year}
                 onChange={(e) => setForm({ ...form, year: Number(e.target.value) })}
               />
             </div>
           </div>
           {editingId && (
-            <p className="text-xs text-gray-400">Month/year can&apos;t be changed here — delete and recreate to move an entry.</p>
+            <p className="text-xs text-muted-foreground">Month/year can&apos;t be changed here — delete and recreate to move an entry.</p>
           )}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Return % (1.5 – 2)</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">Return % (1.5 – 2)</label>
             <input
               type="number"
               required
@@ -279,7 +279,7 @@ export function PublicReturnsManagement() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Notes (optional)</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">Notes (optional)</label>
             <textarea
               rows={2}
               maxLength={500}

@@ -12,8 +12,8 @@ export function BoardStatTile({ icon: Icon, label, value }: BoardStatTileProps) 
       <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white">
         <Icon size={18} />
       </div>
-      <p className="text-sm font-medium text-gray-600">{label}</p>
-      <p className="mt-1 text-xl font-extrabold text-gray-900">{value}</p>
+      <p className="text-sm font-medium text-foreground">{label}</p>
+      <p className="mt-1 text-xl font-extrabold text-foreground">{value}</p>
     </div>
   );
 }

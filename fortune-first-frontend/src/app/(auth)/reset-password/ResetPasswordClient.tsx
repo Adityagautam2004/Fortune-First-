@@ -42,7 +42,7 @@ function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">New Password</label>
+        <label className="block text-sm font-medium text-foreground">New Password</label>
         <input
           type="password" required minLength={8}
           value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
@@ -59,7 +59,9 @@ function ResetPasswordForm() {
 
       {status.message && (
         <div className={`mt-4 p-3 text-sm rounded-md border ${
-          status.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-800 border-red-200'
+          status.type === 'success'
+            ? 'bg-green-50 text-green-800 border-green-200 dark:bg-green-500/15 dark:text-green-400'
+            : 'bg-red-50 text-red-800 border-red-200 dark:bg-red-500/15 dark:text-red-400'
         }`}>
           {status.message}
           {status.type === 'success' && ' Redirecting to login...'}
@@ -72,9 +74,9 @@ function ResetPasswordForm() {
 export default function ResetPasswordClient() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-surface p-4">
-      <div className="w-full max-w-md rounded-xl border border-brand-border bg-white p-8 shadow-md">
-        <h1 className="text-2xl font-bold text-brand-navy mb-2 text-center">Create New Password</h1>
-        <p className="text-sm text-gray-600 mb-6 text-center">Please enter your new secure password below.</p>
+      <div className="w-full max-w-md rounded-xl border border-brand-border bg-card p-8 shadow-md">
+        <h1 className="text-2xl font-bold text-foreground mb-2 text-center">Create New Password</h1>
+        <p className="text-sm text-foreground mb-6 text-center">Please enter your new secure password below.</p>
 
         <Suspense fallback={<div className="text-center p-4">Loading secure connection...</div>}>
           <ResetPasswordForm />

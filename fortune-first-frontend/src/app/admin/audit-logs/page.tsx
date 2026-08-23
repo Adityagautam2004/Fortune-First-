@@ -37,46 +37,46 @@ export default function AuditLogsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-brand-navy">Audit Logs</h1>
-        <span className="text-sm text-gray-500">
+        <h1 className="text-3xl font-bold text-foreground">Audit Logs</h1>
+        <span className="text-sm text-muted-foreground">
           Page {page} of {totalPages}
         </span>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-x-auto">
+      <div className="bg-card rounded-xl shadow-sm border border-brand-border overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-brand-surface text-brand-navy">
+            <tr className="bg-brand-surface text-foreground">
               <th className="p-4 text-sm font-medium">Date</th>
               <th className="p-4 text-sm font-medium">Actor (Who)</th>
               <th className="p-4 text-sm font-medium">Action (What)</th>
               <th className="p-4 text-sm font-medium">Target (Where)</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-border">
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="p-8 text-center text-gray-400">Loading...</td>
+                <td colSpan={4} className="p-8 text-center text-muted-foreground">Loading...</td>
               </tr>
             ) : logs.length === 0 ? (
               <tr>
-                <td colSpan={4} className="p-8 text-center text-gray-400">No audit logs found.</td>
+                <td colSpan={4} className="p-8 text-center text-muted-foreground">No audit logs found.</td>
               </tr>
             ) : (
               logs.map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="p-4 text-sm text-gray-600">
+                <tr key={log.id} className="hover:bg-muted">
+                  <td className="p-4 text-sm text-foreground">
                     {new Date(log.created_at).toLocaleString()}
                   </td>
-                  <td className="p-4 text-sm font-medium text-gray-900">{log.actor_name || 'System'}</td>
+                  <td className="p-4 text-sm font-medium text-foreground">{log.actor_name || 'System'}</td>
                   <td className="p-4 text-sm">
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700">
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">
                       {log.action}
                     </span>
                   </td>
-                  <td className="p-4 text-sm text-gray-600">
+                  <td className="p-4 text-sm text-foreground">
                     {log.entity_type}
-                    <span className="text-gray-400"> #{log.entity_id}</span>
+                    <span className="text-muted-foreground"> #{log.entity_id}</span>
                   </td>
                 </tr>
               ))
@@ -90,7 +90,7 @@ export default function AuditLogsPage() {
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page <= 1}
-          className="px-4 py-2 text-sm font-medium rounded-md border border-brand-border bg-white text-brand-navy hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 text-sm font-medium rounded-md border border-brand-border bg-card text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           ← Previous
         </button>
@@ -100,14 +100,14 @@ export default function AuditLogsPage() {
             .map((p, idx, arr) => (
               <span key={p}>
                 {idx > 0 && arr[idx - 1] !== p - 1 && (
-                  <span className="px-1 text-gray-400">…</span>
+                  <span className="px-1 text-muted-foreground">…</span>
                 )}
                 <button
                   onClick={() => setPage(p)}
                   className={`w-8 h-8 text-sm rounded-md transition-colors ${
                     p === page
                       ? 'bg-brand-navy text-white font-bold'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      : 'text-foreground hover:bg-muted'
                   }`}
                 >
                   {p}
@@ -118,7 +118,7 @@ export default function AuditLogsPage() {
         <button
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page >= totalPages}
-          className="px-4 py-2 text-sm font-medium rounded-md border border-brand-border bg-white text-brand-navy hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 text-sm font-medium rounded-md border border-brand-border bg-card text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Next →
         </button>

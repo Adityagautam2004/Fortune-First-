@@ -47,10 +47,10 @@ export function GrowthChartSection({ returns: rawReturns }: GrowthChartSectionPr
     : null;
 
   return (
-    <section id="investments" className="bg-white py-12 md:py-16">
+    <section id="investments" className="bg-background py-12 md:py-16">
       <div className="container-max">
         <div className="mb-8 text-center">
-          <h2 className="mb-4 text-2xl font-bold text-gray-800 md:text-4xl">Track Your Growth</h2>
+          <h2 className="mb-4 text-2xl font-bold text-foreground md:text-4xl">Track Your Growth</h2>
           <div className="mx-auto max-w-3xl">
             <p className="text-base font-bold tracking-wide text-primary md:text-lg">
               Fortune First &mdash; Monthly Returns
@@ -67,7 +67,7 @@ export function GrowthChartSection({ returns: rawReturns }: GrowthChartSectionPr
           <div className="h-0.5 rounded-full bg-primary" />
         </div>
 
-        <div className="mx-auto mb-0 h-[300px] w-full max-w-5xl rounded-2xl border border-gray-100 bg-muted p-4 md:h-[420px] md:p-6">
+        <div className="mx-auto mb-0 h-[300px] w-full max-w-5xl rounded-2xl border border-border bg-muted p-4 md:h-[420px] md:p-6">
           {hasData ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 28, right: 10, left: -10, bottom: 5 }} barCategoryGap="20%">
@@ -120,7 +120,7 @@ export function GrowthChartSection({ returns: rawReturns }: GrowthChartSectionPr
         </div>
 
         {hasData && (
-          <div className="mx-auto mt-0 max-w-5xl rounded-b-2xl border border-t-0 border-gray-100 bg-muted px-4 py-5 md:px-6">
+          <div className="mx-auto mt-0 max-w-5xl rounded-b-2xl border border-t-0 border-border bg-muted px-4 py-5 md:px-6">
             <div className="grid grid-cols-1 gap-4 divide-y divide-orange-100 text-center sm:grid-cols-3 sm:divide-x sm:divide-y-0">
               <div className="py-2 sm:px-4 sm:py-0">
                 <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Avg Monthly Return</p>
@@ -141,7 +141,7 @@ export function GrowthChartSection({ returns: rawReturns }: GrowthChartSectionPr
         )}
 
         <div className="mt-12 text-center">
-          <h2 className="text-2xl font-bold text-gray-800 md:text-4xl">Past Returns</h2>
+          <h2 className="text-2xl font-bold text-foreground md:text-4xl">Past Returns</h2>
         </div>
       </div>
     </section>

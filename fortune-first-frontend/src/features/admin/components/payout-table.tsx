@@ -45,24 +45,24 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
   };
 
   return (
-    <div className="rounded-2xl border border-brand-border bg-white">
+    <div className="rounded-2xl border border-brand-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="bg-muted text-gray-600">
+            <tr className="bg-muted text-muted-foreground">
               <th className="whitespace-nowrap px-6 py-3 font-medium">
                 Client Name
                 <br />
-                <span className="font-normal text-gray-400">Client ID</span>
+                <span className="font-normal text-muted-foreground">Client ID</span>
               </th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">
-                Investment Amount <Info size={12} className="ml-1 inline text-gray-400" />
+                Investment Amount <Info size={12} className="ml-1 inline text-muted-foreground" />
               </th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">Return</th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">
-                Payout Amount <Info size={12} className="ml-1 inline text-gray-400" />
+                Payout Amount <Info size={12} className="ml-1 inline text-muted-foreground" />
                 <br />
-                <span className="font-normal text-gray-400">(Auto calculated)</span>
+                <span className="font-normal text-muted-foreground">(Auto calculated)</span>
               </th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">Status</th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">Action</th>
@@ -71,7 +71,7 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
           <tbody className="divide-y divide-brand-border">
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-10 text-center text-gray-400">
+                <td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">
                   No pending payouts for this period.
                 </td>
               </tr>
@@ -85,10 +85,10 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
                 return (
                   <tr key={inv.investment_id}>
                     <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">{inv.client_name}</p>
-                      <p className="text-xs text-gray-400">{inv.customer_id.slice(0, 8).toUpperCase()}</p>
+                      <p className="font-medium text-foreground">{inv.client_name}</p>
+                      <p className="text-xs text-muted-foreground">{inv.customer_id.slice(0, 8).toUpperCase()}</p>
                     </td>
-                    <td className="px-6 py-4 text-gray-700">{formatRupees(Number(inv.amount))}</td>
+                    <td className="px-6 py-4 text-foreground">{formatRupees(Number(inv.amount))}</td>
                     <td className="px-6 py-4">
                       <div className="relative w-24">
                         <input
@@ -99,16 +99,16 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
                           onChange={(e) =>
                             setReturnPcts((prev) => ({ ...prev, [inv.investment_id]: Number(e.target.value) }))
                           }
-                          className="w-full rounded-lg border border-brand-border px-3 py-1.5 pr-6 text-sm text-gray-900 focus:border-primary focus:outline-none"
+                          className="w-full rounded-lg border border-brand-border px-3 py-1.5 pr-6 text-sm text-foreground focus:border-primary focus:outline-none"
                         />
-                        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                           %
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-gray-900">{formatRupees(payoutAmount)}</td>
+                    <td className="px-6 py-4 font-semibold text-foreground">{formatRupees(payoutAmount)}</td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                      <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
                         Pending
                       </span>
                     </td>
@@ -130,7 +130,7 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
       </div>
 
       <div className="flex flex-col gap-3 border-t border-brand-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {investments.length === 0
             ? 'No clients'
             : `Showing ${rangeStart} to ${rangeEnd} of ${investments.length} clients`}
@@ -139,7 +139,7 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           >
             ‹
           </button>
@@ -148,7 +148,7 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
               key={n}
               onClick={() => setPage(n)}
               className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${
-                n === page ? 'bg-primary text-white' : 'border border-brand-border text-gray-600 hover:bg-muted'
+                n === page ? 'bg-primary text-white' : 'border border-brand-border text-foreground hover:bg-muted'
               }`}
             >
               {n}
@@ -157,14 +157,14 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           >
             ›
           </button>
         </div>
       </div>
 
-      <div className="flex items-start gap-2 border-t border-brand-border bg-muted px-6 py-4 text-sm text-gray-600">
+      <div className="flex items-start gap-2 border-t border-brand-border bg-muted px-6 py-4 text-sm text-foreground">
         <Info size={16} className="mt-0.5 shrink-0 text-primary" />
         <p>Enter the return percentage (%) for each client. Click &quot;Mark Paid&quot; to process the payout.</p>
       </div>

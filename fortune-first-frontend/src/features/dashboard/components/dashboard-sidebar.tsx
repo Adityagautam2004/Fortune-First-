@@ -61,14 +61,14 @@ export function DashboardSidebar({ mobileOpen, onClose }: DashboardSidebarProps)
       )}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r border-brand-border bg-white transition-transform duration-300 md:relative md:z-auto md:translate-x-0 md:transition-[width]',
+          'fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r border-brand-border bg-card transition-transform duration-300 md:relative md:z-auto md:translate-x-0 md:transition-[width]',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
           collapsed ? 'md:w-20' : 'md:w-64'
         )}
       >
         <button
           onClick={() => setCollapsed((v) => !v)}
-          className="absolute -right-3 top-8 z-10 hidden h-6 w-6 items-center justify-center rounded-full border border-brand-border bg-white text-primary shadow-sm transition-transform hover:bg-muted md:flex"
+          className="absolute -right-3 top-8 z-10 hidden h-6 w-6 items-center justify-center rounded-full border border-brand-border bg-card text-primary shadow-sm transition-transform hover:bg-muted md:flex"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <ChevronLeft size={14} className={cn('transition-transform', collapsed && 'rotate-180')} />
@@ -83,13 +83,13 @@ export function DashboardSidebar({ mobileOpen, onClose }: DashboardSidebarProps)
             className="h-10 w-10 shrink-0 rounded-full object-contain"
           />
           {!collapsed && (
-            <span className="text-lg font-extrabold leading-tight tracking-tight text-gray-900">
+            <span className="text-lg font-extrabold leading-tight tracking-tight text-foreground">
               Fortune First
             </span>
           )}
           <button
             onClick={onClose}
-            className="ml-auto text-gray-400 transition-colors hover:text-gray-600 md:hidden"
+            className="ml-auto text-muted-foreground transition-colors hover:text-foreground md:hidden"
             aria-label="Close menu"
           >
             <X size={20} />
@@ -107,7 +107,7 @@ export function DashboardSidebar({ mobileOpen, onClose }: DashboardSidebarProps)
                 onClick={onClose}
                 className={cn(
                   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                  active ? 'bg-muted text-primary' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900',
+                  active ? 'bg-muted text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   collapsed && 'justify-center'
                 )}
                 title={collapsed ? item.name : undefined}
@@ -123,7 +123,7 @@ export function DashboardSidebar({ mobileOpen, onClose }: DashboardSidebarProps)
           <button
             onClick={handleLogout}
             className={cn(
-              'flex w-full items-center gap-3 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-500 transition-colors hover:bg-red-100',
+              'flex w-full items-center gap-3 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-500 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20',
               collapsed && 'justify-center'
             )}
           >

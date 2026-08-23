@@ -17,8 +17,8 @@ export function ContentManagementPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900">Content Management</h1>
-        <p className="mt-1 text-sm text-gray-500">Landing page content.</p>
+        <h1 className="text-2xl font-extrabold text-foreground">Content Management</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Landing page content.</p>
       </div>
 
       <Tabs items={TABS} defaultKey="reports">

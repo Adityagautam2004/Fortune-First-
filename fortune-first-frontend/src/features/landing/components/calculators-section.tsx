@@ -39,7 +39,7 @@ export function CalculatorsSection() {
     <section id="calculators" className="bg-muted py-12 md:py-16">
       <div className="container-max">
         <div className="mb-12 text-center">
-          <h2 className="mb-3 text-2xl font-bold text-gray-900 md:text-4xl">Financial Calculators</h2>
+          <h2 className="mb-3 text-2xl font-bold text-foreground md:text-4xl">Financial Calculators</h2>
           <div className="mx-auto mb-3 h-1 w-16 rounded-full bg-primary" />
           <p className="mx-auto max-w-lg text-sm text-muted-foreground md:text-base">
             Plan better, Calculate smarter, Achieve your financial goals.
@@ -50,13 +50,13 @@ export function CalculatorsSection() {
           {CALCULATORS.map((calc) => (
             <Card
               key={calc.key}
-              className="group flex flex-col items-center border-0 bg-white p-8 text-center shadow-[0_4px_20px_rgb(0,0,0,0.06)] transition-shadow duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)]"
+              className="group flex flex-col items-center border-0 bg-card p-8 text-center shadow-[0_4px_20px_rgb(0,0,0,0.06)] transition-shadow duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)]"
             >
               <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-muted transition-transform duration-300 group-hover:scale-110 md:h-20 md:w-20">
                 <calc.icon size={40} className="text-primary" />
               </div>
 
-              <h3 className="mb-2 text-base font-bold text-gray-800 md:text-lg">{calc.title}</h3>
+              <h3 className="mb-2 text-base font-bold text-foreground md:text-lg">{calc.title}</h3>
               <p className="mb-6 text-xs leading-relaxed text-muted-foreground md:text-sm">
                 {calc.description}
               </p>

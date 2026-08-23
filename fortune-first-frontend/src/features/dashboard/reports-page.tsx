@@ -96,31 +96,31 @@ export function ReportsPage() {
   };
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-500">Loading your reports...</div>;
+    return <div className="p-6 text-sm text-muted-foreground">Loading your reports...</div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-brand-border bg-white p-6">
-        <h1 className="text-2xl font-extrabold text-gray-900">Reports</h1>
-        <p className="mt-1 text-sm text-gray-500">View and download your investment reports.</p>
+      <div className="rounded-2xl border border-brand-border bg-card p-6">
+        <h1 className="text-2xl font-extrabold text-foreground">Reports</h1>
+        <p className="mt-1 text-sm text-muted-foreground">View and download your investment reports.</p>
       </div>
 
       <div className="rounded-2xl border border-primary/15 bg-muted p-5">
-        <label className="mb-1.5 block text-sm font-semibold text-gray-700">Date Range</label>
+        <label className="mb-1.5 block text-sm font-semibold text-foreground">Date Range</label>
         <div className="flex max-w-md items-center gap-2">
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-full rounded-lg border border-brand-border bg-white px-2.5 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
+            className="w-full rounded-lg border border-brand-border bg-card px-2.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
           />
-          <span className="text-gray-400">-</span>
+          <span className="text-muted-foreground">-</span>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="w-full rounded-lg border border-brand-border bg-white px-2.5 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
+            className="w-full rounded-lg border border-brand-border bg-card px-2.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
           />
         </div>
       </div>
@@ -140,8 +140,8 @@ export function ReportsPage() {
         />
       </div>
 
-      <div className="rounded-2xl border border-brand-border bg-white p-6">
-        <h3 className="mb-4 text-lg font-bold text-gray-900">Report Summary</h3>
+      <div className="rounded-2xl border border-brand-border bg-card p-6">
+        <h3 className="mb-4 text-lg font-bold text-foreground">Report Summary</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <ReportSummaryTile icon={IndianRupee} label="Total Investment" value={formatRupees(stats?.totalInvested ?? 0)} />
           <ReportSummaryTile icon={Undo2} label="Total Returns" value={formatRupees(totalReturns)} />

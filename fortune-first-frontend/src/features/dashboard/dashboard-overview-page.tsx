@@ -58,17 +58,17 @@ export function DashboardOverviewPage() {
   });
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-500">Loading your portfolio...</div>;
+    return <div className="p-6 text-sm text-muted-foreground">Loading your portfolio...</div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between rounded-2xl border border-brand-border bg-white p-6">
+      <div className="flex items-center justify-between rounded-2xl border border-brand-border bg-card p-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">Welcome Back, {firstName}!</h1>
-          <p className="mt-1 text-sm text-gray-500">Track your investments and returns.</p>
+          <h1 className="text-2xl font-extrabold text-foreground">Welcome Back, {firstName}!</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Track your investments and returns.</p>
         </div>
-        <span className="text-sm text-gray-500">{today}</span>
+        <span className="text-sm text-muted-foreground">{today}</span>
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">

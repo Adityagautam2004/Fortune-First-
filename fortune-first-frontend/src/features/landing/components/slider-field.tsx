@@ -12,7 +12,7 @@ export function SliderField({ label, value, onChange, min, max, step, formatValu
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <label className="text-sm font-semibold text-gray-800">{label}</label>
+        <label className="text-sm font-semibold text-foreground">{label}</label>
         <span className="rounded-md bg-muted px-2.5 py-1 text-sm font-bold text-primary">
           {formatValue(value)}
         </span>
@@ -26,7 +26,7 @@ export function SliderField({ label, value, onChange, min, max, step, formatValu
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full accent-primary"
       />
-      <div className="mt-1 flex justify-between text-[11px] text-gray-400">
+      <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
         <span>{formatValue(min)}</span>
         <span>{formatValue(max)}</span>
       </div>

@@ -19,10 +19,10 @@ const SERVICES = [
 
 export function ServicesSection() {
   return (
-    <section id="services" className="bg-white pt-24 pb-16 md:pt-32 md:pb-24">
+    <section id="services" className="bg-background pt-24 pb-16 md:pt-32 md:pb-24">
       <div className="container-max">
         <div className="mb-10 text-center md:mb-14">
-          <h2 className="text-2xl font-bold text-gray-800 md:text-4xl">Our Services</h2>
+          <h2 className="text-2xl font-bold text-foreground md:text-4xl">Our Services</h2>
         </div>
 
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-10 px-4 md:grid-cols-2 md:gap-16 md:px-0">
@@ -40,7 +40,7 @@ export function ServicesSection() {
               </Card>
 
               <div className="flex flex-col items-center px-4 text-center">
-                <h3 className="mb-2 text-lg font-bold text-gray-800 md:text-xl">{service.title}</h3>
+                <h3 className="mb-2 text-lg font-bold text-foreground md:text-xl">{service.title}</h3>
                 <p className="mb-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
                   {service.description}
                 </p>

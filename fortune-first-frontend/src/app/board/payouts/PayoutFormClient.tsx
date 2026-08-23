@@ -41,8 +41,8 @@ function PayoutForm() {
   return (
     <form onSubmit={handleProcess} className="space-y-4">
       <div className="bg-brand-surface p-4 rounded-md mb-4 border border-brand-border">
-        <p className="text-sm text-gray-600">Processing for Investment Amount:</p>
-        <p className="text-2xl font-bold text-brand-navy">₹{parseFloat(amount || '0').toLocaleString()}</p>
+        <p className="text-sm text-foreground">Processing for Investment Amount:</p>
+        <p className="text-2xl font-bold text-foreground">₹{parseFloat(amount || '0').toLocaleString()}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -83,8 +83,8 @@ function PayoutForm() {
 
 export default function PayoutFormClient() {
   return (
-    <div className="max-w-2xl bg-white p-8 rounded-xl shadow-sm border border-brand-border">
-      <h1 className="text-2xl font-bold text-brand-navy mb-6">Process Monthly Payout</h1>
+    <div className="max-w-2xl bg-card p-8 rounded-xl shadow-sm border border-brand-border">
+      <h1 className="text-2xl font-bold text-foreground mb-6">Process Monthly Payout</h1>
       {/* Suspense is required when using useSearchParams in Next.js */}
       <Suspense fallback={<div>Loading payout details...</div>}>
         <PayoutForm />

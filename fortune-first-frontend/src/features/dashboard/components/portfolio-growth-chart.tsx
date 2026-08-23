@@ -43,13 +43,13 @@ export function PortfolioGrowthChart({ history }: PortfolioGrowthChartProps) {
   }, [history, range]);
 
   return (
-    <div className="rounded-2xl border border-brand-border bg-white p-6">
+    <div className="rounded-2xl border border-brand-border bg-card p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-bold text-gray-900">Portfolio Growth</h3>
+        <h3 className="text-lg font-bold text-foreground">Portfolio Growth</h3>
         <select
           value={range}
           onChange={(e) => setRange(Number(e.target.value))}
-          className="rounded-lg border border-brand-border bg-white px-3 py-1.5 text-sm text-gray-600 focus:border-primary focus:outline-none"
+          className="rounded-lg border border-brand-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
         >
           {RANGE_OPTIONS.map((opt) => (
             <option key={opt.months} value={opt.months}>
@@ -60,7 +60,7 @@ export function PortfolioGrowthChart({ history }: PortfolioGrowthChartProps) {
       </div>
 
       {chartData.length === 0 ? (
-        <div className="flex h-[320px] items-center justify-center text-sm text-gray-400">
+        <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">
           No payout history yet.
         </div>
       ) : (

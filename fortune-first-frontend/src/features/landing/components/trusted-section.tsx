@@ -9,9 +9,9 @@ interface TrustedSectionProps {
 
 export function TrustedSection({ testimonials }: TrustedSectionProps) {
   return (
-    <section id="trusted" className="border-t border-gray-100 bg-muted py-12 md:py-16">
+    <section id="trusted" className="border-t border-border bg-muted py-12 md:py-16">
       <div className="container-max text-center">
-        <h2 className="mb-1 text-xl font-bold text-gray-800 md:text-2xl">
+        <h2 className="mb-1 text-xl font-bold text-foreground md:text-2xl">
           Trusted by 20+ private clients
         </h2>
         <p className="mb-6 text-xs text-muted-foreground md:text-sm">
@@ -31,9 +31,9 @@ export function TrustedSection({ testimonials }: TrustedSectionProps) {
             {testimonials.map((testimonial, i) => (
               <Card
                 key={`${testimonial.client_name}-${i}`}
-                className="flex flex-col items-start border-0 bg-white p-6 text-left shadow-[0_4px_20px_rgb(0,0,0,0.06)]"
+                className="flex flex-col items-start border-0 bg-card p-6 text-left shadow-[0_4px_20px_rgb(0,0,0,0.06)]"
               >
-                <p className="mb-4 text-sm italic leading-relaxed text-gray-700">
+                <p className="mb-4 text-sm italic leading-relaxed text-foreground">
                   &ldquo;{testimonial.content}&rdquo;
                 </p>
 
@@ -48,7 +48,7 @@ export function TrustedSection({ testimonials }: TrustedSectionProps) {
                     <User size={18} className="text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-800">{testimonial.client_name}</p>
+                    <p className="text-sm font-bold text-foreground">{testimonial.client_name}</p>
                     <p className="text-xs text-muted-foreground">
                       {testimonial.city ? `Client, ${testimonial.city}` : 'Client'}
                     </p>

@@ -35,7 +35,7 @@ export function AuthShell({ children, backHref = '/' }: AuthShellProps) {
       </button>
 
       <div className="relative z-10 mx-4 my-6 w-full max-w-[380px]">
-        <div className="rounded-2xl bg-white px-7 py-8 shadow-2xl">
+        <div className="rounded-2xl bg-card px-7 py-8 shadow-2xl">
           <div className="mb-4 flex flex-col items-center gap-1.5">
             <Image
               src="/logo_circle.png"
@@ -44,7 +44,7 @@ export function AuthShell({ children, backHref = '/' }: AuthShellProps) {
               height={64}
               className="h-16 w-16 rounded-full object-contain"
             />
-            <span className="text-sm font-semibold tracking-wide text-gray-900">Fortune First</span>
+            <span className="text-sm font-semibold tracking-wide text-foreground">Fortune First</span>
           </div>
 
           {children}

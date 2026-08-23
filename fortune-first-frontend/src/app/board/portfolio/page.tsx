@@ -44,11 +44,11 @@ export default function PortfolioPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-brand-navy mb-6">Live Portfolio Tracker</h1>
+      <h1 className="text-3xl font-bold text-foreground mb-6">Live Portfolio Tracker</h1>
       
       {/* Summary Widget */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-brand-border mb-8">
-        <p className="text-sm text-gray-500 font-medium">Total Unrealized P&L</p>
+      <div className="bg-card p-6 rounded-xl shadow-sm border border-brand-border mb-8">
+        <p className="text-sm text-muted-foreground font-medium">Total Unrealized P&L</p>
         <p className={`text-4xl font-bold mt-2 ${totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
           ₹{totalPnL.toLocaleString()}
         </p>
@@ -58,7 +58,7 @@ export default function PortfolioPage() {
         <div className="lg:col-span-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {positions.map((pos) => (
-              <div key={pos.id} className="bg-white p-6 rounded-xl shadow-sm border border-brand-border">
+              <div key={pos.id} className="bg-card p-6 rounded-xl shadow-sm border border-brand-border">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-bold text-lg">{pos.symbol}</h3>
                   <div className="flex items-center gap-2">
@@ -67,7 +67,7 @@ export default function PortfolioPage() {
                     </span>
                     <button
                       onClick={() => handleRemovePosition(pos.id)}
-                      className="p-1.5 rounded-md text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                      className="p-1.5 rounded-md text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors dark:hover:bg-red-500/15 dark:hover:text-red-400"
                       title="Remove position"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -79,14 +79,14 @@ export default function PortfolioPage() {
                     </button>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600">Qty: {pos.quantity} | Avg: ₹{pos.buy_price}</p>
-                <p className="text-sm text-brand-navy font-medium mt-1">LTP: ₹{pos.currentPrice}</p>
+                <p className="text-sm text-foreground">Qty: {pos.quantity} | Avg: ₹{pos.buy_price}</p>
+                <p className="text-sm text-foreground font-medium mt-1">LTP: ₹{pos.currentPrice}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-brand-border h-fit">
+        <div className="bg-card p-6 rounded-xl shadow-sm border border-brand-border h-fit">
           <h2 className="text-xl font-bold mb-4">Add Position</h2>
           <form onSubmit={handleAddPosition} className="space-y-4">
             <input required placeholder="NSE Symbol (e.g. RELIANCE)" className="w-full border p-2 rounded" value={form.symbol} onChange={e => setForm({...form, symbol: e.target.value.toUpperCase()})} />

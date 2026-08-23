@@ -45,10 +45,10 @@ export function JoinSection() {
           </p>
         </div>
 
-        <div className="mx-auto max-w-md rounded-2xl bg-white p-8 shadow-2xl md:p-10">
+        <div className="mx-auto max-w-md rounded-2xl bg-card p-8 shadow-2xl md:p-10">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="join-name" className="mb-1.5 block text-sm font-bold text-gray-800">
+              <label htmlFor="join-name" className="mb-1.5 block text-sm font-bold text-foreground">
                 Name
               </label>
               <input
@@ -58,12 +58,12 @@ export function JoinSection() {
                 placeholder="Full Name"
                 value={form.name}
                 onChange={handleChange('name')}
-                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label htmlFor="join-email" className="mb-1.5 block text-sm font-bold text-gray-800">
+              <label htmlFor="join-email" className="mb-1.5 block text-sm font-bold text-foreground">
                 Email
               </label>
               <input
@@ -73,12 +73,12 @@ export function JoinSection() {
                 placeholder="Email Address"
                 value={form.email}
                 onChange={handleChange('email')}
-                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label htmlFor="join-phone" className="mb-1.5 block text-sm font-bold text-gray-800">
+              <label htmlFor="join-phone" className="mb-1.5 block text-sm font-bold text-foreground">
                 Mobile Number
               </label>
               <input
@@ -88,12 +88,12 @@ export function JoinSection() {
                 placeholder="Mobile Number"
                 value={form.phone}
                 onChange={handleChange('phone')}
-                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label htmlFor="join-amount" className="mb-1.5 block text-sm font-bold text-gray-800">
+              <label htmlFor="join-amount" className="mb-1.5 block text-sm font-bold text-foreground">
                 Investment Amount
               </label>
               <input
@@ -104,7 +104,7 @@ export function JoinSection() {
                 placeholder="Investment Amount (₹)"
                 value={form.amount}
                 onChange={handleChange('amount')}
-                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 

@@ -34,7 +34,7 @@ export function RetirementCalculatorModal({ isOpen, onClose }: RetirementCalcula
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Retirement Calculator" size="xl">
-      <p className="-mt-4 mb-5 text-sm text-gray-500">
+      <p className="-mt-4 mb-5 text-sm text-muted-foreground">
         Plan your retirement corpus and secure your future.
       </p>
 
@@ -107,20 +107,20 @@ export function RetirementCalculatorModal({ isOpen, onClose }: RetirementCalcula
 
       <div className="mt-6 grid grid-cols-1 gap-4 rounded-2xl border border-primary/15 bg-muted p-5 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="text-xs font-medium text-gray-500">Years to Retirement</p>
-          <p className="mt-1 text-lg font-extrabold text-gray-900">{result.yearsToRetirement} yrs</p>
+          <p className="text-xs font-medium text-muted-foreground">Years to Retirement</p>
+          <p className="mt-1 text-lg font-extrabold text-foreground">{result.yearsToRetirement} yrs</p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">Future Monthly Expense</p>
-          <p className="mt-1 text-lg font-extrabold text-gray-900">{formatRupees(result.futureMonthlyExpense)}</p>
+          <p className="text-xs font-medium text-muted-foreground">Future Monthly Expense</p>
+          <p className="mt-1 text-lg font-extrabold text-foreground">{formatRupees(result.futureMonthlyExpense)}</p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">Retirement Corpus Required</p>
+          <p className="text-xs font-medium text-muted-foreground">Retirement Corpus Required</p>
           <p className="mt-1 text-lg font-extrabold text-primary">{formatRupees(result.corpusRequired)}</p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">Monthly SIP Required</p>
-          <p className="mt-1 text-lg font-extrabold text-gray-900">{formatRupees(result.monthlySipRequired)}</p>
+          <p className="text-xs font-medium text-muted-foreground">Monthly SIP Required</p>
+          <p className="mt-1 text-lg font-extrabold text-foreground">{formatRupees(result.monthlySipRequired)}</p>
         </div>
       </div>
     </Modal>

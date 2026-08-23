@@ -49,9 +49,9 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
   };
 
   return (
-    <div className="rounded-2xl border border-brand-border bg-white">
+    <div className="rounded-2xl border border-brand-border bg-card">
       <div className="flex items-center justify-between p-6 pb-4">
-        <h3 className="text-lg font-bold text-gray-900">Client Summary</h3>
+        <h3 className="text-lg font-bold text-foreground">Client Summary</h3>
         <button
           onClick={handleDownload}
           disabled={clients.length === 0}
@@ -65,7 +65,7 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="bg-muted text-gray-600">
+            <tr className="bg-muted text-foreground">
               <th className="whitespace-nowrap px-6 py-3 font-medium">Client Name</th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">Client ID</th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">Relationship Manager</th>
@@ -80,26 +80,26 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
           <tbody className="divide-y divide-brand-border">
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-6 py-10 text-center text-gray-400">
+                <td colSpan={9} className="px-6 py-10 text-center text-muted-foreground">
                   No clients match your filters.
                 </td>
               </tr>
             ) : (
               pageRows.map((client) => (
                 <tr key={client.id}>
-                  <td className="px-6 py-4 font-medium text-gray-900">{client.name}</td>
-                  <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                  <td className="px-6 py-4 font-medium text-foreground">{client.name}</td>
+                  <td className="px-6 py-4 font-mono text-xs text-muted-foreground">
                     {client.id.slice(0, 8).toUpperCase()}
                   </td>
-                  <td className="px-6 py-4 text-gray-700">{client.relationship_manager || '—'}</td>
-                  <td className="px-6 py-4 text-gray-400">—</td>
+                  <td className="px-6 py-4 text-foreground">{client.relationship_manager || '—'}</td>
+                  <td className="px-6 py-4 text-muted-foreground">—</td>
                   <td className="px-6 py-4 font-medium text-primary">{formatCrore(Number(client.total_invested))}</td>
-                  <td className="px-6 py-4 text-gray-700">{client.active_mandates}</td>
-                  <td className="px-6 py-4 text-gray-400">—</td>
+                  <td className="px-6 py-4 text-foreground">{client.active_mandates}</td>
+                  <td className="px-6 py-4 text-muted-foreground">—</td>
                   <td className="px-6 py-4">
                     <span
                       className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                        client.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                        client.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {client.is_active ? 'Active' : 'Inactive'}
@@ -108,7 +108,7 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
                   <td className="px-6 py-4">
                     <Link
                       href={`/board/clients/${client.id}`}
-                      className="inline-flex h-7 w-9 items-center justify-center rounded-md border border-brand-border text-gray-500 hover:bg-muted"
+                      className="inline-flex h-7 w-9 items-center justify-center rounded-md border border-brand-border text-muted-foreground hover:bg-muted"
                       aria-label={`View ${client.name}`}
                     >
                       <MoreHorizontal size={16} />
@@ -122,7 +122,7 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
       </div>
 
       <div className="flex flex-col gap-3 border-t border-brand-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {clients.length === 0
             ? 'No clients'
             : `Showing ${rangeStart} to ${rangeEnd} of ${clients.length} entries`}
@@ -131,7 +131,7 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="inline-flex items-center gap-1 rounded-lg border border-brand-border px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-lg border border-brand-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft size={14} /> Previous
           </button>
@@ -144,7 +144,7 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
             }, [])
             .map((n, idx) =>
               n === 'ellipsis' ? (
-                <span key={`e-${idx}`} className="px-1 text-gray-400">
+                <span key={`e-${idx}`} className="px-1 text-muted-foreground">
                   …
                 </span>
               ) : (
@@ -152,7 +152,7 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
                   key={n}
                   onClick={() => setPage(n)}
                   className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${
-                    n === page ? 'bg-primary text-white' : 'border border-brand-border text-gray-600 hover:bg-muted'
+                    n === page ? 'bg-primary text-white' : 'border border-brand-border text-foreground hover:bg-muted'
                   }`}
                 >
                   {n}
@@ -162,7 +162,7 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="inline-flex items-center gap-1 rounded-lg border border-brand-border px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-lg border border-brand-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           >
             Next <ChevronRight size={14} />
           </button>

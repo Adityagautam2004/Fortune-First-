@@ -9,9 +9,9 @@ import type { ClientInvestment } from '../types';
 const PAGE_SIZE = 5;
 
 const STATUS_STYLES: Record<string, string> = {
-  active: 'bg-emerald-100 text-emerald-700',
-  exited: 'bg-gray-100 text-gray-500',
-  suspended: 'bg-red-100 text-red-700',
+  active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
+  exited: 'bg-muted text-muted-foreground',
+  suspended: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400',
 };
 
 function formatDate(dateStr: string) {
@@ -61,9 +61,9 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
   };
 
   return (
-    <div className="rounded-2xl border border-brand-border bg-white">
+    <div className="rounded-2xl border border-brand-border bg-card">
       <div className="flex items-center justify-between p-6 pb-4">
-        <h3 className="text-lg font-bold text-gray-900">Investment History</h3>
+        <h3 className="text-lg font-bold text-foreground">Investment History</h3>
         <div className="flex items-center gap-2">
           <button
             onClick={cycleStatusFilter}
@@ -87,7 +87,7 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="bg-muted text-gray-600">
+            <tr className="bg-muted text-foreground">
               <th className="whitespace-nowrap px-6 py-3 font-medium">Date</th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">Instrument / Scheme</th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">Asset Class</th>
@@ -100,23 +100,23 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
           <tbody className="divide-y divide-brand-border">
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-10 text-center text-gray-400">
+                <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">
                   No investments recorded yet.
                 </td>
               </tr>
             ) : (
               pageRows.map((inv) => (
                 <tr key={inv.id}>
-                  <td className="px-6 py-4 text-gray-700">{formatDate(inv.investment_date)}</td>
-                  <td className="px-6 py-4 text-gray-400">—</td>
-                  <td className="px-6 py-4 text-gray-400">—</td>
-                  <td className="px-6 py-4 font-medium text-gray-900">{formatRupees(Number(inv.amount))}</td>
-                  <td className="px-6 py-4 text-gray-400">—</td>
-                  <td className="px-6 py-4 text-gray-400">—</td>
+                  <td className="px-6 py-4 text-foreground">{formatDate(inv.investment_date)}</td>
+                  <td className="px-6 py-4 text-muted-foreground">—</td>
+                  <td className="px-6 py-4 text-muted-foreground">—</td>
+                  <td className="px-6 py-4 font-medium text-foreground">{formatRupees(Number(inv.amount))}</td>
+                  <td className="px-6 py-4 text-muted-foreground">—</td>
+                  <td className="px-6 py-4 text-muted-foreground">—</td>
                   <td className="px-6 py-4">
                     <span
                       className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                        STATUS_STYLES[inv.status] || 'bg-gray-100 text-gray-500'
+                        STATUS_STYLES[inv.status] || 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {inv.status}
@@ -130,14 +130,14 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
       </div>
 
       <div className="flex flex-col gap-3 border-t border-brand-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {filtered.length === 0 ? 'No entries' : `Showing ${rangeStart} to ${rangeEnd} of ${filtered.length} entries`}
         </p>
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           >
             Previous
           </button>
@@ -146,7 +146,7 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
               key={n}
               onClick={() => setPage(n)}
               className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${
-                n === page ? 'bg-primary text-white' : 'border border-brand-border text-gray-600 hover:bg-muted'
+                n === page ? 'bg-primary text-white' : 'border border-brand-border text-foreground hover:bg-muted'
               }`}
             >
               {n}
@@ -155,7 +155,7 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           >
             Next
           </button>

@@ -1,16 +1,24 @@
+import { dirname } from "path";
+import { fileURLToPath } from "url";
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import { FlatCompat } from "@eslint/eslintrc";
 
-// package.json pins eslint-config-next to ^15.5.23, but the version actually
-// resolved in node_modules is 16.2.10 (flat-config native — its package.json
-// "exports" map serves core-web-vitals/typescript as ready-made flat arrays).
-// Bridging an already-flat config through FlatCompat.extends() double-wraps
-// its plugin objects and crashes eslint with "Converting circular structure
-// to JSON" during schema validation — so these are imported directly instead.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// package.json pins eslint-config-next to ^15.5.23, and npm now actually
+// resolves that same legacy (pre-flat-config) version in node_modules — its
+// core-web-vitals/typescript entrypoints export plain `{ extends: [...] }`
+// objects, not ready-made flat arrays. FlatCompat bridges those into the
+// flat array `defineConfig` expects. (A stray higher flat-native version was
+// briefly resolved here during a prior session — if npm ever resolves one
+// again, bridging it through FlatCompat.extends() would double-wrap its
+// plugin objects and crash with "Converting circular structure to JSON"; if
+// that happens, switch back to importing the two entrypoints directly.)
+const compat = new FlatCompat({ baseDirectory: __dirname });
+
 const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
       // Flags the "async function calling setState before its first await"

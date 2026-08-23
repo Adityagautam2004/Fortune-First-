@@ -71,15 +71,15 @@ export function ChatWindow({ title, subtitle, messages, currentUserId, typingUse
   };
 
   return (
-    <div className="flex h-[640px] flex-1 flex-col rounded-2xl border border-brand-border bg-white">
+    <div className="flex h-[640px] flex-1 flex-col rounded-2xl border border-brand-border bg-card">
       <div className="flex items-center justify-between border-b border-brand-border px-5 py-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/10 text-xs font-bold text-primary">
             {isGroup ? '#' : initials(title)}
           </div>
           <div>
-            <h3 className="text-base font-bold text-gray-900">{title}</h3>
-            <p className="flex items-center gap-1.5 text-xs text-gray-500">
+            <h3 className="text-base font-bold text-foreground">{title}</h3>
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               {typingUser ? (
                 `${typingUser} is typing…`
               ) : !isGroup && isOnline ? (
@@ -120,7 +120,7 @@ export function ChatWindow({ title, subtitle, messages, currentUserId, typingUse
       </div>
 
       <div className="flex-1 space-y-1 overflow-y-auto bg-muted/40 p-5">
-        {messages.length === 0 && <p className="text-center text-sm text-gray-400">No messages yet</p>}
+        {messages.length === 0 && <p className="text-center text-sm text-muted-foreground">No messages yet</p>}
         {messages.map((msg, i) => {
           const isMe = msg.sender_id === currentUserId;
           const seen = isMe && (msg.read_by?.length || 0) > 1;
@@ -130,7 +130,7 @@ export function ChatWindow({ title, subtitle, messages, currentUserId, typingUse
             <div key={msg.id}>
               {showDateDivider && (
                 <div className="my-4 flex items-center justify-center">
-                  <span className="rounded-full border border-brand-border bg-white px-3 py-1 text-xs text-gray-500">
+                  <span className="rounded-full border border-brand-border bg-card px-3 py-1 text-xs text-muted-foreground">
                     {formatDateDivider(msg.created_at)}
                   </span>
                 </div>
@@ -144,17 +144,13 @@ export function ChatWindow({ title, subtitle, messages, currentUserId, typingUse
                 <div
                   className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
                     isMe
-                      ? 'rounded-br-md border border-primary/40 bg-primary/10 text-gray-900'
-                      : 'rounded-bl-md border border-brand-border bg-white'
+                      ? 'rounded-br-md border border-primary/40 bg-primary/10 text-foreground'
+                      : 'rounded-bl-md border border-brand-border bg-card'
                   }`}
                 >
                   {!isMe && <p className="mb-1 text-xs font-bold text-primary">{msg.sender_name || 'Team member'}</p>}
                   <p className="text-sm">{msg.content}</p>
-                  <div
-                    className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
-                      isMe ? 'text-gray-500' : 'text-gray-400'
-                    }`}
-                  >
+                  <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
                     <span>{formatTime(msg.created_at)}</span>
                     {isMe && (seen ? <CheckCheck size={12} /> : <Check size={12} />)}
                   </div>
@@ -168,25 +164,25 @@ export function ChatWindow({ title, subtitle, messages, currentUserId, typingUse
 
       <form onSubmit={handleSend} className="flex items-center gap-2 border-t border-brand-border p-4">
         <div className="relative flex-1">
-          <Smile size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Smile size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={input}
             onChange={(e) => handleInputChange(e.target.value)}
             placeholder="Type a message..."
-            className="w-full rounded-full border border-brand-border py-2.5 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-full border border-brand-border py-2.5 pl-10 pr-4 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
         <button
           type="button"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-muted hover:text-primary"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
           aria-label="Attach file"
         >
           <Paperclip size={18} />
         </button>
         <button
           type="button"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-muted hover:text-primary"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
           aria-label="Record voice message"
         >
           <Mic size={18} />

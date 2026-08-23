@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Tailwind v4 defaults `dark:` to a prefers-color-scheme media query;
+   this switches it to class-based so next-themes can drive it manually. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ── Design Tokens ───────────────────────────────────────── */
 :root {
   --background: #ffffff;
@@ -29,6 +33,39 @@
   --muted-foreground: var(--brand-muted-foreground);
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
+  --input: var(--brand-border);
+  --ring: var(--brand-orange);
+}
+
+/* Dark palette — same token names, so every component built on the
+   semantic tokens (bg-card, text-foreground, border-border, etc.)
+   flips automatically. Brand orange stays the accent in both themes. */
+.dark {
+  --background: #0b0f17;
+  --foreground: #e5e7eb;
+  --surface: #111827;
+  --border: #1f2937;
+  --accent: #f97316;
+  --accent-light: #fb923c;
+  --brand-navy: #0b0f17;
+  --brand-orange: #f97316;
+  --brand-surface: #111827;
+  --brand-border: #1f2937;
+  --brand-cream: #161b26;
+  --brand-muted-foreground: #9ca3af;
+
+  --card: #111827;
+  --card-foreground: #e5e7eb;
+  --popover: #111827;
+  --popover-foreground: #e5e7eb;
+  --primary: var(--brand-orange);
+  --primary-foreground: #ffffff;
+  --secondary: #1f2937;
+  --secondary-foreground: #f3f4f6;
+  --muted: #161b26;
+  --muted-foreground: #9ca3af;
+  --destructive: #f87171;
+  --destructive-foreground: #1f2937;
   --input: var(--brand-border);
   --ring: var(--brand-orange);
 }
@@ -80,6 +117,10 @@
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
+.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
 *::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -96,6 +137,14 @@
 
 *::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 html {
