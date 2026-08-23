@@ -66,18 +66,18 @@ export function DashboardOverviewPage() {
   };
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-500">Loading dashboard overview...</div>;
+    return <div className="p-6 text-sm text-muted-foreground">Loading dashboard overview...</div>;
   }
 
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center justify-between border-b border-brand-border pb-2.5">
         <div>
-          <h1 className="text-xl font-extrabold text-gray-900">Dashboard Overview</h1>
-          <p className="mt-0.5 text-sm text-gray-500">Overview of platform performance</p>
+          <h1 className="text-xl font-extrabold text-foreground">Dashboard Overview</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Overview of platform performance</p>
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
-          <span className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-gray-500">{thisMonthLabel}</span>
+          <span className="rounded-lg border border-brand-border px-3 py-1.5 text-sm text-muted-foreground">{thisMonthLabel}</span>
           <button
             type="button"
             onClick={handleExportData}

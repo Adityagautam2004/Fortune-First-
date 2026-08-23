@@ -18,8 +18,8 @@ export function ReportTypeCard({ icon: Icon, title, description, onClick }: Repo
         <Icon size={24} />
       </div>
       <div className="flex-1">
-        <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-        <p className="mt-1 text-sm text-gray-500">{description}</p>
+        <h3 className="text-lg font-bold text-foreground">{title}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
       <ChevronRight size={22} className="shrink-0 text-primary" />
     </button>

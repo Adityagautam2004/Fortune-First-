@@ -107,7 +107,7 @@ export function TestimonialsManagement() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           Visible testimonials appear on the public landing page, newest first.
         </p>
         <Button size="sm" onClick={openCreate}>
@@ -117,10 +117,10 @@ export function TestimonialsManagement() {
 
       {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-x-auto">
+      <div className="bg-card rounded-xl shadow-sm border border-brand-border overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-brand-surface text-brand-navy">
+            <tr className="bg-brand-surface text-foreground">
               <th className="p-4 text-sm font-medium">Client</th>
               <th className="p-4 text-sm font-medium">Content</th>
               <th className="p-4 text-sm font-medium">Rating</th>
@@ -128,19 +128,19 @@ export function TestimonialsManagement() {
               <th className="p-4 text-sm font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-border">
             {isLoading ? (
-              <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading...</td></tr>
+              <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Loading...</td></tr>
             ) : testimonials.length === 0 ? (
-              <tr><td colSpan={5} className="p-8 text-center text-gray-400">No testimonials yet.</td></tr>
+              <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No testimonials yet.</td></tr>
             ) : (
               testimonials.map((t) => (
-                <tr key={t.id} className="hover:bg-gray-50">
-                  <td className="p-4 text-sm font-medium text-gray-900">
+                <tr key={t.id} className="hover:bg-muted">
+                  <td className="p-4 text-sm font-medium text-foreground">
                     {t.client_name}
-                    {t.city && <span className="block text-xs font-normal text-gray-400">{t.city}</span>}
+                    {t.city && <span className="block text-xs font-normal text-muted-foreground">{t.city}</span>}
                   </td>
-                  <td className="p-4 text-sm text-gray-600 max-w-sm">
+                  <td className="p-4 text-sm text-foreground max-w-sm">
                     <span className="line-clamp-2">{t.content}</span>
                   </td>
                   <td className="p-4 text-sm">
@@ -154,7 +154,7 @@ export function TestimonialsManagement() {
                     <button
                       onClick={() => toggleVisible(t)}
                       className={`px-2 py-1 text-xs rounded-full font-medium transition-colors ${
-                        t.is_visible ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        t.is_visible ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-500/15 dark:text-green-400 dark:hover:bg-green-500/25' : 'bg-muted text-muted-foreground hover:opacity-80'
                       }`}
                     >
                       {t.is_visible ? 'Visible' : 'Hidden'}
@@ -162,10 +162,10 @@ export function TestimonialsManagement() {
                   </td>
                   <td className="p-4 text-sm">
                     <div className="flex items-center gap-3">
-                      <button onClick={() => openEdit(t)} className="text-gray-500 hover:text-brand-navy" title="Edit">
+                      <button onClick={() => openEdit(t)} className="text-muted-foreground hover:text-foreground" title="Edit">
                         <Pencil size={16} />
                       </button>
-                      <button onClick={() => handleDelete(t.id)} className="text-gray-500 hover:text-red-600" title="Delete">
+                      <button onClick={() => handleDelete(t.id)} className="text-muted-foreground hover:text-red-600" title="Delete">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -180,7 +180,7 @@ export function TestimonialsManagement() {
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit Testimonial' : 'Add Testimonial'} size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Client Name</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">Client Name</label>
             <input
               required
               maxLength={100}
@@ -190,7 +190,7 @@ export function TestimonialsManagement() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">City (optional)</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">City (optional)</label>
             <input
               maxLength={100}
               className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary"
@@ -199,7 +199,7 @@ export function TestimonialsManagement() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Content</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">Content</label>
             <textarea
               required
               rows={3}
@@ -209,7 +209,7 @@ export function TestimonialsManagement() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Rating</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">Rating</label>
             <select
               className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary"
               value={form.rating}
@@ -220,7 +220,7 @@ export function TestimonialsManagement() {
               ))}
             </select>
           </div>
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <label className="flex items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
               checked={form.isVisible}

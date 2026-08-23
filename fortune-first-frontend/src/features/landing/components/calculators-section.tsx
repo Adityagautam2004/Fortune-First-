@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Calculator, PieChart, PiggyBank, type LucideIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { StaggerGroup, StaggerItem } from '@/components/motion/stagger';
 import { SipCalculatorModal } from './sip-calculator-modal';
 import { EmiCalculatorModal } from './emi-calculator-modal';
 import { RetirementCalculatorModal } from './retirement-calculator-modal';
@@ -39,39 +41,46 @@ export function CalculatorsSection() {
     <section id="calculators" className="bg-muted py-12 md:py-16">
       <div className="container-max">
         <div className="mb-12 text-center">
-          <h2 className="mb-3 text-2xl font-bold text-gray-900 md:text-4xl">Financial Calculators</h2>
+          <h2 className="mb-3 text-2xl font-bold text-foreground md:text-4xl">Financial Calculators</h2>
           <div className="mx-auto mb-3 h-1 w-16 rounded-full bg-primary" />
           <p className="mx-auto max-w-lg text-sm text-muted-foreground md:text-base">
             Plan better, Calculate smarter, Achieve your financial goals.
           </p>
         </div>
 
-        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-4 md:grid-cols-3 md:gap-8 md:px-0">
+        <StaggerGroup className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-4 md:grid-cols-3 md:gap-8 md:px-0">
           {CALCULATORS.map((calc) => (
-            <Card
+            <StaggerItem
               key={calc.key}
-              className="group flex flex-col items-center border-0 bg-white p-8 text-center shadow-[0_4px_20px_rgb(0,0,0,0.06)] transition-shadow duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)]"
+              whileHover={{ y: -6 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             >
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-muted transition-transform duration-300 group-hover:scale-110 md:h-20 md:w-20">
-                <calc.icon size={40} className="text-primary" />
-              </div>
+              <Card className="flex flex-col items-center border-0 bg-card p-8 text-center shadow-[0_4px_20px_rgb(0,0,0,0.06)] transition-shadow duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
+                <motion.div
+                  className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-muted md:h-20 md:w-20"
+                  whileHover={{ scale: 1.15, rotate: 8 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
+                  <calc.icon size={40} className="text-primary" />
+                </motion.div>
 
-              <h3 className="mb-2 text-base font-bold text-gray-800 md:text-lg">{calc.title}</h3>
-              <p className="mb-6 text-xs leading-relaxed text-muted-foreground md:text-sm">
-                {calc.description}
-              </p>
+                <h3 className="mb-2 text-base font-bold text-foreground md:text-lg">{calc.title}</h3>
+                <p className="mb-6 text-xs leading-relaxed text-muted-foreground md:text-sm">
+                  {calc.description}
+                </p>
 
-              <Button
-                variant="outline"
-                size="pill"
-                className="mt-auto hover:bg-muted"
-                onClick={() => setOpenCalculator(calc.key)}
-              >
-                Calculate
-              </Button>
-            </Card>
+                <Button
+                  variant="outline"
+                  size="pill"
+                  className="mt-auto hover:bg-muted"
+                  onClick={() => setOpenCalculator(calc.key)}
+                >
+                  Calculate
+                </Button>
+              </Card>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerGroup>
       </div>
 
       <SipCalculatorModal isOpen={openCalculator === 'sip'} onClose={() => setOpenCalculator(null)} />

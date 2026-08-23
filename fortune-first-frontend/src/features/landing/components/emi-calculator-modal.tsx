@@ -30,7 +30,7 @@ export function EmiCalculatorModal({ isOpen, onClose }: EmiCalculatorModalProps)
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="EMI Calculator" size="lg">
-      <p className="-mt-4 mb-5 text-sm text-gray-500">
+      <p className="-mt-4 mb-5 text-sm text-muted-foreground">
         Calculate your loan EMI and plan your monthly payments.
       </p>
 
@@ -68,7 +68,7 @@ export function EmiCalculatorModal({ isOpen, onClose }: EmiCalculatorModalProps)
         <BreakdownDonutChart
           ready={chartReady}
           segments={[
-            { label: 'Principal', value: result.principal, color: '#111827' },
+            { label: 'Principal', value: result.principal, color: 'var(--muted-foreground)' },
             { label: 'Interest', value: result.totalInterest, color: '#f97316' },
           ]}
         />
@@ -76,20 +76,20 @@ export function EmiCalculatorModal({ isOpen, onClose }: EmiCalculatorModalProps)
 
       <div className="mt-6 grid grid-cols-1 gap-4 rounded-2xl border border-primary/15 bg-muted p-5 sm:grid-cols-4">
         <div>
-          <p className="text-xs font-medium text-gray-500">Monthly EMI</p>
+          <p className="text-xs font-medium text-muted-foreground">Monthly EMI</p>
           <p className="mt-1 text-lg font-extrabold text-primary">{formatRupees(result.emi)}</p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">Principal</p>
-          <p className="mt-1 text-lg font-extrabold text-gray-900">{formatRupees(result.principal)}</p>
+          <p className="text-xs font-medium text-muted-foreground">Principal</p>
+          <p className="mt-1 text-lg font-extrabold text-foreground">{formatRupees(result.principal)}</p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">Total Interest</p>
-          <p className="mt-1 text-lg font-extrabold text-gray-900">{formatRupees(result.totalInterest)}</p>
+          <p className="text-xs font-medium text-muted-foreground">Total Interest</p>
+          <p className="mt-1 text-lg font-extrabold text-foreground">{formatRupees(result.totalInterest)}</p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">Total Payment</p>
-          <p className="mt-1 text-lg font-extrabold text-gray-900">{formatRupees(result.totalPayment)}</p>
+          <p className="text-xs font-medium text-muted-foreground">Total Payment</p>
+          <p className="mt-1 text-lg font-extrabold text-foreground">{formatRupees(result.totalPayment)}</p>
         </div>
       </div>
     </Modal>

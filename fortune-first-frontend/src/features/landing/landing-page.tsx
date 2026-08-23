@@ -1,7 +1,9 @@
+import { Reveal } from '@/components/motion/reveal';
 import { CalculatorsSection } from './components/calculators-section';
 import { GrowthChartSection } from './components/growth-chart-section';
 import { HeroSection } from './components/hero-section';
 import { JoinSection } from './components/join-section';
+import { LenisProvider } from './components/lenis-provider';
 import { ServicesSection } from './components/services-section';
 import { SiteFooter } from './components/site-footer';
 import { SiteHeader } from './components/site-header';
@@ -38,17 +40,33 @@ export async function LandingPage() {
   const { returns, testimonials } = await getPublicDashboardData();
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground">
-      <SiteHeader />
-      <HeroSection />
-      <ServicesSection />
-      <WhyChooseSection />
-      <GrowthChartSection returns={returns} />
-      <CalculatorsSection />
-      <TrustedSection testimonials={testimonials} />
-      <JoinSection />
-      <TermsBannerSection />
-      <SiteFooter />
-    </div>
+    <LenisProvider>
+      <div className="min-h-screen bg-background font-sans text-foreground">
+        <SiteHeader />
+        <HeroSection />
+        <Reveal>
+          <ServicesSection />
+        </Reveal>
+        <Reveal>
+          <WhyChooseSection />
+        </Reveal>
+        <Reveal>
+          <GrowthChartSection returns={returns} />
+        </Reveal>
+        <Reveal>
+          <CalculatorsSection />
+        </Reveal>
+        <Reveal>
+          <TrustedSection testimonials={testimonials} />
+        </Reveal>
+        <Reveal>
+          <JoinSection />
+        </Reveal>
+        <Reveal>
+          <TermsBannerSection />
+        </Reveal>
+        <SiteFooter />
+      </div>
+    </LenisProvider>
   );
 }

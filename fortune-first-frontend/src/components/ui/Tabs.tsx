@@ -28,7 +28,7 @@ export function Tabs({ items, defaultKey, children }: TabsProps) {
               '-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
               active === item.key
                 ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-900'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
             {item.label}

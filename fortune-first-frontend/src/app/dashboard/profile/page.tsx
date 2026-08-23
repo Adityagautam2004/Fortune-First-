@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { FileText, UploadCloud, CheckCircle2 } from 'lucide-react';
@@ -77,32 +77,32 @@ export default function CustomerProfile() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Profile & KYC</h1>
+      <h1 className="text-3xl font-bold text-foreground">Profile & KYC</h1>
 
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border p-6">
-        <h2 className="text-xl font-semibold text-brand-navy mb-4">Personal Details</h2>
+      <div className="bg-card rounded-xl shadow-sm border border-brand-border p-6">
+        <h2 className="text-xl font-semibold text-foreground mb-4">Personal Details</h2>
         <div className="grid grid-cols-2 gap-4">
-          <div><p className="text-sm text-gray-500">Full Name</p><p className="font-medium">{profile.name}</p></div>
-          <div><p className="text-sm text-gray-500">Email</p><p className="font-medium">{profile.email}</p></div>
-          <div><p className="text-sm text-gray-500">Phone</p><p className="font-medium">{profile.phone || 'N/A'}</p></div>
+          <div><p className="text-sm text-muted-foreground">Full Name</p><p className="font-medium">{profile.name}</p></div>
+          <div><p className="text-sm text-muted-foreground">Email</p><p className="font-medium">{profile.email}</p></div>
+          <div><p className="text-sm text-muted-foreground">Phone</p><p className="font-medium">{profile.phone || 'N/A'}</p></div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border p-6">
+      <div className="bg-card rounded-xl shadow-sm border border-brand-border p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-brand-navy">KYC Details</h2>
-          <span className={`px-2 py-1 text-xs rounded-full ${profile.verified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          <h2 className="text-xl font-semibold text-foreground">KYC Details</h2>
+          <span className={`px-2 py-1 text-xs rounded-full ${profile.verified ? 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400'}`}>
             {profile.verified ? 'Verified' : 'Pending Verification'}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <div><p className="text-sm text-gray-500">PAN Number</p><p className="font-medium">{profile.pan_masked || 'Not Submitted'}</p></div>
-          <div><p className="text-sm text-gray-500">Bank Account</p><p className="font-medium">{profile.account_masked || 'Not Submitted'}</p></div>
+          <div><p className="text-sm text-muted-foreground">PAN Number</p><p className="font-medium">{profile.pan_masked || 'Not Submitted'}</p></div>
+          <div><p className="text-sm text-muted-foreground">Bank Account</p><p className="font-medium">{profile.account_masked || 'Not Submitted'}</p></div>
         </div>
 
         {profile.verified ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Your KYC has been verified and can no longer be edited here. Contact support if any of these details need to change.
           </p>
         ) : (
@@ -137,7 +137,7 @@ export default function CustomerProfile() {
                 onChange={(e) => setForm({ ...form, ifscCode: e.target.value.toUpperCase() })}
               />
             </div>
-            {kycMessage && <p className="text-sm text-brand-navy">{kycMessage}</p>}
+            {kycMessage && <p className="text-sm text-foreground">{kycMessage}</p>}
             <button
               type="submit"
               disabled={savingKyc}
@@ -149,9 +149,9 @@ export default function CustomerProfile() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border p-6">
-        <h2 className="text-xl font-semibold text-brand-navy mb-4">Identity Document</h2>
-        <p className="text-sm text-gray-500 mb-4">Upload a PAN card, Aadhaar, or bank statement as proof (PDF, JPG, or PNG, max 5MB).</p>
+      <div className="bg-card rounded-xl shadow-sm border border-brand-border p-6">
+        <h2 className="text-xl font-semibold text-foreground mb-4">Identity Document</h2>
+        <p className="text-sm text-muted-foreground mb-4">Upload a PAN card, Aadhaar, or bank statement as proof (PDF, JPG, or PNG, max 5MB).</p>
 
         {profile.document_url ? (
           <div className="flex items-center gap-3 mb-4">
@@ -161,7 +161,7 @@ export default function CustomerProfile() {
             </a>
           </div>
         ) : (
-          <p className="text-sm text-gray-500 mb-4">No document uploaded yet.</p>
+          <p className="text-sm text-muted-foreground mb-4">No document uploaded yet.</p>
         )}
 
         <input

@@ -30,7 +30,7 @@ export function SipCalculatorModal({ isOpen, onClose }: SipCalculatorModalProps)
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="SIP Calculator" size="lg">
-      <p className="-mt-4 mb-5 text-sm text-gray-500">
+      <p className="-mt-4 mb-5 text-sm text-muted-foreground">
         See how your monthly investments could grow over time.
       </p>
 
@@ -68,7 +68,7 @@ export function SipCalculatorModal({ isOpen, onClose }: SipCalculatorModalProps)
         <BreakdownDonutChart
           ready={chartReady}
           segments={[
-            { label: 'Invested', value: result.investedAmount, color: '#111827' },
+            { label: 'Invested', value: result.investedAmount, color: 'var(--muted-foreground)' },
             { label: 'Returns', value: result.estimatedReturns, color: '#f97316' },
           ]}
         />
@@ -76,16 +76,16 @@ export function SipCalculatorModal({ isOpen, onClose }: SipCalculatorModalProps)
 
       <div className="mt-6 grid grid-cols-1 gap-4 rounded-2xl border border-primary/15 bg-muted p-5 sm:grid-cols-3">
         <div>
-          <p className="text-xs font-medium text-gray-500">Invested Amount</p>
-          <p className="mt-1 text-lg font-extrabold text-gray-900">{formatRupees(result.investedAmount)}</p>
+          <p className="text-xs font-medium text-muted-foreground">Invested Amount</p>
+          <p className="mt-1 text-lg font-extrabold text-foreground">{formatRupees(result.investedAmount)}</p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">Est. Returns</p>
+          <p className="text-xs font-medium text-muted-foreground">Est. Returns</p>
           <p className="mt-1 text-lg font-extrabold text-primary">{formatRupees(result.estimatedReturns)}</p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">Total Value</p>
-          <p className="mt-1 text-lg font-extrabold text-gray-900">{formatRupees(result.totalValue)}</p>
+          <p className="text-xs font-medium text-muted-foreground">Total Value</p>
+          <p className="mt-1 text-lg font-extrabold text-foreground">{formatRupees(result.totalValue)}</p>
         </div>
       </div>
     </Modal>

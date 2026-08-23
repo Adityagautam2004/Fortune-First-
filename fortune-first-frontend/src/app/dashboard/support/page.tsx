@@ -31,8 +31,8 @@ export default function SupportPage() {
   return (
     <div className="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Raise a Query</h1>
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-brand-border space-y-4">
+        <h1 className="text-3xl font-bold text-foreground mb-6">Raise a Query</h1>
+        <form onSubmit={handleSubmit} className="bg-card p-6 rounded-xl shadow-sm border border-brand-border space-y-4">
           <div>
             <label className="block text-sm font-medium">Category</label>
             <select 
@@ -67,17 +67,17 @@ export default function SupportPage() {
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Tickets</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-6">Your Tickets</h2>
         <div className="space-y-4">
           {tickets.map((t) => (
-            <div key={t.id} className="bg-white p-4 rounded-xl shadow-sm border border-brand-border">
+            <div key={t.id} className="bg-card p-4 rounded-xl shadow-sm border border-brand-border">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-semibold">{t.subject}</span>
-                <span className={`text-xs px-2 py-1 rounded-full ${t.status === 'Open' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                <span className={`text-xs px-2 py-1 rounded-full ${t.status === 'Open' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-400' : 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400'}`}>
                   {t.status}
                 </span>
               </div>
-              <p className="text-sm text-gray-500">Category: {t.category}</p>
+              <p className="text-sm text-muted-foreground">Category: {t.category}</p>
             </div>
           ))}
         </div>

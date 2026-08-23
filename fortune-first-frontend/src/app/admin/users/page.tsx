@@ -79,16 +79,16 @@ export default function AdminUsersPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-brand-navy">User Management</h1>
+        <h1 className="text-3xl font-bold text-foreground">User Management</h1>
         <button onClick={() => setShowModal(true)} className="bg-brand-orange text-white px-4 py-2 rounded-md">
           + Create User
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-brand-border overflow-x-auto">
+      <div className="bg-card rounded-xl shadow-sm border border-brand-border overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-brand-surface text-brand-navy">
+            <tr className="bg-brand-surface text-foreground">
               <th className="p-4 text-sm font-medium">Name</th>
               <th className="p-4 text-sm font-medium">Email</th>
               <th className="p-4 text-sm font-medium">Role</th>
@@ -96,14 +96,14 @@ export default function AdminUsersPage() {
               <th className="p-4 text-sm font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-border">
             {users.map((u) => (
-              <tr key={u.id} className="hover:bg-gray-50">
+              <tr key={u.id} className="hover:bg-muted">
                 <td className="p-4 text-sm font-medium">{u.name}</td>
                 <td className="p-4 text-sm">{u.email}</td>
                 <td className="p-4 text-sm capitalize">{u.role.replace('_', ' ')}</td>
                 <td className="p-4 text-sm">
-                  <span className={`px-2 py-1 text-xs rounded-full ${u.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  <span className={`px-2 py-1 text-xs rounded-full ${u.is_active ? 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400'}`}>
                     {u.is_active ? 'Active' : 'Suspended'}
                   </span>
                 </td>
@@ -122,42 +122,42 @@ export default function AdminUsersPage() {
 
       {/* KYC Review Modal */}
       {kycUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded-xl w-full max-w-[420px]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-card p-6 rounded-xl w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">KYC — {kycUser.name}</h2>
-              <span className={`px-2 py-1 text-xs rounded-full ${kycData?.verified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              <span className={`px-2 py-1 text-xs rounded-full ${kycData?.verified ? 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400'}`}>
                 {kycData?.verified ? 'Verified' : 'Pending'}
               </span>
             </div>
 
             {kycLoading ? (
-              <p className="text-sm text-gray-500">Loading...</p>
+              <p className="text-sm text-muted-foreground">Loading...</p>
             ) : !kycData ? (
-              <p className="text-sm text-gray-500">This customer has not submitted KYC details yet.</p>
+              <p className="text-sm text-muted-foreground">This customer has not submitted KYC details yet.</p>
             ) : (
               <div className="space-y-3 text-sm">
                 <div className="grid grid-cols-2 gap-3">
-                  <div><p className="text-gray-500">PAN</p><p className="font-medium">{kycData.pan_masked || 'Not Submitted'}</p></div>
-                  <div><p className="text-gray-500">Account No.</p><p className="font-medium">{kycData.account_masked || 'Not Submitted'}</p></div>
-                  <div><p className="text-gray-500">Bank</p><p className="font-medium">{kycData.bank_name || 'Not Submitted'}</p></div>
-                  <div><p className="text-gray-500">IFSC</p><p className="font-medium">{kycData.ifsc_code || 'Not Submitted'}</p></div>
+                  <div><p className="text-muted-foreground">PAN</p><p className="font-medium">{kycData.pan_masked || 'Not Submitted'}</p></div>
+                  <div><p className="text-muted-foreground">Account No.</p><p className="font-medium">{kycData.account_masked || 'Not Submitted'}</p></div>
+                  <div><p className="text-muted-foreground">Bank</p><p className="font-medium">{kycData.bank_name || 'Not Submitted'}</p></div>
+                  <div><p className="text-muted-foreground">IFSC</p><p className="font-medium">{kycData.ifsc_code || 'Not Submitted'}</p></div>
                 </div>
                 <div>
-                  <p className="text-gray-500 mb-1">Document</p>
+                  <p className="text-muted-foreground mb-1">Document</p>
                   {kycData.document_url ? (
                     <a href={kycData.document_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-brand-orange hover:underline">
                       <FileText size={16} /> View uploaded document
                     </a>
                   ) : (
-                    <p className="text-gray-400">Not uploaded</p>
+                    <p className="text-muted-foreground">Not uploaded</p>
                   )}
                 </div>
               </div>
             )}
 
             <div className="flex justify-end space-x-2 mt-6">
-              <button onClick={() => { setKycUser(null); setKycData(null); }} className="px-4 py-2 bg-gray-200 rounded">Close</button>
+              <button onClick={() => { setKycUser(null); setKycData(null); }} className="px-4 py-2 bg-muted rounded">Close</button>
               {kycData && (
                 <button onClick={toggleVerified} className="px-4 py-2 bg-brand-navy text-white rounded">
                   {kycData.verified ? 'Mark Unverified' : 'Mark Verified'}
@@ -170,8 +170,8 @@ export default function AdminUsersPage() {
 
       {/* Basic Create Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-card p-6 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Create New Account</h2>
             <form onSubmit={handleCreateUser} className="space-y-4">
               <input required placeholder="Full Name" className="w-full border p-2 rounded" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
@@ -198,7 +198,7 @@ export default function AdminUsersPage() {
                 </select>
               )}
               <div className="flex justify-end space-x-2 mt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-muted rounded">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-brand-navy text-white rounded">Save</button>
               </div>
             </form>

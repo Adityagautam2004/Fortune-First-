@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { StaggerGroup, StaggerItem } from '@/components/motion/stagger';
 
 const SERVICES = [
   {
@@ -19,15 +20,20 @@ const SERVICES = [
 
 export function ServicesSection() {
   return (
-    <section id="services" className="bg-white pt-24 pb-16 md:pt-32 md:pb-24">
+    <section id="services" className="bg-background pt-24 pb-16 md:pt-32 md:pb-24">
       <div className="container-max">
         <div className="mb-10 text-center md:mb-14">
-          <h2 className="text-2xl font-bold text-gray-800 md:text-4xl">Our Services</h2>
+          <h2 className="text-2xl font-bold text-foreground md:text-4xl">Our Services</h2>
         </div>
 
-        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-10 px-4 md:grid-cols-2 md:gap-16 md:px-0">
+        <StaggerGroup className="mx-auto grid max-w-5xl grid-cols-1 gap-10 px-4 md:grid-cols-2 md:gap-16 md:px-0">
           {SERVICES.map((service) => (
-            <div key={service.title} className="group flex cursor-pointer flex-col items-center">
+            <StaggerItem
+              key={service.title}
+              className="group flex cursor-pointer flex-col items-center"
+              whileHover={{ y: -6 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            >
               <Card className="mb-6 w-full overflow-hidden rounded-2xl border-0 bg-[#f5ebe0] p-0 shadow-[0_6px_24px_rgba(0,0,0,0.08)] transition-shadow duration-300 group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
                 <Image
                   src={service.image}
@@ -40,7 +46,7 @@ export function ServicesSection() {
               </Card>
 
               <div className="flex flex-col items-center px-4 text-center">
-                <h3 className="mb-2 text-lg font-bold text-gray-800 md:text-xl">{service.title}</h3>
+                <h3 className="mb-2 text-lg font-bold text-foreground md:text-xl">{service.title}</h3>
                 <p className="mb-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
                   {service.description}
                 </p>
@@ -49,9 +55,9 @@ export function ServicesSection() {
                   <ArrowRight size={14} />
                 </Button>
               </div>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerGroup>
       </div>
     </section>
   );

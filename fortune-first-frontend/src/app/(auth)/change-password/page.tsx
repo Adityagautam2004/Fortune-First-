@@ -21,9 +21,9 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-surface">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-md w-96">
-        <h2 className="text-xl font-bold text-brand-navy mb-4">Update Security Credentials</h2>
-        <p className="text-sm text-gray-600 mb-4">You must change your temporary admin-assigned password to continue.</p>
+      <form onSubmit={handleSubmit} className="bg-card p-8 rounded-xl shadow-md w-full max-w-sm mx-4 sm:max-w-md">
+        <h2 className="text-xl font-bold text-foreground mb-4">Update Security Credentials</h2>
+        <p className="text-sm text-foreground mb-4">You must change your temporary admin-assigned password to continue.</p>
         <input 
           type="password" required placeholder="New Password" 
           value={newPassword} onChange={e => setNewPassword(e.target.value)}

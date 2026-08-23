@@ -50,11 +50,11 @@ export function AddInvestmentModal({ isOpen, onClose, customerId, onSuccess }: A
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Add Investment" size="md">
-      <p className="-mt-4 mb-5 text-sm text-gray-500">Enter investment details</p>
+      <p className="-mt-4 mb-5 text-sm text-muted-foreground">Enter investment details</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm font-semibold text-gray-800">Amount (₹, multiple of 5,000)</label>
+          <label className="mb-1 block text-sm font-semibold text-foreground">Amount (₹, multiple of 5,000)</label>
           <input
             type="number"
             min={5000}
@@ -62,27 +62,27 @@ export function AddInvestmentModal({ isOpen, onClose, customerId, onSuccess }: A
             required
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
-            className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-sm font-semibold text-gray-800">Investment Date</label>
+            <label className="mb-1 block text-sm font-semibold text-foreground">Investment Date</label>
             <input
               type="date"
               required
               value={investmentDate}
               onChange={(e) => setInvestmentDate(e.target.value)}
-              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold text-gray-800">Week of Month</label>
+            <label className="mb-1 block text-sm font-semibold text-foreground">Week of Month</label>
             <select
               value={weekOfMonth}
               onChange={(e) => setWeekOfMonth(Number(e.target.value))}
-              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               {WEEK_OPTIONS.map((w) => (
                 <option key={w} value={w}>
@@ -94,16 +94,16 @@ export function AddInvestmentModal({ isOpen, onClose, customerId, onSuccess }: A
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-gray-800">Description (Optional)</label>
+          <label className="mb-1 block text-sm font-semibold text-foreground">Description (Optional)</label>
           <textarea
             value={notes}
             maxLength={NOTES_MAX}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Enter description (optional)"
             rows={4}
-            className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
-          <p className="mt-1 text-right text-xs text-gray-400">
+          <p className="mt-1 text-right text-xs text-muted-foreground">
             {notes.length}/{NOTES_MAX}
           </p>
         </div>

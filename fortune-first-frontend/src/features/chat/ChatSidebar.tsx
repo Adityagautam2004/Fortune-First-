@@ -40,22 +40,22 @@ export function ChatSidebar({
   const filtered = contacts.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="w-full max-w-xs rounded-2xl border border-brand-border bg-white">
+    <div className="w-full max-w-xs rounded-2xl border border-brand-border bg-card">
       <div className="flex items-center justify-between px-5 py-4">
-        <h3 className="text-lg font-bold text-gray-900">Members</h3>
+        <h3 className="text-lg font-bold text-foreground">Members</h3>
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold text-primary">
           {contacts.length}
         </span>
       </div>
       <div className="px-5 pb-3">
         <div className="relative">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search members..."
-            className="w-full rounded-lg border border-brand-border bg-white py-2 pl-8 pr-3 text-sm text-gray-700 placeholder-gray-400 focus:border-primary focus:outline-none"
+            className="w-full rounded-lg border border-brand-border bg-card py-2 pl-8 pr-3 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none"
           />
         </div>
       </div>
@@ -71,8 +71,8 @@ export function ChatSidebar({
             #
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-gray-900">Team Channel</p>
-            <p className="text-xs text-gray-500">Everyone</p>
+            <p className="truncate text-sm font-semibold text-foreground">Team Channel</p>
+            <p className="text-xs text-muted-foreground">Everyone</p>
           </div>
         </button>
 
@@ -100,8 +100,8 @@ export function ChatSidebar({
                 />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-gray-900">{member.name}</p>
-                <p className="text-xs text-gray-500">{online ? 'Online' : ROLE_LABELS[member.role] || member.role}</p>
+                <p className="truncate text-sm font-semibold text-foreground">{member.name}</p>
+                <p className="text-xs text-muted-foreground">{online ? 'Online' : ROLE_LABELS[member.role] || member.role}</p>
               </div>
             </button>
           );

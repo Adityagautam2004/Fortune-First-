@@ -39,29 +39,29 @@ export function LoginForm() {
   return (
     <>
       <div className="mb-5 text-center">
-        <h2 className="text-2xl font-extrabold text-gray-900">Welcome Back</h2>
-        <p className="mt-0.5 text-xs text-gray-500">Login to access your account</p>
+        <h2 className="text-2xl font-extrabold text-foreground">Welcome Back</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">Login to access your account</p>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">{error}</div>
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:bg-red-500/15 dark:text-red-400">{error}</div>
       )}
 
       <form className="space-y-3.5" onSubmit={handleSubmit}>
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-800">Email ID</label>
+          <label className="mb-1 block text-xs font-medium text-foreground">Email ID</label>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email id"
-            className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-[#f97316] focus:outline-none focus:ring-2 focus:ring-orange-200"
+            className="w-full rounded-xl border border-border px-3.5 py-2.5 text-sm text-foreground placeholder-muted-foreground transition-all focus:border-[#f97316] focus:outline-none focus:ring-2 focus:ring-orange-200"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-800">Password</label>
+          <label className="mb-1 block text-xs font-medium text-foreground">Password</label>
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
@@ -69,12 +69,12 @@ export function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
-              className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-[#f97316] focus:outline-none focus:ring-2 focus:ring-orange-200"
+              className="w-full rounded-xl border border-border px-3.5 py-2.5 pr-10 text-sm text-foreground placeholder-muted-foreground transition-all focus:border-[#f97316] focus:outline-none focus:ring-2 focus:ring-orange-200"
             />
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
@@ -83,12 +83,12 @@ export function LoginForm() {
         </div>
 
         <div className="flex items-center justify-between text-xs">
-          <label className="flex items-center gap-2 text-gray-700">
+          <label className="flex items-center gap-2 text-foreground">
             <input
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-gray-300 text-[#f97316] focus:ring-orange-200"
+              className="h-3.5 w-3.5 rounded border-border text-[#f97316] focus:ring-orange-200"
             />
             Remember me
           </label>

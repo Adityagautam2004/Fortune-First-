@@ -49,11 +49,11 @@ export function TransactionTable({ history }: TransactionTableProps) {
   const rangeEnd = Math.min(page * PAGE_SIZE, history.length);
 
   return (
-    <div className="rounded-2xl border border-brand-border bg-white">
+    <div className="rounded-2xl border border-brand-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="bg-muted text-gray-600">
+            <tr className="bg-muted text-muted-foreground">
               <th className="px-6 py-3 font-medium">Date</th>
               <th className="px-6 py-3 font-medium">Activity</th>
               <th className="px-6 py-3 font-medium">Amount</th>
@@ -63,16 +63,16 @@ export function TransactionTable({ history }: TransactionTableProps) {
           <tbody className="divide-y divide-brand-border">
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
+                <td colSpan={4} className="px-6 py-10 text-center text-muted-foreground">
                   No transactions match your filters.
                 </td>
               </tr>
             ) : (
               pageRows.map((record, idx) => (
                 <tr key={idx}>
-                  <td className="px-6 py-4 text-gray-700">{formatDate(record)}</td>
-                  <td className="px-6 py-4 font-medium text-gray-900">Monthly Payout</td>
-                  <td className="px-6 py-4 text-gray-700">{formatRupees(Number(record.payout_amount))}</td>
+                  <td className="px-6 py-4 text-foreground">{formatDate(record)}</td>
+                  <td className="px-6 py-4 font-medium text-foreground">Monthly Payout</td>
+                  <td className="px-6 py-4 text-foreground">{formatRupees(Number(record.payout_amount))}</td>
                   <td className="px-6 py-4">
                     <StatusBadge status={record.payout_status} />
                   </td>
@@ -84,7 +84,7 @@ export function TransactionTable({ history }: TransactionTableProps) {
       </div>
 
       <div className="flex flex-col gap-3 border-t border-brand-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {history.length === 0
             ? 'No transactions'
             : `Showing ${rangeStart} to ${rangeEnd} of ${history.length} transactions`}
@@ -93,7 +93,7 @@ export function TransactionTable({ history }: TransactionTableProps) {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="inline-flex items-center gap-1 rounded-lg border border-brand-border px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-lg border border-brand-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft size={14} /> Previous
           </button>
@@ -102,7 +102,7 @@ export function TransactionTable({ history }: TransactionTableProps) {
               key={n}
               onClick={() => setPage(n)}
               className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${
-                n === page ? 'bg-primary text-white' : 'border border-brand-border text-gray-600 hover:bg-muted'
+                n === page ? 'bg-primary text-white' : 'border border-brand-border text-muted-foreground hover:bg-muted'
               }`}
             >
               {n}
@@ -111,7 +111,7 @@ export function TransactionTable({ history }: TransactionTableProps) {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="inline-flex items-center gap-1 rounded-lg border border-brand-border px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-lg border border-brand-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           >
             Next <ChevronRight size={14} />
           </button>

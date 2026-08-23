@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
 import api from '@/lib/api';
@@ -45,10 +46,16 @@ export function JoinSection() {
           </p>
         </div>
 
-        <div className="mx-auto max-w-md rounded-2xl bg-white p-8 shadow-2xl md:p-10">
+        <motion.div
+          className="mx-auto max-w-md rounded-2xl bg-card p-8 shadow-2xl md:p-10"
+          initial={{ opacity: 0, y: 30, scale: 0.96 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="join-name" className="mb-1.5 block text-sm font-bold text-gray-800">
+              <label htmlFor="join-name" className="mb-1.5 block text-sm font-bold text-foreground">
                 Name
               </label>
               <input
@@ -58,12 +65,12 @@ export function JoinSection() {
                 placeholder="Full Name"
                 value={form.name}
                 onChange={handleChange('name')}
-                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label htmlFor="join-email" className="mb-1.5 block text-sm font-bold text-gray-800">
+              <label htmlFor="join-email" className="mb-1.5 block text-sm font-bold text-foreground">
                 Email
               </label>
               <input
@@ -73,12 +80,12 @@ export function JoinSection() {
                 placeholder="Email Address"
                 value={form.email}
                 onChange={handleChange('email')}
-                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label htmlFor="join-phone" className="mb-1.5 block text-sm font-bold text-gray-800">
+              <label htmlFor="join-phone" className="mb-1.5 block text-sm font-bold text-foreground">
                 Mobile Number
               </label>
               <input
@@ -88,12 +95,12 @@ export function JoinSection() {
                 placeholder="Mobile Number"
                 value={form.phone}
                 onChange={handleChange('phone')}
-                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label htmlFor="join-amount" className="mb-1.5 block text-sm font-bold text-gray-800">
+              <label htmlFor="join-amount" className="mb-1.5 block text-sm font-bold text-foreground">
                 Investment Amount
               </label>
               <input
@@ -104,7 +111,7 @@ export function JoinSection() {
                 placeholder="Investment Amount (₹)"
                 value={form.amount}
                 onChange={handleChange('amount')}
-                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
@@ -120,18 +127,32 @@ export function JoinSection() {
               </Button>
             </div>
 
-            {status === 'success' && (
-              <p className="text-center text-sm font-medium text-green-600">
-                Thank you! We will contact you soon.
-              </p>
-            )}
-            {status === 'error' && (
-              <p className="text-center text-sm font-medium text-destructive">
-                Something went wrong. Please try again.
-              </p>
-            )}
+            <AnimatePresence mode="wait">
+              {status === 'success' && (
+                <motion.p
+                  key="success"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center text-sm font-medium text-green-600"
+                >
+                  Thank you! We will contact you soon.
+                </motion.p>
+              )}
+              {status === 'error' && (
+                <motion.p
+                  key="error"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center text-sm font-medium text-destructive"
+                >
+                  Something went wrong. Please try again.
+                </motion.p>
+              )}
+            </AnimatePresence>
           </form>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

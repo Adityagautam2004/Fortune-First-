@@ -48,15 +48,15 @@ export function PayoutsPage() {
   };
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-500">Loading pending payouts...</div>;
+    return <div className="p-6 text-sm text-muted-foreground">Loading pending payouts...</div>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-xs text-gray-400">Payouts &gt; Process Payouts</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-gray-900">Process Payouts</h1>
-        <p className="mt-1 text-sm text-gray-500">Calculate returns and mark payouts as paid for clients.</p>
+        <p className="text-xs text-muted-foreground">Payouts &gt; Process Payouts</p>
+        <h1 className="mt-1 text-2xl font-extrabold text-foreground">Process Payouts</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Calculate returns and mark payouts as paid for clients.</p>
       </div>
 
       <PayoutFilters search={search} onSearchChange={setSearch} onReset={() => setSearch('')} />

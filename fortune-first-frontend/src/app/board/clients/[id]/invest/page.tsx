@@ -36,14 +36,14 @@ export default function AddInvestmentPage({
   };
 
   return (
-    <div className="max-w-2xl bg-white p-8 rounded-xl shadow-sm border border-brand-border">
+    <div className="max-w-2xl bg-card p-8 rounded-xl shadow-sm border border-brand-border">
       <Link href={`/board/clients/${id}`} className="text-sm text-brand-orange hover:underline">
         ← Back to client
       </Link>
-      <h1 className="text-2xl font-bold text-brand-navy mt-2 mb-6">Record New Investment</h1>
+      <h1 className="text-2xl font-bold text-foreground mt-2 mb-6">Record New Investment</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Amount (Multiple of ₹5000)</label>
+          <label className="block text-sm font-medium text-foreground">Amount (Multiple of ₹5000)</label>
           <input
             type="number" min="5000" step="5000" required
             value={form.amount} onChange={e => setForm({ ...form, amount: Number(e.target.value) })}

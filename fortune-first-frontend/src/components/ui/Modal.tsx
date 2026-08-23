@@ -47,15 +47,15 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
       />
       {/* Modal body */}
       <div
-        className={`relative flex max-h-[90vh] ${sizeMap[size]} w-full flex-col rounded-2xl border border-primary/15 bg-white shadow-2xl animate-in zoom-in-95`}
+        className={`relative flex max-h-[90vh] ${sizeMap[size]} w-full flex-col rounded-2xl border border-primary/15 bg-card shadow-2xl animate-in zoom-in-95`}
       >
         {/* Header */}
         {title && (
           <div className="flex shrink-0 items-center justify-between px-6 py-4 border-b border-brand-border">
-            <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+            <h3 className="text-lg font-bold text-card-foreground">{title}</h3>
             <button
               onClick={onClose}
-              className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-muted hover:text-gray-600"
+              className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <X size={18} />
             </button>

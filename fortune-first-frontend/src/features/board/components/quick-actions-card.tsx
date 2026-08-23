@@ -6,9 +6,9 @@ interface QuickActionsCardProps {
 
 export function QuickActionsCard({ onAddInvestment }: QuickActionsCardProps) {
   return (
-    <div className="rounded-2xl border border-brand-border bg-white p-6">
-      <h3 className="text-lg font-bold text-gray-900">Quick Actions</h3>
-      <p className="mt-1 text-sm text-gray-500">Manage client activities</p>
+    <div className="rounded-2xl border border-brand-border bg-card p-6">
+      <h3 className="text-lg font-bold text-foreground">Quick Actions</h3>
+      <p className="mt-1 text-sm text-muted-foreground">Manage client activities</p>
 
       <div className="mt-5 space-y-3">
         <button
@@ -19,8 +19,8 @@ export function QuickActionsCard({ onAddInvestment }: QuickActionsCardProps) {
             <Plus size={17} />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold text-gray-900">Add Investment</p>
-            <p className="text-xs text-gray-500">Create a new investment</p>
+            <p className="text-sm font-bold text-foreground">Add Investment</p>
+            <p className="text-xs text-muted-foreground">Create a new investment</p>
           </div>
           <ChevronRight size={18} className="text-primary" />
         </button>
@@ -30,14 +30,14 @@ export function QuickActionsCard({ onAddInvestment }: QuickActionsCardProps) {
           title="Coming soon"
           className="flex w-full items-center gap-3 rounded-xl border border-brand-border p-3 text-left opacity-50"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <Upload size={17} />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold text-gray-900">Upload Document</p>
-            <p className="text-xs text-gray-500">Attach client files</p>
+            <p className="text-sm font-bold text-foreground">Upload Document</p>
+            <p className="text-xs text-muted-foreground">Attach client files</p>
           </div>
-          <ChevronRight size={18} className="text-gray-300" />
+          <ChevronRight size={18} className="text-muted-foreground" />
         </button>
 
         <button
@@ -45,14 +45,14 @@ export function QuickActionsCard({ onAddInvestment }: QuickActionsCardProps) {
           title="Coming soon"
           className="flex w-full items-center gap-3 rounded-xl border border-brand-border p-3 text-left opacity-50"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <CalendarPlus size={17} />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold text-gray-900">Schedule Meeting</p>
-            <p className="text-xs text-gray-500">Book a discussion</p>
+            <p className="text-sm font-bold text-foreground">Schedule Meeting</p>
+            <p className="text-xs text-muted-foreground">Book a discussion</p>
           </div>
-          <ChevronRight size={18} className="text-gray-300" />
+          <ChevronRight size={18} className="text-muted-foreground" />
         </button>
       </div>
     </div>

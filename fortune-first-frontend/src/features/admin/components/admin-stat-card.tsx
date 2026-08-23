@@ -13,9 +13,9 @@ export function AdminStatCard({ icon: Icon, label, value, footnote }: AdminStatC
       <div className="mb-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
         <Icon size={15} />
       </div>
-      <p className="text-xs font-medium text-gray-500">{label}</p>
-      <p className="mt-0.5 text-lg font-extrabold text-gray-900">{value}</p>
-      <p className="text-xs text-gray-400">{footnote ?? '—'}</p>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-lg font-extrabold text-foreground">{value}</p>
+      <p className="text-xs text-muted-foreground">{footnote ?? '—'}</p>
     </div>
   );
 }
