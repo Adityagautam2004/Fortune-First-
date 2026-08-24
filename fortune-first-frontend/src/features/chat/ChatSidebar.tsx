@@ -40,7 +40,7 @@ export function ChatSidebar({
   const filtered = contacts.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="w-full max-w-xs rounded-2xl border border-brand-border bg-card">
+    <div className="w-full rounded-2xl border border-brand-border bg-card lg:max-w-xs">
       <div className="flex items-center justify-between px-5 py-4">
         <h3 className="text-lg font-bold text-foreground">Members</h3>
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold text-primary">
@@ -59,7 +59,7 @@ export function ChatSidebar({
           />
         </div>
       </div>
-      <div className="max-h-[460px] space-y-1 overflow-y-auto px-3 pb-3">
+      <div className="max-h-[calc(100vh-16rem)] space-y-1 overflow-y-auto px-3 pb-3 lg:max-h-[460px]">
         <button
           type="button"
           onClick={onSelectGroup}

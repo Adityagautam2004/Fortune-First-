@@ -15,17 +15,30 @@ interface JoinFormState {
 }
 
 const INITIAL_FORM: JoinFormState = { name: '', email: '', phone: '', amount: '' };
+const MIN_INVESTMENT = 5000;
 
 export function JoinSection() {
   const [form, setForm] = useState<JoinFormState>(INITIAL_FORM);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [amountError, setAmountError] = useState<string | null>(null);
 
   const handleChange =
-    (field: keyof JoinFormState) => (e: ChangeEvent<HTMLInputElement>) =>
+    (field: keyof JoinFormState) => (e: ChangeEvent<HTMLInputElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
+      if (field === 'amount') setAmountError(null);
+    };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    // amount is a free-text string server-side (no numeric validation there
+    // per the onboarding API), so the ₹5,000 minimum is enforced here only.
+    const numericAmount = Number(form.amount.replace(/[^0-9.]/g, ''));
+    if (!numericAmount || numericAmount < MIN_INVESTMENT) {
+      setAmountError(`Minimum investment amount is ₹${MIN_INVESTMENT.toLocaleString('en-IN')}`);
+      return;
+    }
+
     setStatus('submitting');
     try {
       await api.post('/public/join-request', { ...form, message: '' });
@@ -101,7 +114,7 @@ export function JoinSection() {
 
             <div>
               <label htmlFor="join-amount" className="mb-1.5 block text-sm font-bold text-foreground">
-                Investment Amount
+                Investment Amount <span className="font-normal text-muted-foreground">(min ₹5,000)</span>
               </label>
               <input
                 id="join-amount"
@@ -111,8 +124,14 @@ export function JoinSection() {
                 placeholder="Investment Amount (₹)"
                 value={form.amount}
                 onChange={handleChange('amount')}
-                className="w-full rounded-lg border border-primary/25 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                aria-invalid={!!amountError}
+                className={`w-full rounded-lg border px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 ${
+                  amountError
+                    ? 'border-destructive focus:border-destructive focus:ring-destructive'
+                    : 'border-primary/25 focus:border-primary focus:ring-primary'
+                }`}
               />
+              {amountError && <p className="mt-1.5 text-xs font-medium text-destructive">{amountError}</p>}
             </div>
 
             <div className="pt-2 text-center">

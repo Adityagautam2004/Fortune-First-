@@ -1,10 +1,6 @@
 'use client';
 
-<<<<<<< HEAD
-import { useState } from 'react';
-=======
-import { useRef } from 'react';
->>>>>>> 265a56943262c234fbf911420d13861fba83a231
+import { useRef, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -168,10 +164,9 @@ export function GrowthChartSection({ returns: rawReturns }: GrowthChartSectionPr
         </div>
 
         {hasData && (
-<<<<<<< HEAD
-          <div className="mx-auto mt-0 max-w-5xl rounded-b-2xl border border-t-0 border-gray-100 bg-muted px-4 py-5 md:px-6">
-            <div className="grid grid-cols-1 gap-4 divide-y divide-orange-100 text-center sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-              <div className="py-2 text-left sm:px-4 sm:py-0">
+          <div className="mx-auto mt-0 max-w-5xl rounded-b-2xl border border-t-0 border-border bg-muted px-4 py-5 md:px-6">
+            <StaggerGroup className="grid grid-cols-1 gap-4 divide-y divide-orange-100 text-center dark:divide-orange-500/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              <StaggerItem className="py-2 text-left sm:px-4 sm:py-0">
                 <SliderField
                   label="Investment Amount"
                   value={calcAmount}
@@ -181,45 +176,27 @@ export function GrowthChartSection({ returns: rawReturns }: GrowthChartSectionPr
                   step={5000}
                   formatValue={formatRupees}
                 />
-              </div>
-              <div className="py-2 sm:px-4 sm:py-0">
-                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Total Annual Return</p>
-=======
-          <div className="mx-auto mt-0 max-w-5xl rounded-b-2xl border border-t-0 border-border bg-muted px-4 py-5 md:px-6">
-            <StaggerGroup className="grid grid-cols-1 gap-4 divide-y divide-orange-100 text-center dark:divide-orange-500/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              </StaggerItem>
               <StaggerItem className="py-2 sm:px-4 sm:py-0">
-                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Avg Monthly Return</p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Total Annual Return</p>
+                {/* Plain text, not AnimatedNumber — this value tracks the slider live,
+                    and AnimatedNumber only ever animates once (guarded by a ref), so it
+                    would freeze after the first render instead of updating on drag. */}
+                <p className="text-xl font-extrabold text-primary md:text-2xl">
+                  {formatRupees(Math.round(calculateSimpleInterest(calcAmount, avgReturn)))}
+                </p>
+              </StaggerItem>
+              <StaggerItem className="py-2 sm:px-4 sm:py-0">
+                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Average Annual Return</p>
                 <p className="text-xl font-extrabold text-primary md:text-2xl">
                   <AnimatedNumber
-                    value={avgReturn}
+                    value={avgReturn * 12}
                     start={chartInView}
                     format={(v) => `${v.toFixed(2)}%`}
                   />
                 </p>
               </StaggerItem>
-              <StaggerItem className="py-2 sm:px-4 sm:py-0">
-                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Best Month</p>
->>>>>>> 265a56943262c234fbf911420d13861fba83a231
-                <p className="text-xl font-extrabold text-primary md:text-2xl">
-                  {formatRupees(Math.round(calculateSimpleInterest(calcAmount, avgReturn)))}
-                </p>
-<<<<<<< HEAD
-              </div>
-              <div className="py-2 sm:px-4 sm:py-0">
-                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Average Annual Return</p>
-                <p className="text-xl font-extrabold text-primary md:text-2xl">{(avgReturn * 12).toFixed(2)}%</p>
-              </div>
-            </div>
-=======
-              </StaggerItem>
-              <StaggerItem className="py-2 sm:px-4 sm:py-0">
-                <p className="mb-1 text-xs font-medium text-muted-foreground md:text-sm">Months Tracked</p>
-                <p className="text-xl font-extrabold text-primary md:text-2xl">
-                  <AnimatedNumber value={returns.length} start={chartInView} />
-                </p>
-              </StaggerItem>
             </StaggerGroup>
->>>>>>> 265a56943262c234fbf911420d13861fba83a231
           </div>
         )}
 
