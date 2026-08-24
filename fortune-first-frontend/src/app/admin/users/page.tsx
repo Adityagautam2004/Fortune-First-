@@ -16,6 +16,8 @@ interface AdminUser {
 interface KycData {
   bank_name: string | null;
   ifsc_code: string | null;
+  upi_id: string | null;
+  date_of_birth: string | null;
   document_url: string | null;
   verified: boolean;
   pan_masked: string | null;
@@ -142,6 +144,8 @@ export default function AdminUsersPage() {
                   <div><p className="text-muted-foreground">Account No.</p><p className="font-medium">{kycData.account_masked || 'Not Submitted'}</p></div>
                   <div><p className="text-muted-foreground">Bank</p><p className="font-medium">{kycData.bank_name || 'Not Submitted'}</p></div>
                   <div><p className="text-muted-foreground">IFSC</p><p className="font-medium">{kycData.ifsc_code || 'Not Submitted'}</p></div>
+                  <div><p className="text-muted-foreground">UPI ID</p><p className="font-medium">{kycData.upi_id || 'Not Submitted'}</p></div>
+                  <div><p className="text-muted-foreground">Date of Birth</p><p className="font-medium">{kycData.date_of_birth ? kycData.date_of_birth.slice(0, 10) : 'Not Submitted'}</p></div>
                 </div>
                 <div>
                   <p className="text-muted-foreground mb-1">Document</p>
