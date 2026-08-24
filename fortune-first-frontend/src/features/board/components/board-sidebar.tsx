@@ -9,12 +9,12 @@ import {
   LayoutGrid,
   User,
   ArrowLeftRight,
-  TriangleAlert,
+  TrendingUp,
+  Wallet,
+  Banknote,
+  PieChart,
   MessageSquareWarning,
-  FileText,
   MessageCircle,
-  Users,
-  Settings,
   LogOut,
   ChevronLeft,
   X,
@@ -22,25 +22,19 @@ import {
 
 import { logout } from '@/store/authSlice';
 import type { AppDispatch } from '@/store/store';
-import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { name: 'Board Overview', href: '/board', icon: LayoutGrid },
   { name: 'Client Overview', href: '/board/clients', icon: User },
+  { name: 'Investment', href: '/board/investment', icon: TrendingUp },
   { name: 'Transactions', href: '/board/transactions', icon: ArrowLeftRight },
-  { name: 'Risk Analytics', href: '/board/risk-analytics', icon: TriangleAlert },
+  { name: 'Monthly Payout', href: '/board/payouts', icon: Wallet },
+  { name: 'Withdrawal', href: '/board/withdrawal', icon: Banknote },
+  { name: 'Portfolio Dashboard', href: '/board/portfolio', icon: PieChart },
   { name: 'Reports', href: '/board/reports', icon: MessageSquareWarning },
-  { name: 'Document Hub', href: '/board/documents', icon: FileText },
   { name: 'Secure Messages', href: '/board/chat', icon: MessageCircle },
-  { name: 'Team Management', href: '/board/team', icon: Users },
-  { name: 'Settings', href: '/board/settings', icon: Settings },
 ];
-
-const ROLE_LABELS: Record<string, string> = {
-  investment_head: 'Investment Head',
-  business_head: 'Board Member',
-};
 
 interface BoardSidebarProps {
   mobileOpen: boolean;
@@ -51,16 +45,12 @@ export function BoardSidebar({ mobileOpen, onClose }: BoardSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = async () => {
     await dispatch(logout());
     router.push('/login');
   };
-
-  const displayName = user?.name || 'Board Member';
-  const initial = displayName.trim().charAt(0).toUpperCase() || 'B';
 
   return (
     <>
@@ -131,24 +121,7 @@ export function BoardSidebar({ mobileOpen, onClose }: BoardSidebarProps) {
           })}
         </nav>
 
-        <div className="space-y-2 p-3">
-          <div
-            className={cn(
-              'flex items-center gap-3 rounded-full border border-brand-border py-1.5 pl-1.5 pr-3',
-              collapsed && 'justify-center px-1.5'
-            )}
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-              {initial}
-            </div>
-            {!collapsed && (
-              <div className="min-w-0 leading-tight">
-                <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
-                <p className="text-xs text-muted-foreground">{(user?.role && ROLE_LABELS[user.role]) || 'Board Member'}</p>
-              </div>
-            )}
-          </div>
-
+        <div className="p-3">
           <button
             onClick={handleLogout}
             className={cn(
