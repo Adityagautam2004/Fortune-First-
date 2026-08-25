@@ -9,12 +9,12 @@ import {
   LayoutGrid,
   User,
   ArrowLeftRight,
-  TriangleAlert,
+  TrendingUp,
+  Wallet,
+  Banknote,
+  PieChart,
   MessageSquareWarning,
-  FileText,
   MessageCircle,
-  Users,
-  Settings,
   LogOut,
   ChevronLeft,
   X,
@@ -22,26 +22,20 @@ import {
 
 import { logout } from '@/store/authSlice';
 import type { AppDispatch } from '@/store/store';
-import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 
 const navItems = [
   { name: 'Board Overview', href: '/board', icon: LayoutGrid },
   { name: 'Client Overview', href: '/board/clients', icon: User },
+  { name: 'Investment', href: '/board/investment', icon: TrendingUp },
   { name: 'Transactions', href: '/board/transactions', icon: ArrowLeftRight },
-  { name: 'Risk Analytics', href: '/board/risk-analytics', icon: TriangleAlert },
+  { name: 'Monthly Payout', href: '/board/payouts', icon: Wallet },
+  { name: 'Withdrawal', href: '/board/withdrawal', icon: Banknote },
+  { name: 'Portfolio Dashboard', href: '/board/portfolio', icon: PieChart },
   { name: 'Reports', href: '/board/reports', icon: MessageSquareWarning },
-  { name: 'Document Hub', href: '/board/documents', icon: FileText },
   { name: 'Secure Messages', href: '/board/chat', icon: MessageCircle },
-  { name: 'Team Management', href: '/board/team', icon: Users },
-  { name: 'Settings', href: '/board/settings', icon: Settings },
 ];
-
-const ROLE_LABELS: Record<string, string> = {
-  investment_head: 'Investment Head',
-  business_head: 'Board Member',
-};
 
 interface BoardSidebarProps {
   mobileOpen: boolean;
@@ -52,7 +46,6 @@ export function BoardSidebar({ mobileOpen, onClose }: BoardSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = async () => {

@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Send, Check, CheckCheck, Phone, Video, Info, Paperclip, Mic, Smile } from 'lucide-react';
+import { Send, Check, CheckCheck, Phone, Video, Info, Paperclip, Mic, Smile, ArrowLeft } from 'lucide-react';
 import type { ChatMessage } from './useTeamChat';
+import { EmojiPicker } from './EmojiPicker';
 
 function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -36,10 +37,12 @@ interface ChatWindowProps {
   typingUser: string | null;
   onSend: (content: string) => void;
   onTyping: (typing: boolean) => void;
+  onBack?: () => void;
 }
 
-export function ChatWindow({ title, subtitle, messages, currentUserId, typingUser, onSend, onTyping }: ChatWindowProps) {
+export function ChatWindow({ title, subtitle, messages, currentUserId, typingUser, onSend, onTyping, onBack }: ChatWindowProps) {
   const [input, setInput] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -70,10 +73,27 @@ export function ChatWindow({ title, subtitle, messages, currentUserId, typingUse
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    handleInputChange(input + emoji);
+  };
+
   return (
-    <div className="flex h-[640px] flex-1 flex-col rounded-2xl border border-brand-border bg-card">
-      <div className="flex items-center justify-between border-b border-brand-border px-5 py-3">
-        <div className="flex items-center gap-3">
+    // WhatsApp-style single-pane chat: fills the viewport on mobile (the
+    // back arrow returns to the contact list), fixed height on desktop
+    // where the contact list sits alongside it.
+    <div className="flex h-[calc(100vh-13rem)] flex-1 flex-col rounded-2xl border border-brand-border bg-card lg:h-[640px]">
+      <div className="flex items-center justify-between border-b border-brand-border px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+              aria-label="Back to contacts"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/10 text-xs font-bold text-primary">
             {isGroup ? '#' : initials(title)}
           </div>
@@ -111,7 +131,7 @@ export function ChatWindow({ title, subtitle, messages, currentUserId, typingUse
           </button>
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-border text-primary transition-colors hover:bg-muted"
+            className="hidden h-9 w-9 items-center justify-center rounded-full border border-brand-border text-primary transition-colors hover:bg-muted sm:flex"
             aria-label="Conversation info"
           >
             <Info size={16} />
@@ -119,7 +139,8 @@ export function ChatWindow({ title, subtitle, messages, currentUserId, typingUse
         </div>
       </div>
 
-      <div className="flex-1 space-y-1 overflow-y-auto bg-muted/40 p-5">
+      {/* WhatsApp-style chat backdrop: a faint tinted surface behind the bubbles */}
+      <div className="flex-1 space-y-1 overflow-y-auto bg-[#e9ddce]/25 p-3 dark:bg-[#0b141a]/60 sm:p-5">
         {messages.length === 0 && <p className="text-center text-sm text-muted-foreground">No messages yet</p>}
         {messages.map((msg, i) => {
           const isMe = msg.sender_id === currentUserId;
@@ -141,18 +162,19 @@ export function ChatWindow({ title, subtitle, messages, currentUserId, typingUse
                     {initials(msg.sender_name || 'T')}
                   </div>
                 )}
+                {/* WhatsApp's signature colors: light green outgoing bubble, white incoming */}
                 <div
-                  className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
+                  className={`max-w-[80%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[70%] ${
                     isMe
-                      ? 'rounded-br-md border border-primary/40 bg-primary/10 text-foreground'
-                      : 'rounded-bl-md border border-brand-border bg-card'
+                      ? 'rounded-br-sm bg-[#dcf8c6] text-gray-900 dark:bg-[#025144] dark:text-gray-100'
+                      : 'rounded-bl-sm bg-white text-gray-900 dark:bg-[#1f2c34] dark:text-gray-100'
                   }`}
                 >
                   {!isMe && <p className="mb-1 text-xs font-bold text-primary">{msg.sender_name || 'Team member'}</p>}
                   <p className="text-sm">{msg.content}</p>
-                  <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
+                  <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-gray-500 dark:text-gray-400">
                     <span>{formatTime(msg.created_at)}</span>
-                    {isMe && (seen ? <CheckCheck size={12} /> : <Check size={12} />)}
+                    {isMe && (seen ? <CheckCheck size={12} className="text-sky-500" /> : <Check size={12} />)}
                   </div>
                 </div>
               </div>
@@ -162,38 +184,51 @@ export function ChatWindow({ title, subtitle, messages, currentUserId, typingUse
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSend} className="flex items-center gap-2 border-t border-brand-border p-4">
-        <div className="relative flex-1">
-          <Smile size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => handleInputChange(e.target.value)}
-            placeholder="Type a message..."
-            className="w-full rounded-full border border-brand-border py-2.5 pl-10 pr-4 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
+      <form onSubmit={handleSend} className="relative flex items-center gap-2 border-t border-brand-border p-3 sm:p-4">
+        {showEmojiPicker && (
+          <EmojiPicker onSelect={handleEmojiSelect} onClose={() => setShowEmojiPicker(false)} />
+        )}
         <button
           type="button"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+          onClick={() => setShowEmojiPicker((v) => !v)}
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-muted ${
+            showEmojiPicker ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+          }`}
+          aria-label="Choose emoji"
+        >
+          <Smile size={20} />
+        </button>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => handleInputChange(e.target.value)}
+          placeholder="Type a message..."
+          className="flex-1 rounded-full border border-brand-border bg-background px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+        />
+        <button
+          type="button"
+          className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary sm:flex"
           aria-label="Attach file"
         >
           <Paperclip size={18} />
         </button>
-        <button
-          type="button"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
-          aria-label="Record voice message"
-        >
-          <Mic size={18} />
-        </button>
-        <button
-          type="submit"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-white transition-colors hover:bg-primary/90"
-          aria-label="Send"
-        >
-          <Send size={16} />
-        </button>
+        {input.trim() ? (
+          <button
+            type="submit"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-white transition-colors hover:bg-primary/90"
+            aria-label="Send"
+          >
+            <Send size={16} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-white transition-colors hover:bg-primary/90"
+            aria-label="Record voice message"
+          >
+            <Mic size={16} />
+          </button>
+        )}
       </form>
     </div>
   );

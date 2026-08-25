@@ -4,20 +4,30 @@ import { useState } from 'react';
 import { Menu } from 'lucide-react';
 
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { useAuth } from '@/hooks/useAuth';
 import { BoardSidebar } from './board-sidebar';
+
+const ROLE_LABELS: Record<string, string> = {
+  investment_head: 'Investment Head',
+  business_head: 'Board Member',
+};
 
 export function BoardShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user } = useAuth();
+
+  const displayName = user?.name || 'Board Member';
+  const initial = displayName.trim().charAt(0).toUpperCase() || 'B';
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-surface">
       <BoardSidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Board has no full desktop topbar by design — this slim bar hosts
-            the mobile menu trigger (hidden at md+, sidebar takes over) and
-            stays visible at every width purely so the theme toggle has a
-            reachable home on desktop too. */}
-        <header className="flex items-center justify-between gap-3 border-b border-brand-border bg-card px-4 py-3">
+        {/* Board has no separate page title bar — this is its topbar,
+            matching AdminTopbar's shape: mobile menu trigger on the left
+            (hidden at md+, sidebar takes over), theme toggle + profile on
+            the right, always visible. */}
+        <header className="flex items-center justify-between gap-3 border-b border-brand-border bg-card px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
@@ -28,7 +38,18 @@ export function BoardShell({ children }: { children: React.ReactNode }) {
             </button>
             <span className="text-base font-bold text-foreground md:hidden">Fortune First</span>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <div className="flex items-center gap-3 rounded-full border border-brand-border py-1.5 pl-1.5 pr-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                {initial}
+              </div>
+              <div className="hidden leading-tight sm:block">
+                <p className="text-sm font-semibold text-foreground">{displayName}</p>
+                <p className="text-xs text-muted-foreground">{(user?.role && ROLE_LABELS[user.role]) || 'Board Member'}</p>
+              </div>
+            </div>
+          </div>
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
       </div>

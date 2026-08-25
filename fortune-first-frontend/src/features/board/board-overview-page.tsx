@@ -150,7 +150,7 @@ export function BoardOverviewPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
         <BoardStatTile icon={Landmark} label="Total Clients" value={Number(stats?.total_clients ?? 0).toLocaleString('en-IN')} />
         <BoardStatTile icon={IndianRupee} label="AUM" value={formatCrore(totalAum)} />
         <BoardStatTile icon={Activity} label="Active Mandates" value={activeMandates.toLocaleString('en-IN')} />

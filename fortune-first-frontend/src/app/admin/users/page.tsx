@@ -93,14 +93,15 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-foreground">User Management</h1>
-        <button onClick={() => setShowModal(true)} className="bg-brand-orange text-white px-4 py-2 rounded-md">
+      <div className="flex justify-between items-center gap-3 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">User Management</h1>
+        <button onClick={() => setShowModal(true)} className="shrink-0 bg-brand-orange text-white px-3 py-2 text-sm sm:px-4 sm:text-base rounded-md">
           + Create User
         </button>
       </div>
 
-      <div className="bg-card rounded-xl shadow-sm border border-brand-border overflow-x-auto">
+      {/* Table — desktop/tablet */}
+      <div className="hidden md:block bg-card rounded-xl shadow-sm border border-brand-border overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-brand-surface text-foreground">
@@ -138,6 +139,37 @@ export default function AdminUsersPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards — mobile */}
+      <div className="space-y-3 md:hidden">
+        {users.map((u) => (
+          <div key={u.id} className="rounded-xl border border-brand-border bg-card p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-foreground">{u.name}</p>
+                <p className="truncate text-sm text-muted-foreground">{u.email}</p>
+              </div>
+              <span
+                className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+                  u.is_active
+                    ? 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400'
+                    : 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400'
+                }`}
+              >
+                {u.is_active ? 'Active' : 'Suspended'}
+              </span>
+            </div>
+            <div className="mt-3 flex items-center justify-between border-t border-brand-border pt-3">
+              <span className="text-xs font-medium capitalize text-muted-foreground">{u.role.replace('_', ' ')}</span>
+              {u.role === 'customer' && (
+                <button onClick={() => openKyc(u)} className="text-sm font-medium text-brand-orange hover:underline">
+                  View KYC
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* KYC Review Modal */}
