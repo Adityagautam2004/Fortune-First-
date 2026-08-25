@@ -1,25 +1,21 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
 
 import { StatusBadge } from '@/components/ui/Badge';
-import type { MonthlyReturn } from '@/types';
+import type { Transaction } from '@/types';
 
-const MONTH_LABELS = [
-  '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
 const PAGE_SIZE = 8;
 
-function formatDate(record: MonthlyReturn) {
-  if (record.payout_date) {
-    return new Date(record.payout_date).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
-  }
-  return `${MONTH_LABELS[record.month]} ${record.year}`;
+const TYPE_LABELS: Record<string, string> = {
+  investment: 'Investment',
+  withdrawal: 'Withdrawal',
+  payout: 'Monthly Payout',
+};
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 function formatRupees(value: number) {
@@ -27,7 +23,7 @@ function formatRupees(value: number) {
 }
 
 interface TransactionTableProps {
-  history: MonthlyReturn[];
+  history: Transaction[];
 }
 
 export function TransactionTable({ history }: TransactionTableProps) {
@@ -58,23 +54,38 @@ export function TransactionTable({ history }: TransactionTableProps) {
               <th className="px-6 py-3 font-medium">Activity</th>
               <th className="px-6 py-3 font-medium">Amount</th>
               <th className="px-6 py-3 font-medium">Status</th>
+              <th className="px-6 py-3 font-medium">Proof</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-brand-border">
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-10 text-center text-muted-foreground">
+                <td colSpan={5} className="px-6 py-10 text-center text-muted-foreground">
                   No transactions match your filters.
                 </td>
               </tr>
             ) : (
-              pageRows.map((record, idx) => (
-                <tr key={idx}>
-                  <td className="px-6 py-4 text-foreground">{formatDate(record)}</td>
-                  <td className="px-6 py-4 font-medium text-foreground">Monthly Payout</td>
-                  <td className="px-6 py-4 text-foreground">{formatRupees(Number(record.payout_amount))}</td>
+              pageRows.map((record) => (
+                <tr key={`${record.type}-${record.id}`}>
+                  <td className="px-6 py-4 text-foreground">{formatDate(record.date)}</td>
+                  <td className="px-6 py-4 font-medium text-foreground">{TYPE_LABELS[record.type] || record.type}</td>
+                  <td className="px-6 py-4 text-foreground">{formatRupees(Number(record.amount))}</td>
                   <td className="px-6 py-4">
-                    <StatusBadge status={record.payout_status} />
+                    <StatusBadge status={record.status} />
+                  </td>
+                  <td className="px-6 py-4">
+                    {record.screenshot_url ? (
+                      <a
+                        href={record.screenshot_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                      >
+                        <ImageIcon size={14} /> View
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                 </tr>
               ))

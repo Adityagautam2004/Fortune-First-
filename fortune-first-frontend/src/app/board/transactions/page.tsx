@@ -1,12 +1,5 @@
-import { ArrowLeftRight } from 'lucide-react';
-import { ComingSoon } from '@/components/shared/coming-soon';
+import { BoardTransactionsPage } from '@/features/board/board-transactions-page';
 
-export default function BoardTransactionsPage() {
-  return (
-    <ComingSoon
-      icon={ArrowLeftRight}
-      title="Transactions"
-      description="A firm-wide transaction ledger is on the way."
-    />
-  );
+export default function TransactionsPage() {
+  return <BoardTransactionsPage />;
 }

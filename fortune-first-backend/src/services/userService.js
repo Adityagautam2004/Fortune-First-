@@ -38,7 +38,7 @@ const getAllUsers = async ({ role, assigned_to, is_active, page = 1, limit = 20 
   // Get the paginated rows (never expose password_hash)
   const { rows } = await db.query(
     `SELECT id, name, email, role, phone, is_active, must_change_password,
-            assigned_to, shareholding_pct, created_at, updated_at
+            assigned_to, shareholding_pct, profile_picture_url, created_at, updated_at
      FROM users ${whereClause}
      ORDER BY created_at DESC
      LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
@@ -59,7 +59,7 @@ const getAllUsers = async ({ role, assigned_to, is_active, page = 1, limit = 20 
 const getUserById = async (id) => {
   const { rows } = await db.query(
     `SELECT id, name, email, role, phone, is_active, must_change_password,
-            assigned_to, shareholding_pct, created_at, updated_at
+            assigned_to, shareholding_pct, profile_picture_url, created_at, updated_at
      FROM users WHERE id = $1`,
     [id]
   );
@@ -100,7 +100,7 @@ const updateUser = async (id, data) => {
   const { rows } = await db.query(
     `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}
      RETURNING id, name, email, role, phone, is_active, must_change_password,
-               assigned_to, shareholding_pct, created_at, updated_at`,
+               assigned_to, shareholding_pct, profile_picture_url, created_at, updated_at`,
     values
   );
 

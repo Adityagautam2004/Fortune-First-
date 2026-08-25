@@ -31,4 +31,48 @@ export interface AdminInvestmentRow {
   investment_date: string;
   customer_name: string;
   customer_email: string;
+  payment_screenshot_url?: string | null;
+}
+
+export interface AdminWithdrawalRow {
+  id: string;
+  amount: number | string;
+  status: string;
+  withdrawal_date: string;
+  customer_name: string;
+  customer_email: string;
+  payment_screenshot_url?: string | null;
+}
+
+export interface AdminTransactionRow {
+  type: 'investment' | 'withdrawal' | 'payout';
+  id: string;
+  customer_id: string;
+  customer_name: string;
+  amount: number | string;
+  status: string;
+  date: string;
+  screenshot_url?: string | null;
+  notes?: string | null;
+  created_at: string;
+}
+
+export interface AdminPayoutRow {
+  id: string;
+  investment_id: string;
+  month: number;
+  year: number;
+  return_pct: number | string;
+  payout_amount: number | string;
+  payout_status: string;
+  payout_date: string | null;
+  customer_name: string;
+  customer_email: string;
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }

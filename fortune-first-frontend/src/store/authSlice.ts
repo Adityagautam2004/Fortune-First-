@@ -8,6 +8,7 @@ interface User {
   email: string;
   role: 'customer' | 'investment_head' | 'business_head' | 'super_admin';
   mustChangePassword: boolean;
+  profilePictureUrl?: string | null;
 }
 
 interface AuthState {
@@ -73,6 +74,13 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    // Lets a profile-picture upload update the topbar/sidebar avatar
+    // immediately, without waiting on a full fetchCurrentUser() round trip.
+    setProfilePicture: (state, action: PayloadAction<string>) => {
+      if (state.user) {
+        state.user.profilePictureUrl = action.payload;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -105,5 +113,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, setProfilePicture } = authSlice.actions;
 export default authSlice.reducer;

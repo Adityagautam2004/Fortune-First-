@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Download, MoreHorizontal } from 'lucide-react';
 
 import { downloadCsv } from '@/lib/csv';
+import { Avatar } from '@/components/ui/Avatar';
 import type { BoardClient } from '../types';
 
 const PAGE_SIZE = 8;
@@ -87,7 +88,12 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
             ) : (
               pageRows.map((client) => (
                 <tr key={client.id}>
-                  <td className="px-6 py-4 font-medium text-foreground">{client.name}</td>
+                  <td className="px-6 py-4 font-medium text-foreground">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar src={client.profile_picture_url} name={client.name} size={28} />
+                      {client.name}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 font-mono text-xs text-muted-foreground">
                     {client.id.slice(0, 8).toUpperCase()}
                   </td>

@@ -8,6 +8,7 @@ export interface TeamMember {
   id: string;
   name: string;
   role: string;
+  profile_picture_url?: string | null;
 }
 
 export interface ChatMessage {

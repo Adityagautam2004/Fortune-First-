@@ -1,5 +1,6 @@
 import { Mail, Phone, Pencil, MoreHorizontal } from 'lucide-react';
 
+import { Avatar } from '@/components/ui/Avatar';
 import type { ClientProfile } from '../types';
 
 function formatSince(dateStr: string) {
@@ -11,19 +12,15 @@ interface ClientInfoCardProps {
 }
 
 export function ClientInfoCard({ profile }: ClientInfoCardProps) {
-  const initials = profile.name
-    .split(' ')
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto_auto_auto]">
       <div className="flex items-center gap-4 rounded-2xl border border-brand-border bg-card p-6">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-primary/40 bg-primary/10 text-lg font-bold text-primary">
-          {initials}
-        </div>
+        <Avatar
+          src={profile.profile_picture_url}
+          name={profile.name}
+          size={64}
+          className="border-2 border-primary/40 text-lg"
+        />
         <div className="min-w-0">
           <h2 className="truncate text-xl font-extrabold text-foreground">{profile.name}</h2>
           <p className="text-sm text-muted-foreground">{profile.id.slice(0, 8).toUpperCase()}</p>

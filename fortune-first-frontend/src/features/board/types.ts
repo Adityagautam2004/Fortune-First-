@@ -5,6 +5,7 @@ export interface BoardClient {
   phone: string | null;
   is_active: boolean;
   created_at: string;
+  profile_picture_url?: string | null;
   relationship_manager: string | null;
   total_invested: number | string;
   active_mandates: number | string;
@@ -17,6 +18,7 @@ export interface ClientProfile {
   phone: string | null;
   is_active: boolean;
   created_at: string;
+  profile_picture_url?: string | null;
   relationship_manager: string | null;
 }
 
@@ -26,8 +28,17 @@ export interface ClientInvestment {
   investment_date: string;
   week_of_month: number;
   tenure_months: number;
-  status: 'active' | 'exited' | 'suspended';
+  status: 'pending' | 'active' | 'rejected' | 'exited' | 'suspended';
   exit_date: string | null;
+  payment_screenshot_url?: string | null;
+}
+
+export interface ClientWithdrawal {
+  id: string;
+  amount: number | string;
+  withdrawal_date: string;
+  status: 'pending' | 'completed' | 'rejected';
+  payment_screenshot_url?: string | null;
 }
 
 export interface ClientSummary {
@@ -40,6 +51,7 @@ export interface ClientSummary {
 export interface ClientDetail {
   profile: ClientProfile;
   investments: ClientInvestment[];
+  withdrawals: ClientWithdrawal[];
   summary: ClientSummary;
 }
 

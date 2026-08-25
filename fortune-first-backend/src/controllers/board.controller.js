@@ -1,4 +1,13 @@
 const db = require('../models/db');
+const investmentService = require('../services/investmentService');
+const withdrawalService = require('../services/withdrawalService');
+const transactionService = require('../services/transactionService');
+const payoutService = require('../services/payout.service');
+const { uploadBuffer } = require('../utils/cloudinary');
+
+// investment_head is scoped to their own assigned clients; business_head/super_admin see everyone.
+// Shared by every list endpoint below (investments/withdrawals/payouts/transactions).
+const scopeToCaller = (req) => (req.user.role === 'investment_head' ? req.user.userId : undefined);
 
 const getAssignedClients = async (req, res) => {
   try {
@@ -6,9 +15,11 @@ const getAssignedClients = async (req, res) => {
     const userRole = req.user.role;
 
     let queryStr = `
-      SELECT u.id, u.name, u.email, u.phone, u.is_active, u.created_at,
+      SELECT u.id, u.name, u.email, u.phone, u.is_active, u.created_at, u.profile_picture_url,
              am.name AS relationship_manager,
-             COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0) AS total_invested,
+             COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0)
+               - COALESCE((SELECT SUM(w.amount) FROM withdrawals w WHERE w.customer_id = u.id AND w.status = 'completed'), 0)
+               AS total_invested,
              COUNT(i.id) FILTER (WHERE i.status = 'active') AS active_mandates
       FROM users u
       LEFT JOIN investments i ON u.id = i.customer_id
@@ -35,16 +46,15 @@ const getAssignedClients = async (req, res) => {
   }
 };
 
+// POST /board/investments — investment_head only (enforced by route-level
+// requireRole now, not an inline check). Starts 'pending': an admin has to
+// approve it before it counts as active (FR-INV-APPROVAL). The payment
+// screenshot is optional — req.file is only present if one was attached.
 const addInvestment = async (req, res) => {
   // Investment insert + audit log entry must succeed or fail together (NFR-REL-04) —
   // acquire a dedicated client for the transaction, same pattern as processPayout/voidPayout.
   const client = await db.pool.connect();
   try {
-    // Only Investment Heads can add investments
-    if (req.user.role !== 'investment_head') {
-      return res.status(403).json({ status: 'error', message: 'Forbidden' });
-    }
-
     const { customerId, amount, investmentDate, weekOfMonth, notes } = req.body;
     const recordedBy = req.user.userId;
 
@@ -56,19 +66,32 @@ const addInvestment = async (req, res) => {
       });
     }
 
+    let paymentScreenshotUrl = null;
+    if (req.file) {
+      const uploaded = await uploadBuffer(req.file.buffer, 'payment_screenshots');
+      paymentScreenshotUrl = uploaded.secure_url;
+    }
+
     await client.query('BEGIN');
 
-    const newInvestment = await client.query(
-      `INSERT INTO investments (customer_id, recorded_by, amount, investment_date, week_of_month, notes)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [customerId, recordedBy, amount, investmentDate, weekOfMonth, notes]
+    const newInvestment = await investmentService.createInvestment(
+      {
+        customer_id: customerId,
+        recorded_by: recordedBy,
+        amount,
+        investment_date: investmentDate,
+        week_of_month: weekOfMonth,
+        notes,
+        payment_screenshot_url: paymentScreenshotUrl,
+      },
+      client
     );
 
     // Audit Log Entry
     await client.query(
       `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, new_value, ip)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [recordedBy, 'CREATE', 'investment', newInvestment.rows[0].id, JSON.stringify(req.body), req.ip]
+      [recordedBy, 'CREATE', 'investment', newInvestment.id, JSON.stringify(req.body), req.ip]
     );
 
     await client.query('COMMIT');
@@ -77,7 +100,7 @@ const addInvestment = async (req, res) => {
     const redis = require('../utils/redis');
     await redis.del(`dashboard:${customerId}`);
 
-    return res.status(201).json({ status: 'success', message: 'Investment recorded successfully' });
+    return res.status(201).json({ status: 'success', message: 'Investment submitted for admin approval', data: newInvestment });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Add Investment Error:', error);
@@ -86,7 +109,127 @@ const addInvestment = async (req, res) => {
     client.release();
   }
 };
-const { calculatePayout } = require('../services/payout.service');
+
+// GET /board/investments — scoped list (investment_head: own clients only)
+const getBoardInvestments = async (req, res) => {
+  try {
+    const { status, customerId, page, limit } = req.query;
+    const result = await investmentService.getAllInvestments({
+      customer_id: customerId,
+      status,
+      assigned_to_id: scopeToCaller(req),
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+    return res.status(200).json({ status: 'success', data: result });
+  } catch (error) {
+    console.error('Get Board Investments Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch investments' });
+  }
+};
+
+// POST /board/withdrawals — investment_head only. No screenshot at creation
+// (that's added by the admin only if/when they mark it completed).
+const addWithdrawal = async (req, res) => {
+  const client = await db.pool.connect();
+  try {
+    const { customerId, amount, withdrawalDate, weekOfMonth, notes } = req.body;
+    const recordedBy = req.user.userId;
+
+    if (amount < 5000 || amount % 5000 !== 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Withdrawal amount must be at least ₹5,000 and a multiple of ₹5,000'
+      });
+    }
+
+    await client.query('BEGIN');
+
+    const newWithdrawal = await withdrawalService.createWithdrawal(
+      {
+        customer_id: customerId,
+        recorded_by: recordedBy,
+        amount,
+        withdrawal_date: withdrawalDate,
+        week_of_month: weekOfMonth,
+        notes,
+      },
+      client
+    );
+
+    await client.query(
+      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, new_value, ip)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [recordedBy, 'CREATE', 'withdrawal', newWithdrawal.id, JSON.stringify(req.body), req.ip]
+    );
+
+    await client.query('COMMIT');
+
+    const redis = require('../utils/redis');
+    await redis.del(`dashboard:${customerId}`);
+
+    return res.status(201).json({ status: 'success', message: 'Withdrawal submitted for admin review', data: newWithdrawal });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Add Withdrawal Error:', error);
+    return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to record withdrawal' });
+  } finally {
+    client.release();
+  }
+};
+
+// GET /board/withdrawals — scoped list, same shape as investments
+const getBoardWithdrawals = async (req, res) => {
+  try {
+    const { status, customerId, page, limit } = req.query;
+    const result = await withdrawalService.getAllWithdrawals({
+      customer_id: customerId,
+      status,
+      assigned_to_id: scopeToCaller(req),
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+    return res.status(200).json({ status: 'success', data: result });
+  } catch (error) {
+    console.error('Get Board Withdrawals Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch withdrawals' });
+  }
+};
+
+// GET /board/payouts — flat, scoped payout list (board had no list before, only process/void)
+const getBoardPayouts = async (req, res) => {
+  try {
+    const { status, customerId, page, limit } = req.query;
+    const result = await payoutService.getAllPayouts({
+      customer_id: customerId,
+      status,
+      assigned_to_id: scopeToCaller(req),
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+    return res.status(200).json({ status: 'success', data: result });
+  } catch (error) {
+    console.error('Get Board Payouts Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch payouts' });
+  }
+};
+
+// GET /board/transactions — combined investment+withdrawal+payout list, scoped
+const getBoardTransactions = async (req, res) => {
+  try {
+    const { type, page, limit } = req.query;
+    const result = await transactionService.getTransactions({
+      type,
+      assignedToId: scopeToCaller(req),
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+    return res.status(200).json({ status: 'success', data: result });
+  } catch (error) {
+    console.error('Get Board Transactions Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch transactions' });
+  }
+};
 
 const processPayout = async (req, res) => {
   // We must acquire a dedicated client from the pool for a transaction
@@ -117,7 +260,7 @@ const processPayout = async (req, res) => {
     const isFirstMonth = (invDate.getMonth() + 1 === month && invDate.getFullYear() === year);
 
     // 3. Calculate exact payout using our pure function
-    const payoutAmount = calculatePayout(
+    const payoutAmount = payoutService.calculatePayout(
       parseFloat(investment.amount), 
       parseFloat(returnPct), 
       investment.week_of_month, 
@@ -188,7 +331,7 @@ const getChatHistory = async (req, res) => {
 const getChatContacts = async (req, res) => {
   try {
     const contacts = await db.query(
-      `SELECT id, name, role FROM users WHERE role != 'customer' AND id != $1 ORDER BY name ASC`,
+      `SELECT id, name, role, profile_picture_url FROM users WHERE role != 'customer' AND id != $1 ORDER BY name ASC`,
       [req.user.userId]
     );
     return res.status(200).json({ status: 'success', data: contacts.rows });
@@ -220,10 +363,21 @@ const getBoardDashboardStats = async (req, res) => {
     // $1/$2 (the date range) are always referenced in the query text; the board-member
     // id is only appended (as $3) when the investment_head branch actually uses it —
     // Postgres can't infer a placeholder's type if it's passed but never referenced.
+    // The withdrawal subquery is a fully independent scalar (its own WHERE, matching
+    // the same client scope) rather than a join, so it isn't affected by however many
+    // investment/payout rows the outer join produces per customer.
+    const withdrawalScope = userRole === 'investment_head'
+      ? `cu.role = 'customer' AND cu.assigned_to = $3`
+      : `cu.role = 'customer'`;
     let queryStr = `
       SELECT
         COUNT(DISTINCT u.id) AS total_clients,
-        COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0) AS total_aum,
+        COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0)
+          - COALESCE((
+              SELECT SUM(w.amount) FROM withdrawals w JOIN users cu ON cu.id = w.customer_id
+              WHERE w.status = 'completed' AND ${withdrawalScope}
+            ), 0)
+          AS total_aum,
         COUNT(DISTINCT i.id) FILTER (WHERE i.status = 'active') AS active_mandates,
         COUNT(DISTINCT u.id) FILTER (WHERE u.created_at BETWEEN $1 AND $2::date + 1) AS new_clients,
         COUNT(mr.id) FILTER (WHERE mr.payout_date BETWEEN $1 AND $2) AS transactions
@@ -292,7 +446,7 @@ const getClientDetail = async (req, res) => {
     const { id } = req.params;
 
     const profileRes = await db.query(
-      `SELECT u.id, u.name, u.email, u.phone, u.is_active, u.created_at,
+      `SELECT u.id, u.name, u.email, u.phone, u.is_active, u.created_at, u.profile_picture_url,
               am.name AS relationship_manager
        FROM users u
        LEFT JOIN users am ON am.id = u.assigned_to
@@ -305,17 +459,27 @@ const getClientDetail = async (req, res) => {
     }
 
     const investmentsRes = await db.query(
-      `SELECT id, amount, investment_date, week_of_month, tenure_months, status, exit_date
+      `SELECT id, amount, investment_date, week_of_month, tenure_months, status, exit_date, payment_screenshot_url
        FROM investments
        WHERE customer_id = $1
        ORDER BY investment_date DESC`,
       [id]
     );
 
+    const withdrawalsRes = await db.query(
+      `SELECT id, amount, withdrawal_date, status, payment_screenshot_url
+       FROM withdrawals
+       WHERE customer_id = $1
+       ORDER BY withdrawal_date DESC`,
+      [id]
+    );
+
     const currentYear = new Date().getFullYear();
     const summaryRes = await db.query(
       `SELECT
-         COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0) AS total_aum,
+         COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0)
+           - COALESCE((SELECT SUM(amount) FROM withdrawals WHERE customer_id = $1 AND status = 'completed'), 0)
+           AS total_aum,
          COUNT(DISTINCT i.id) FILTER (WHERE i.status = 'active') AS active_mandates,
          COUNT(DISTINCT i.id) AS total_investment_count,
          COALESCE(SUM(mr.payout_amount) FILTER (WHERE mr.year = $2), 0) AS total_returns_ytd
@@ -330,6 +494,7 @@ const getClientDetail = async (req, res) => {
       data: {
         profile: profileRes.rows[0],
         investments: investmentsRes.rows,
+        withdrawals: withdrawalsRes.rows,
         summary: summaryRes.rows[0],
       },
     });
@@ -458,4 +623,10 @@ const getBoardReturnRate = async (req, res) => {
   }
 };
 
-module.exports = { getAssignedClients,addInvestment,processPayout,getChatHistory, getChatContacts, getBoardDashboardStats, voidPayout, getClientActiveInvestments, getClientDetail, getPendingPayouts, sendClientReport, sendClientEmail, getBoardReturnRate };
+module.exports = {
+  getAssignedClients, addInvestment, getBoardInvestments,
+  addWithdrawal, getBoardWithdrawals, getBoardPayouts, getBoardTransactions,
+  processPayout, getChatHistory, getChatContacts, getBoardDashboardStats, voidPayout,
+  getClientActiveInvestments, getClientDetail, getPendingPayouts,
+  sendClientReport, sendClientEmail, getBoardReturnRate,
+};

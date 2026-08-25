@@ -1,10 +1,11 @@
-import { Plus, Upload, CalendarPlus, ChevronRight } from 'lucide-react';
+import { Plus, MinusCircle, Upload, CalendarPlus, ChevronRight } from 'lucide-react';
 
 interface QuickActionsCardProps {
   onAddInvestment: () => void;
+  onAddWithdrawal: () => void;
 }
 
-export function QuickActionsCard({ onAddInvestment }: QuickActionsCardProps) {
+export function QuickActionsCard({ onAddInvestment, onAddWithdrawal }: QuickActionsCardProps) {
   return (
     <div className="rounded-2xl border border-brand-border bg-card p-6">
       <h3 className="text-lg font-bold text-foreground">Quick Actions</h3>
@@ -21,6 +22,20 @@ export function QuickActionsCard({ onAddInvestment }: QuickActionsCardProps) {
           <div className="flex-1">
             <p className="text-sm font-bold text-foreground">Add Investment</p>
             <p className="text-xs text-muted-foreground">Create a new investment</p>
+          </div>
+          <ChevronRight size={18} className="text-primary" />
+        </button>
+
+        <button
+          onClick={onAddWithdrawal}
+          className="flex w-full items-center gap-3 rounded-xl border border-primary/20 bg-muted p-3 text-left transition-colors hover:bg-primary/10"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+            <MinusCircle size={17} />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-foreground">Request Withdrawal</p>
+            <p className="text-xs text-muted-foreground">Submit a withdrawal for review</p>
           </div>
           <ChevronRight size={18} className="text-primary" />
         </button>

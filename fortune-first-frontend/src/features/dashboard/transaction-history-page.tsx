@@ -4,33 +4,32 @@ import { useEffect, useMemo, useState } from 'react';
 import { Download } from 'lucide-react';
 
 import api from '@/lib/api';
-import type { MonthlyReturn } from '@/types';
+import type { Transaction } from '@/types';
 import { TransactionFilters, type TransactionFiltersState } from './components/transaction-filters';
 import { TransactionTable } from './components/transaction-table';
-
-const MONTH_LABELS = [
-  '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
 
 const EMPTY_FILTERS: TransactionFiltersState = {
   startDate: '',
   endDate: '',
+  type: 'all',
   status: 'all',
   search: '',
 };
 
 export function TransactionHistoryPage() {
-  const [history, setHistory] = useState<MonthlyReturn[]>([]);
+  const [history, setHistory] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [filters, setFilters] = useState<TransactionFiltersState>(EMPTY_FILTERS);
 
   useEffect(() => {
     let cancelled = false;
+    // Own combined investment + withdrawal + payout list — the customer can
+    // never see anyone else's, that scoping happens server-side.
     api
-      .get('/customer/investments')
+      .get('/customer/transactions', { params: { limit: 1000 } })
       .then((res) => {
-        if (!cancelled) setHistory(res.data.data || []);
+        if (!cancelled) setHistory(res.data.data.transactions || []);
       })
       .catch((error) => console.error('Failed to load transaction history', error))
       .finally(() => {
@@ -43,22 +42,15 @@ export function TransactionHistoryPage() {
 
   const filteredHistory = useMemo(() => {
     return history.filter((record) => {
-      if (filters.status !== 'all' && record.payout_status !== filters.status) return false;
+      if (filters.type !== 'all' && record.type !== filters.type) return false;
+      if (filters.status !== 'all' && record.status !== filters.status) return false;
 
-      if (record.payout_date) {
-        const recordDate = record.payout_date.slice(0, 10);
-        if (filters.startDate && recordDate < filters.startDate) return false;
-        if (filters.endDate && recordDate > filters.endDate) return false;
-      }
+      const recordDate = record.date.slice(0, 10);
+      if (filters.startDate && recordDate < filters.startDate) return false;
+      if (filters.endDate && recordDate > filters.endDate) return false;
 
       if (filters.search) {
-        const haystack = [
-          MONTH_LABELS[record.month],
-          String(record.year),
-          String(record.payout_amount),
-          record.payout_status,
-          'Monthly Payout',
-        ]
+        const haystack = [record.type, String(record.amount), record.status, record.notes || '']
           .join(' ')
           .toLowerCase();
         if (!haystack.includes(filters.search.toLowerCase())) return false;
@@ -97,7 +89,7 @@ export function TransactionHistoryPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-foreground">Transaction History</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            View all your past transactions, interest credits and withdrawals.
+            View all your investments, withdrawals, and monthly payouts.
           </p>
         </div>
         <button

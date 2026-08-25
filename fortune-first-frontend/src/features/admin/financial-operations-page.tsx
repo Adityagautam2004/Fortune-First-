@@ -1,13 +1,15 @@
 'use client';
 
-import { Bitcoin, ArrowLeftRight, History } from 'lucide-react';
-
 import { Tabs } from '@/components/ui/Tabs';
-import { ComingSoon } from '@/components/shared/coming-soon';
+import { InvestmentsPage } from './investments-page';
+import { WithdrawalsPage } from './withdrawals-page';
+import { TransactionsPage } from './transactions-page';
 import { PayoutsPage } from './payouts-page';
+import { PayoutHistoryPage } from './payout-history-page';
 
 const TABS = [
   { key: 'investments', label: 'Investments' },
+  { key: 'withdrawals', label: 'Withdrawals' },
   { key: 'transactions', label: 'Transactions' },
   { key: 'payouts', label: 'Process Payouts' },
   { key: 'history', label: 'Payout History' },
@@ -18,38 +20,22 @@ export function FinancialOperationsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-extrabold text-foreground">Financial Operations</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Investments, transactions, and payouts in one place.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Investments, withdrawals, transactions, and payouts in one place.</p>
       </div>
 
       <Tabs items={TABS} defaultKey="investments">
         {(active) => {
           switch (active) {
+            case 'withdrawals':
+              return <WithdrawalsPage />;
             case 'transactions':
-              return (
-                <ComingSoon
-                  icon={ArrowLeftRight}
-                  title="Transactions"
-                  description="A firm-wide transaction ledger is on the way."
-                />
-              );
+              return <TransactionsPage />;
             case 'payouts':
               return <PayoutsPage />;
             case 'history':
-              return (
-                <ComingSoon
-                  icon={History}
-                  title="Payout History"
-                  description="A record of all processed payouts is on the way."
-                />
-              );
+              return <PayoutHistoryPage />;
             default:
-              return (
-                <ComingSoon
-                  icon={Bitcoin}
-                  title="Investments"
-                  description="A firm-wide investments overview is on the way."
-                />
-              );
+              return <InvestmentsPage />;
           }
         }}
       </Tabs>

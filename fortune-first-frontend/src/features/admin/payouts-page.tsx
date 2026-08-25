@@ -15,8 +15,11 @@ export function PayoutsPage() {
   const [search, setSearch] = useState('');
 
   const fetchPending = () => {
+    // Moved under /board/* — board.routes.js's role gate now includes
+    // super_admin, so the duplicate /admin/payouts/pending mount that used
+    // to exist purely to work around that gate has been removed.
     return api
-      .get('/admin/payouts/pending')
+      .get('/board/payouts/pending')
       .then((res) => {
         setInvestments(res.data.data.investments || []);
         setMonth(res.data.data.month);
@@ -40,7 +43,7 @@ export function PayoutsPage() {
   const handleMarkPaid = async (investmentId: string, returnPct: number) => {
     if (!month || !year) return;
     try {
-      await api.post('/admin/payouts/process', { investmentId, month, year, returnPct });
+      await api.post('/board/payouts', { investmentId, month, year, returnPct });
       await fetchPending();
     } catch (error) {
       console.error('Failed to process payout', error);

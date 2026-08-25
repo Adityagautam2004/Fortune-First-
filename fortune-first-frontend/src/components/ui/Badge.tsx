@@ -51,6 +51,10 @@ export function StatusBadge({ status }: { status: string }) {
     pending: { label: 'Pending', variant: 'warning' },
     paid: { label: 'Paid', variant: 'success' },
     skipped: { label: 'Skipped', variant: 'neutral' },
+    // Investment approval + withdrawal statuses (FR-INV-APPROVAL/FR-WD)
+    rejected: { label: 'Rejected', variant: 'danger' },
+    completed: { label: 'Completed', variant: 'success' },
+    voided: { label: 'Voided', variant: 'danger' },
   };
   const config = map[status] || { label: status, variant: 'neutral' as const };
   return <Badge variant={config.variant}>{config.label}</Badge>;

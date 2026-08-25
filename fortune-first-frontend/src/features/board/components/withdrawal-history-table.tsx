@@ -4,16 +4,14 @@ import { useState, useMemo } from 'react';
 import { Filter, Download, ImageIcon } from 'lucide-react';
 
 import { downloadCsv } from '@/lib/csv';
-import type { ClientInvestment } from '../types';
+import type { ClientWithdrawal } from '../types';
 
 const PAGE_SIZE = 5;
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
-  active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
+  completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
   rejected: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400',
-  exited: 'bg-muted text-muted-foreground',
-  suspended: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400',
 };
 
 function formatDate(dateStr: string) {
@@ -24,17 +22,17 @@ function formatRupees(value: number) {
   return `₹${Math.round(value).toLocaleString('en-IN')}`;
 }
 
-interface InvestmentHistoryTableProps {
-  investments: ClientInvestment[];
+interface WithdrawalHistoryTableProps {
+  withdrawals: ClientWithdrawal[];
 }
 
-export function InvestmentHistoryTable({ investments }: InvestmentHistoryTableProps) {
+export function WithdrawalHistoryTable({ withdrawals }: WithdrawalHistoryTableProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
 
   const filtered = useMemo(
-    () => investments.filter((inv) => statusFilter === 'all' || inv.status === statusFilter),
-    [investments, statusFilter]
+    () => withdrawals.filter((w) => statusFilter === 'all' || w.status === statusFilter),
+    [withdrawals, statusFilter]
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -43,7 +41,7 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
   const rangeEnd = Math.min(page * PAGE_SIZE, filtered.length);
 
   const cycleStatusFilter = () => {
-    const order = ['all', 'pending', 'active', 'rejected', 'exited', 'suspended'];
+    const order = ['all', 'pending', 'completed', 'rejected'];
     const next = order[(order.indexOf(statusFilter) + 1) % order.length];
     setStatusFilter(next);
     setPage(1);
@@ -51,13 +49,11 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
 
   const handleDownload = () => {
     downloadCsv(
-      'investment_history.csv',
-      filtered.map((inv) => ({
-        Date: formatDate(inv.investment_date),
-        'Invested Amount (INR)': Number(inv.amount),
-        'Week of Month': inv.week_of_month,
-        'Tenure (months)': inv.tenure_months,
-        Status: inv.status,
+      'withdrawal_history.csv',
+      filtered.map((w) => ({
+        Date: formatDate(w.withdrawal_date),
+        'Amount (INR)': Number(w.amount),
+        Status: w.status,
       }))
     );
   };
@@ -65,12 +61,12 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
   return (
     <div className="rounded-2xl border border-brand-border bg-card">
       <div className="flex items-center justify-between p-6 pb-4">
-        <h3 className="text-lg font-bold text-foreground">Investment History</h3>
+        <h3 className="text-lg font-bold text-foreground">Withdrawal History</h3>
         <div className="flex items-center gap-2">
           <button
             onClick={cycleStatusFilter}
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90"
-            title="Cycle status filter: All / Active / Exited / Suspended"
+            title="Cycle status filter: All / Pending / Completed / Rejected"
           >
             <Filter size={13} />
             {statusFilter === 'all' ? 'Filters' : statusFilter}
@@ -79,7 +75,7 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
             onClick={handleDownload}
             disabled={filtered.length === 0}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="Download investment history"
+            aria-label="Download withdrawal history"
           >
             <Download size={15} />
           </button>
@@ -91,11 +87,7 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
           <thead>
             <tr className="bg-muted text-foreground">
               <th className="whitespace-nowrap px-6 py-3 font-medium">Date</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Instrument / Scheme</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Asset Class</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Invested Amount</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Current Value</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Gain / Loss</th>
+              <th className="whitespace-nowrap px-6 py-3 font-medium">Amount</th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">Status</th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">Proof</th>
             </tr>
@@ -103,32 +95,28 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
           <tbody className="divide-y divide-brand-border">
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-10 text-center text-muted-foreground">
-                  No investments recorded yet.
+                <td colSpan={4} className="px-6 py-10 text-center text-muted-foreground">
+                  No withdrawals recorded yet.
                 </td>
               </tr>
             ) : (
-              pageRows.map((inv) => (
-                <tr key={inv.id}>
-                  <td className="px-6 py-4 text-foreground">{formatDate(inv.investment_date)}</td>
-                  <td className="px-6 py-4 text-muted-foreground">—</td>
-                  <td className="px-6 py-4 text-muted-foreground">—</td>
-                  <td className="px-6 py-4 font-medium text-foreground">{formatRupees(Number(inv.amount))}</td>
-                  <td className="px-6 py-4 text-muted-foreground">—</td>
-                  <td className="px-6 py-4 text-muted-foreground">—</td>
+              pageRows.map((w) => (
+                <tr key={w.id}>
+                  <td className="px-6 py-4 text-foreground">{formatDate(w.withdrawal_date)}</td>
+                  <td className="px-6 py-4 font-medium text-foreground">{formatRupees(Number(w.amount))}</td>
                   <td className="px-6 py-4">
                     <span
                       className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                        STATUS_STYLES[inv.status] || 'bg-muted text-muted-foreground'
+                        STATUS_STYLES[w.status] || 'bg-muted text-muted-foreground'
                       }`}
                     >
-                      {inv.status}
+                      {w.status}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    {inv.payment_screenshot_url ? (
+                    {w.payment_screenshot_url ? (
                       <a
-                        href={inv.payment_screenshot_url}
+                        href={w.payment_screenshot_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-primary hover:underline"

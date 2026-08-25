@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Profile pictures and payment screenshots are Cloudinary-hosted URLs —
+  // next/image refuses to render a remote host that isn't explicitly allowed.
+  images: {
+    remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com' }],
+  },
 };
 
 export default nextConfig;

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { FileText } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { FileText, UploadCloud } from 'lucide-react';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/utils';
+import { Avatar } from '@/components/ui/Avatar';
 
 interface AdminUser {
   id: string;
@@ -11,6 +12,7 @@ interface AdminUser {
   email: string;
   role: string;
   is_active: boolean;
+  profile_picture_url?: string | null;
 }
 
 interface KycData {
@@ -28,6 +30,8 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'customer', phone: '', assignedTo: '' });
+  const [pictureFile, setPictureFile] = useState<File | null>(null);
+  const pictureInputRef = useRef<HTMLInputElement>(null);
   const [kycUser, setKycUser] = useState<AdminUser | null>(null);
   const [kycData, setKycData] = useState<KycData | null>(null);
   const [kycLoading, setKycLoading] = useState(false);
@@ -68,10 +72,19 @@ export default function AdminUsersPage() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/admin/users', form);
+      // A picture is optional at creation for every role — a client uploads
+      // their own later; a staff account can be given one now, or self-upload
+      // later through the same self-service endpoint.
+      const formData = new FormData();
+      Object.entries(form).forEach(([key, value]) => formData.append(key, value));
+      if (pictureFile) formData.append('picture', pictureFile);
+
+      await api.post('/admin/users', formData);
       alert('User created successfully');
       setShowModal(false);
       setForm({ name: '', email: '', password: '', role: 'customer', phone: '', assignedTo: '' });
+      setPictureFile(null);
+      if (pictureInputRef.current) pictureInputRef.current.value = '';
       fetchUsers();
     } catch (error) {
       alert(getErrorMessage(error, 'Failed to create user'));
@@ -101,7 +114,12 @@ export default function AdminUsersPage() {
           <tbody className="divide-y divide-border">
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-muted">
-                <td className="p-4 text-sm font-medium">{u.name}</td>
+                <td className="p-4 text-sm font-medium">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar src={u.profile_picture_url} name={u.name} size={28} />
+                    {u.name}
+                  </div>
+                </td>
                 <td className="p-4 text-sm">{u.email}</td>
                 <td className="p-4 text-sm capitalize">{u.role.replace('_', ' ')}</td>
                 <td className="p-4 text-sm">
@@ -189,10 +207,10 @@ export default function AdminUsersPage() {
                 <option value="super_admin">Super Admin</option>
               </select>
               {form.role === 'customer' && (
-                <select 
-                  required 
-                  className="w-full border p-2 rounded" 
-                  value={form.assignedTo} 
+                <select
+                  required
+                  className="w-full border p-2 rounded"
+                  value={form.assignedTo}
                   onChange={e => setForm({...form, assignedTo: e.target.value})}
                 >
                   <option value="">Assign to Investment Head...</option>
@@ -201,6 +219,25 @@ export default function AdminUsersPage() {
                   ))}
                 </select>
               )}
+
+              <div>
+                <input
+                  ref={pictureInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={(e) => setPictureFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                  id="new-user-picture-input"
+                />
+                <label
+                  htmlFor="new-user-picture-input"
+                  className="flex w-full cursor-pointer items-center gap-2 rounded border border-brand-border p-2 text-sm text-muted-foreground hover:bg-muted"
+                >
+                  <UploadCloud size={16} />
+                  {pictureFile ? pictureFile.name : 'Profile picture (optional)'}
+                </label>
+              </div>
+
               <div className="flex justify-end space-x-2 mt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-muted rounded">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-brand-navy text-white rounded">Save</button>

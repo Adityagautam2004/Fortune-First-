@@ -2,10 +2,16 @@
 export type UserRole = 'customer' | 'investment_head' | 'business_head' | 'super_admin';
 
 // ── Investment Status ───────────────────────────────────────
-export type InvestmentStatus = 'active' | 'exited' | 'suspended';
+export type InvestmentStatus = 'pending' | 'active' | 'rejected' | 'exited' | 'suspended';
+
+// ── Withdrawal Status ───────────────────────────────────────
+export type WithdrawalStatus = 'pending' | 'completed' | 'rejected';
 
 // ── Payout Status ───────────────────────────────────────────
-export type PayoutStatus = 'pending' | 'paid' | 'skipped';
+export type PayoutStatus = 'pending' | 'paid' | 'skipped' | 'voided';
+
+// ── Unified transaction type discriminator ──────────────────
+export type TransactionType = 'investment' | 'withdrawal' | 'payout';
 
 // ── User ────────────────────────────────────────────────────
 export interface User {
@@ -18,6 +24,7 @@ export interface User {
   must_change_password: boolean;
   assigned_to?: string | null;
   shareholding_pct?: number;
+  profile_picture_url?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +41,40 @@ export interface Investment {
   tenure_months: number;
   status: InvestmentStatus;
   exit_date?: string | null;
+  notes?: string | null;
+  payment_screenshot_url?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
+}
+
+// ── Withdrawal ──────────────────────────────────────────────
+export interface Withdrawal {
+  id: string;
+  customer_id: string;
+  customer_name?: string;
+  recorded_by?: string | null;
+  amount: number;
+  withdrawal_date: string;
+  week_of_month?: number | null;
+  notes?: string | null;
+  status: WithdrawalStatus;
+  payment_screenshot_url?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
+}
+
+// ── Unified transaction row (GET .../transactions) ──────────
+export interface Transaction {
+  type: TransactionType;
+  id: string;
+  customer_id: string;
+  customer_name: string;
+  amount: number;
+  status: InvestmentStatus | WithdrawalStatus | PayoutStatus;
+  date: string;
+  screenshot_url?: string | null;
   notes?: string | null;
   created_at: string;
 }
@@ -85,6 +126,19 @@ export interface CreateInvestmentPayload {
 export interface UpdateInvestmentStatusPayload {
   status: InvestmentStatus;
   exit_date?: string | null;
+}
+
+// ── Withdrawal Payloads ─────────────────────────────────────
+export interface CreateWithdrawalPayload {
+  customerId: string;
+  amount: number;
+  withdrawalDate: string;
+  weekOfMonth?: number;
+  notes?: string;
+}
+
+export interface UpdateWithdrawalStatusPayload {
+  status: 'completed' | 'rejected';
 }
 
 // ── Payout Payloads ─────────────────────────────────────────

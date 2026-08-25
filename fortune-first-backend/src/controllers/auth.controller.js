@@ -9,6 +9,7 @@ const {
   hashPassword
 } = require('../utils/auth.utils');
 const { sendPasswordResetEmail } = require('../utils/mailer');
+const { uploadBuffer } = require('../utils/cloudinary');
 
 const login = async (req, res) => {
   try {
@@ -20,7 +21,7 @@ const login = async (req, res) => {
 
     // Raw SQL lookup
     const userResult = await db.query(
-      'SELECT id, name, email, password_hash, role, is_active, must_change_password FROM users WHERE email = $1',
+      'SELECT id, name, email, password_hash, role, is_active, must_change_password, profile_picture_url FROM users WHERE email = $1',
       [email.toLowerCase().trim()]
     );
 
@@ -67,7 +68,8 @@ const login = async (req, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
-          mustChangePassword: user.must_change_password
+          mustChangePassword: user.must_change_password,
+          profilePictureUrl: user.profile_picture_url
         }
       }
     });
@@ -110,7 +112,7 @@ const refresh = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     const userResult = await db.query(
-      'SELECT id, name, email, role, is_active, must_change_password FROM users WHERE id = $1',
+      'SELECT id, name, email, role, is_active, must_change_password, profile_picture_url FROM users WHERE id = $1',
       [req.user.userId]
     );
 
@@ -126,11 +128,40 @@ const getMe = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        mustChangePassword: user.must_change_password
+        mustChangePassword: user.must_change_password,
+        profilePictureUrl: user.profile_picture_url
       }
     });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch current user' });
+  }
+};
+
+// PATCH /auth/me/profile-picture — self-service, any authenticated role.
+// Generic on purpose: a client uploads their own here, and a business_head/
+// investment_head whose admin-created account didn't get a picture at
+// creation time can set one themselves through this same endpoint.
+const updateMyProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ status: 'error', message: 'No image uploaded' });
+    }
+
+    const uploaded = await uploadBuffer(req.file.buffer, 'profile_pictures');
+
+    await db.query(
+      `UPDATE users SET profile_picture_url = $1, updated_at = NOW() WHERE id = $2`,
+      [uploaded.secure_url, req.user.userId]
+    );
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Profile picture updated successfully',
+      data: { profilePictureUrl: uploaded.secure_url },
+    });
+  } catch (error) {
+    console.error('Profile Picture Upload Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to update profile picture' });
   }
 };
 
@@ -231,4 +262,4 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { login, refresh, logout, getMe, changeInitialPassword, forgotPassword, resetPassword };
+module.exports = { login, refresh, logout, getMe, updateMyProfilePicture, changeInitialPassword, forgotPassword, resetPassword };

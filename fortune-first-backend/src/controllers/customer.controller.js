@@ -2,6 +2,7 @@ const db = require('../models/db');
 const redis = require('../utils/redis');
 const { encrypt, decrypt, maskPan, maskAccountNumber } = require('../utils/crypto');
 const { uploadBuffer } = require('../utils/cloudinary');
+const transactionService = require('../services/transactionService');
 
 const getDashboardStats = async (req, res) => {
   try {
@@ -15,8 +16,15 @@ const getDashboardStats = async (req, res) => {
     }
 
     // 2. Cache Miss - Query PostgreSQL
+    // total_invested is the client's current position — active investments
+    // minus whatever's already been paid out as a completed withdrawal, not
+    // a running total of every deposit ever made.
     const activeInvestments = await db.query(
-      `SELECT COALESCE(SUM(amount), 0) AS total_invested, COUNT(*) AS active_plans
+      `SELECT
+         COALESCE(SUM(amount), 0)
+           - COALESCE((SELECT SUM(amount) FROM withdrawals WHERE customer_id = $1 AND status = 'completed'), 0)
+           AS total_invested,
+         COUNT(*) AS active_plans
        FROM investments
        WHERE customer_id = $1 AND status = 'active'`,
       [customerId]
@@ -72,12 +80,31 @@ const getInvestmentHistory = async (req, res) => {
   }
 };
 
+// GET /customer/transactions — this client's own combined investment +
+// withdrawal + payout list (FR-TXN-01). Hard-scoped to req.user.userId —
+// no filter here can ever be pointed at another customer's data.
+const getCustomerTransactions = async (req, res) => {
+  try {
+    const { type, page, limit } = req.query;
+    const result = await transactionService.getTransactions({
+      customerId: req.user.userId,
+      type,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+    return res.status(200).json({ status: 'success', data: result });
+  } catch (error) {
+    console.error('Get Customer Transactions Error:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch transactions' });
+  }
+};
+
 const getProfile = async (req, res) => {
   try {
     const customerId = req.user.userId;
-    
+
     const profileQuery = await db.query(
-      `SELECT u.name, u.email, u.phone, u.created_at,
+      `SELECT u.name, u.email, u.phone, u.created_at, u.profile_picture_url,
               k.pan_number_enc, k.bank_name, k.account_number_enc, k.ifsc_code,
               k.upi_id, k.date_of_birth, k.document_url, k.verified
        FROM users u
@@ -256,4 +283,8 @@ const uploadKYCDocument = async (req, res) => {
   }
 };
 
-module.exports = { getDashboardStats, getInvestmentHistory,getProfile,createSupportTicket,getSupportTickets,downloadFullReport, downloadMonthlyReport, submitKYC, uploadKYCDocument };
+module.exports = {
+  getDashboardStats, getInvestmentHistory, getCustomerTransactions, getProfile,
+  createSupportTicket, getSupportTickets, downloadFullReport, downloadMonthlyReport,
+  submitKYC, uploadKYCDocument,
+};

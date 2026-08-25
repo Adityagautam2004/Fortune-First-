@@ -32,6 +32,59 @@ const getPayoutsByInvestment = async (investmentId) => {
 };
 
 /**
+ * Flat, paginated payout list across all clients (with an optional
+ * investmentId/customerId/status filter) — replaces the old per-investment-only
+ * getInvestmentPayoutsAdmin endpoint, and is scoped the same way as the
+ * investment/withdrawal lists (assigned_to_id for investment_head).
+ * @param {{ investment_id?: string, customer_id?: string, status?: string, assigned_to_id?: string, page?: number, limit?: number }} options
+ */
+const getAllPayouts = async ({ investment_id, customer_id, status, assigned_to_id, page = 1, limit = 20 } = {}) => {
+  const offset = (page - 1) * limit;
+  const conditions = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (investment_id) {
+    conditions.push(`mr.investment_id = $${paramIndex++}`);
+    values.push(investment_id);
+  }
+  if (customer_id) {
+    conditions.push(`i.customer_id = $${paramIndex++}`);
+    values.push(customer_id);
+  }
+  if (status) {
+    conditions.push(`mr.payout_status = $${paramIndex++}`);
+    values.push(status);
+  }
+  if (assigned_to_id) {
+    conditions.push(`u.assigned_to = $${paramIndex++}`);
+    values.push(assigned_to_id);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const joins = `FROM monthly_returns mr
+     JOIN investments i ON i.id = mr.investment_id
+     JOIN users u ON u.id = i.customer_id`;
+
+  const countResult = await db.query(`SELECT COUNT(*) ${joins} ${whereClause}`, values);
+
+  const { rows } = await db.query(
+    `SELECT mr.*, i.customer_id, u.name AS customer_name, u.email AS customer_email
+     ${joins}
+     ${whereClause}
+     ORDER BY mr.year DESC, mr.month DESC
+     LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
+    [...values, limit, offset]
+  );
+
+  const total = parseInt(countResult.rows[0].count, 10);
+  return {
+    payouts: rows,
+    pagination: { total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) },
+  };
+};
+
+/**
  * Update a payout's status (e.g. correcting pending → paid/skipped).
  * @param {string} id
  * @param {{ payout_status: string, payout_date?: string, processed_by?: string }} data
@@ -85,4 +138,10 @@ const calculatePayout = (amount, returnPct, investmentWeek, exitWeek = null, isF
   return parseFloat(rawPayout.toFixed(2));
 };
 
-module.exports = { calculatePayout, getPayoutSummary, getPayoutsByInvestment, updatePayoutStatus };
+module.exports = {
+  calculatePayout,
+  getPayoutSummary,
+  getPayoutsByInvestment,
+  getAllPayouts,
+  updatePayoutStatus,
+};

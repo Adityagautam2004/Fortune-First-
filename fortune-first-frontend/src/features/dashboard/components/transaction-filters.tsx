@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 export interface TransactionFiltersState {
   startDate: string;
   endDate: string;
+  type: string;
   status: string;
   search: string;
 }
@@ -12,18 +13,33 @@ interface TransactionFiltersProps {
   onChange: (filters: TransactionFiltersState) => void;
 }
 
+const TYPE_OPTIONS = [
+  { value: 'all', label: 'All types' },
+  { value: 'investment', label: 'Investment' },
+  { value: 'withdrawal', label: 'Withdrawal' },
+  { value: 'payout', label: 'Payout' },
+];
+
+// Spans every status value across all three transaction types — a plain
+// string match against Transaction.status, so no per-type branching needed.
 const STATUS_OPTIONS = [
-  { value: 'all', label: 'All' },
-  { value: 'paid', label: 'Paid' },
+  { value: 'all', label: 'All statuses' },
   { value: 'pending', label: 'Pending' },
+  { value: 'active', label: 'Active' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'rejected', label: 'Rejected' },
   { value: 'skipped', label: 'Skipped' },
+  { value: 'exited', label: 'Exited' },
+  { value: 'suspended', label: 'Suspended' },
+  { value: 'voided', label: 'Voided' },
 ];
 
 export function TransactionFilters({ filters, onChange }: TransactionFiltersProps) {
   const set = (patch: Partial<TransactionFiltersState>) => onChange({ ...filters, ...patch });
 
   return (
-    <div className="grid grid-cols-1 gap-5 rounded-2xl border border-primary/15 bg-muted p-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-5 rounded-2xl border border-primary/15 bg-muted p-5 sm:grid-cols-2 lg:grid-cols-5">
       <div>
         <label className="mb-1.5 block text-sm font-semibold text-foreground">Date Range</label>
         <div className="flex items-center gap-2">
@@ -41,6 +57,21 @@ export function TransactionFilters({ filters, onChange }: TransactionFiltersProp
             className="w-full rounded-lg border border-brand-border bg-card px-2.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-sm font-semibold text-foreground">Type</label>
+        <select
+          value={filters.type}
+          onChange={(e) => set({ type: e.target.value })}
+          className="w-full rounded-lg border border-brand-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+        >
+          {TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>

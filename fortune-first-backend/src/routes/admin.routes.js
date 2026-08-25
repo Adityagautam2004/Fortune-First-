@@ -8,17 +8,19 @@ const {
   getUserKYC, verifyUserKYC,
   getJoinRequests, updateJoinRequestStatus, getDashboardStats, removePosition,
   getAllSupportTickets, resolveSupportTicket, assignSupportTicket,
-  getAllInvestmentsAdmin, getInvestmentByIdAdmin, updateInvestmentStatusAdmin, getInvestmentPayoutsAdmin,
+  getAllInvestmentsAdmin, getInvestmentByIdAdmin, updateInvestmentStatusAdmin,
+  getAdminWithdrawals, updateWithdrawalStatusAdmin, getAdminPayouts, getAdminTransactions,
   updatePayoutStatusAdmin, getFinancialsSummary, getAuditLogs, getReturnRate, setReturnRate,
   getAllBlogPostsAdmin, createBlogPost, updateBlogPost, deleteBlogPost,
   getAllTestimonialsAdmin, createTestimonial, updateTestimonial, deleteTestimonial,
   getAllPublicReturnsAdmin, getPublicReturnYears, getYearlyPayoutSummary,
   createPublicReturn, updatePublicReturn, deletePublicReturn,
 }= require('../controllers/admin.controller');
-const { processPayout, getChatHistory, getChatContacts, getPendingPayouts } = require('../controllers/board.controller');
+const { getChatHistory, getChatContacts } = require('../controllers/board.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const {requireRole}=require('../middleware/role.middleware')
-const { USER_ROLES, INVESTMENT_STATUS, PAYOUT_STATUS } = require('../utils/constants');
+const { uploadImage } = require('../middleware/upload.middleware');
+const { USER_ROLES, INVESTMENT_STATUS, WITHDRAWAL_STATUS, PAYOUT_STATUS } = require('../utils/constants');
 
 router.use(requireAuth)
 router.use(requireRole(USER_ROLES.SUPER_ADMIN))
@@ -29,6 +31,9 @@ router.get('/dashboard', getDashboardStats);
 router.get('/users', getUsers);
 router.post(
   '/users',
+  // multer must run before validate() — it's what actually populates req.body
+  // for a multipart request; Joi would see an empty body otherwise.
+  uploadImage.single('picture'),
   validate(Joi.object({
     name: Joi.string().max(100).required(),
     email: Joi.string().email().required(),
@@ -62,13 +67,17 @@ router.get('/investments', getAllInvestmentsAdmin);
 router.get('/investments/:id', getInvestmentByIdAdmin);
 router.patch(
   '/investments/:id/status',
+  // Legal transitions (pending->active|rejected, active->exited|suspended)
+  // are enforced in investmentService — this just validates the value shape.
   validate(Joi.object({
-    status: Joi.string().valid(...Object.values(INVESTMENT_STATUS)).required(),
+    status: Joi.string().valid(
+      INVESTMENT_STATUS.ACTIVE, INVESTMENT_STATUS.REJECTED,
+      INVESTMENT_STATUS.EXITED, INVESTMENT_STATUS.SUSPENDED
+    ).required(),
     exit_date: Joi.date().iso().allow(null),
   })),
   updateInvestmentStatusAdmin
 );
-router.get('/investments/:id/payouts', getInvestmentPayoutsAdmin);
 router.patch(
   '/payouts/:id/status',
   validate(Joi.object({
@@ -77,7 +86,20 @@ router.patch(
   })),
   updatePayoutStatusAdmin
 );
+router.get('/payouts', getAdminPayouts);
 router.get('/financials', getFinancialsSummary);
+
+// ── Withdrawals (FR-WD-04/05) — admin settles what investment_head requested ──
+router.get('/withdrawals', getAdminWithdrawals);
+router.patch(
+  '/withdrawals/:id/status',
+  uploadImage.single('screenshot'),
+  validate(Joi.object({ status: Joi.string().valid(WITHDRAWAL_STATUS.COMPLETED, WITHDRAWAL_STATUS.REJECTED).required() })),
+  updateWithdrawalStatusAdmin
+);
+
+// ── Unified transactions (FR-TXN-01) ──────────────────────
+router.get('/transactions', getAdminTransactions);
 
 // ── Global return rate (FR-ADMIN-13) ──────────────────────
 router.get('/return-rate', getReturnRate);
@@ -93,12 +115,11 @@ router.patch(
   assignSupportTicket
 );
 
-// Reuse the board controllers directly — same real payout/chat logic, just also
-// reachable by super_admin via its own routes (board.routes.js stays untouched
-// so investment_head/business_head's existing access isn't widened further).
-router.get('/payouts/pending', getPendingPayouts);
+// board.routes.js's role gate now includes super_admin, so the pending/process
+// payout actions are reachable directly at /board/payouts/pending and
+// /board/payouts — the duplicate /admin/payouts/pending + /admin/payouts/process
+// mounts that used to exist purely to work around that gate have been removed.
 router.get('/payouts/yearly-summary', getYearlyPayoutSummary);
-router.post('/payouts/process', processPayout);
 router.get('/chat/contacts', getChatContacts);
 router.get('/chat/:conversationId', getChatHistory);
 

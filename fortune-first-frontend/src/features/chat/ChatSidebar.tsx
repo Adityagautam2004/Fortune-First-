@@ -1,6 +1,7 @@
 'use client';
 
 import { Search } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { GROUP_CHANNEL, type TeamMember } from './useTeamChat';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -8,15 +9,6 @@ const ROLE_LABELS: Record<string, string> = {
   investment_head: 'Investment Head',
   business_head: 'Business Head',
 };
-
-function initials(name: string) {
-  return name
-    .split(' ')
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
 
 interface ChatSidebarProps {
   contacts: TeamMember[];
@@ -90,9 +82,7 @@ export function ChatSidebar({
               }`}
             >
               <div className="relative shrink-0">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/10 text-xs font-bold text-primary">
-                  {initials(member.name)}
-                </div>
+                <Avatar src={member.profile_picture_url} name={member.name} size={36} className="border-2 border-primary/30" />
                 <span
                   className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white ${
                     online ? 'bg-green-500' : 'bg-gray-300'

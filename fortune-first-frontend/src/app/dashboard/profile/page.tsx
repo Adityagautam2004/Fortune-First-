@@ -1,14 +1,19 @@
 ﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { FileText, UploadCloud, CheckCircle2 } from 'lucide-react';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/utils';
+import { Avatar } from '@/components/ui/Avatar';
+import { setProfilePicture } from '@/store/authSlice';
+import type { AppDispatch } from '@/store/store';
 
 interface CustomerProfileData {
   name: string;
   email: string;
   phone?: string | null;
+  profile_picture_url?: string | null;
   pan_masked?: string | null;
   bank_name?: string | null;
   ifsc_code?: string | null;
@@ -22,13 +27,16 @@ interface CustomerProfileData {
 const EMPTY_FORM = { panNumber: '', bankName: '', accountNumber: '', ifscCode: '', upiId: '', dateOfBirth: '' };
 
 export default function CustomerProfile() {
+  const dispatch = useDispatch<AppDispatch>();
   const [profile, setProfile] = useState<CustomerProfileData | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [savingKyc, setSavingKyc] = useState(false);
   const [kycMessage, setKycMessage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pictureInputRef = useRef<HTMLInputElement>(null);
 
   const loadProfile = () => {
     api.get('/customer/profile').then((res) => {
@@ -66,6 +74,25 @@ export default function CustomerProfile() {
     }
   };
 
+  const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPicture(true);
+    try {
+      const formData = new FormData();
+      formData.append('picture', file);
+      const res = await api.patch('/auth/me/profile-picture', formData);
+      const url = res.data.data.profilePictureUrl as string;
+      setProfile((prev) => (prev ? { ...prev, profile_picture_url: url } : prev));
+      dispatch(setProfilePicture(url));
+    } catch (error) {
+      alert(getErrorMessage(error, 'Failed to update profile picture'));
+    } finally {
+      setUploadingPicture(false);
+      if (pictureInputRef.current) pictureInputRef.current.value = '';
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -90,6 +117,27 @@ export default function CustomerProfile() {
 
       <div className="bg-card rounded-xl shadow-sm border border-brand-border p-6">
         <h2 className="text-xl font-semibold text-foreground mb-4">Personal Details</h2>
+        <div className="mb-5 flex items-center gap-4">
+          <Avatar src={profile.profile_picture_url} name={profile.name} size={64} className="border-2 border-primary/30 text-lg" />
+          <div>
+            <input
+              ref={pictureInputRef}
+              type="file"
+              accept="image/png,image/jpeg"
+              onChange={handlePictureChange}
+              disabled={uploadingPicture}
+              className="hidden"
+              id="profile-picture-input"
+            />
+            <label
+              htmlFor="profile-picture-input"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-brand-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              <UploadCloud size={14} />
+              {uploadingPicture ? 'Uploading...' : 'Change photo'}
+            </label>
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div><p className="text-sm text-muted-foreground">Full Name</p><p className="font-medium">{profile.name}</p></div>
           <div><p className="text-sm text-muted-foreground">Email</p><p className="font-medium">{profile.email}</p></div>

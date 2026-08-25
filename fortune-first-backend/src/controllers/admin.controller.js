@@ -9,6 +9,8 @@ const {
 const { decrypt, maskPan, maskAccountNumber } = require('../utils/crypto');
 const userService = require('../services/userService');
 const investmentService = require('../services/investmentService');
+const withdrawalService = require('../services/withdrawalService');
+const transactionService = require('../services/transactionService');
 const payoutService = require('../services/payout.service');
 
 const getUsers = async (req, res) => {
@@ -71,10 +73,21 @@ const createUser = async (req, res) => {
     // Hash the temporary password assigned by the admin
     const hashedPassword = await hashPassword(password);
 
+    // Optional at creation for every role — a client uploads their own later
+    // via the self-service endpoint; for a staff account (investment_head/
+    // business_head) the admin can set one now, or the head can self-upload
+    // later through that same endpoint if this is skipped.
+    let profilePictureUrl = null;
+    if (req.file) {
+      const { uploadBuffer } = require('../utils/cloudinary');
+      const uploaded = await uploadBuffer(req.file.buffer, 'profile_pictures');
+      profilePictureUrl = uploaded.secure_url;
+    }
+
     const newUser = await db.query(
-      `INSERT INTO users (name, email, password_hash, role, phone, assigned_to, must_change_password)
-       VALUES ($1, $2, $3, $4, $5, $6, TRUE) RETURNING id, name, email`,
-      [name, email, hashedPassword, role, phone, assignedTo || null]
+      `INSERT INTO users (name, email, password_hash, role, phone, assigned_to, must_change_password, profile_picture_url)
+       VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7) RETURNING id, name, email, profile_picture_url`,
+      [name, email, hashedPassword, role, phone, assignedTo || null, profilePictureUrl]
     );
 
     // FR-ADMIN-11: final onboarding step — the account now exists, so the
@@ -141,8 +154,13 @@ const getDashboardStats = async (req, res) => {
       `SELECT COUNT(*) AS total FROM users WHERE role = 'customer'`
     );
 
+    // Firm-wide AUM — active investments minus whatever's already gone out
+    // as a completed withdrawal.
     const aumRes = await db.query(
-      `SELECT COALESCE(SUM(amount), 0) AS total FROM investments WHERE status = 'active'`
+      `SELECT
+         COALESCE((SELECT SUM(amount) FROM investments WHERE status = 'active'), 0)
+           - COALESCE((SELECT SUM(amount) FROM withdrawals WHERE status = 'completed'), 0)
+           AS total`
     );
 
     const payoutsRes = await db.query(
@@ -215,18 +233,7 @@ const getAllInvestmentsAdmin = async (req, res) => {
       page: parseInt(page, 10) || 1,
       limit: parseInt(limit, 10) || 20,
     });
-    return res.status(200).json({
-      status: 'success',
-      data: {
-        investments: result.investments,
-        pagination: {
-          total: result.total,
-          page: parseInt(page, 10) || 1,
-          limit: parseInt(limit, 10) || 20,
-          totalPages: Math.ceil(result.total / (parseInt(limit, 10) || 20)),
-        },
-      },
-    });
+    return res.status(200).json({ status: 'success', data: result });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch investments' });
   }
@@ -241,22 +248,92 @@ const getInvestmentByIdAdmin = async (req, res) => {
   }
 };
 
+// PATCH /admin/investments/:id/status — approve/reject a pending investment,
+// or (unchanged, pre-existing) exit/suspend an already-active one. The legal
+// transition graph itself lives in investmentService; this just forwards the
+// deciding admin's id so it lands in reviewed_by/reviewed_at.
 const updateInvestmentStatusAdmin = async (req, res) => {
   try {
-    const investment = await investmentService.updateInvestmentStatus(req.params.id, req.body);
+    const investment = await investmentService.updateInvestmentStatus(req.params.id, {
+      ...req.body,
+      reviewed_by: req.user.userId,
+    });
     return res.status(200).json({ status: 'success', message: 'Investment status updated successfully', data: investment });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to update investment status' });
   }
 };
 
-// GET /admin/investments/:id/payouts — all monthly_returns for one investment
-const getInvestmentPayoutsAdmin = async (req, res) => {
+// GET /admin/withdrawals — flat, unscoped (super_admin sees every client's)
+const getAdminWithdrawals = async (req, res) => {
   try {
-    const payouts = await payoutService.getPayoutsByInvestment(req.params.id);
-    return res.status(200).json({ status: 'success', data: payouts });
+    const { customer_id, status, page, limit } = req.query;
+    const result = await withdrawalService.getAllWithdrawals({
+      customer_id,
+      status,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+    return res.status(200).json({ status: 'success', data: result });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch withdrawals' });
+  }
+};
+
+// PATCH /admin/withdrawals/:id/status — settle a pending request: 'completed'
+// (optionally with a payment screenshot as proof) or 'rejected'.
+const updateWithdrawalStatusAdmin = async (req, res) => {
+  try {
+    let paymentScreenshotUrl = null;
+    if (req.file) {
+      const { uploadBuffer } = require('../utils/cloudinary');
+      const uploaded = await uploadBuffer(req.file.buffer, 'payment_screenshots');
+      paymentScreenshotUrl = uploaded.secure_url;
+    }
+
+    const withdrawal = await withdrawalService.updateWithdrawalStatus(req.params.id, {
+      status: req.body.status,
+      payment_screenshot_url: paymentScreenshotUrl,
+      reviewed_by: req.user.userId,
+    });
+    return res.status(200).json({ status: 'success', message: 'Withdrawal status updated successfully', data: withdrawal });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to update withdrawal status' });
+  }
+};
+
+// GET /admin/payouts — flat, unscoped payout list (replaces the removed
+// per-investment-only /admin/investments/:id/payouts, which nothing in the
+// frontend called)
+const getAdminPayouts = async (req, res) => {
+  try {
+    const { investment_id, customer_id, status, page, limit } = req.query;
+    const result = await payoutService.getAllPayouts({
+      investment_id,
+      customer_id,
+      status,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+    return res.status(200).json({ status: 'success', data: result });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch payouts' });
+  }
+};
+
+// GET /admin/transactions — combined investment+withdrawal+payout list, unscoped
+const getAdminTransactions = async (req, res) => {
+  try {
+    const { customer_id, type, page, limit } = req.query;
+    const result = await transactionService.getTransactions({
+      customerId: customer_id,
+      type,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+    return res.status(200).json({ status: 'success', data: result });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch transactions' });
   }
 };
 
@@ -292,8 +369,11 @@ const getFinancialsSummary = async (req, res) => {
 
     const summary = await payoutService.getPayoutSummary();
     const totalsRes = await db.query(
-      `SELECT COALESCE(SUM(amount), 0) AS total_aum, COUNT(*) AS total_investments
-       FROM investments WHERE status = 'active'`
+      `SELECT
+         (SELECT COALESCE(SUM(amount), 0) FROM investments WHERE status = 'active')
+           - (SELECT COALESCE(SUM(amount), 0) FROM withdrawals WHERE status = 'completed')
+           AS total_aum,
+         (SELECT COUNT(*) FROM investments WHERE status = 'active') AS total_investments`
     );
 
     return res.status(200).json({
@@ -769,7 +849,10 @@ module.exports = {
   getAllInvestmentsAdmin,
   getInvestmentByIdAdmin,
   updateInvestmentStatusAdmin,
-  getInvestmentPayoutsAdmin,
+  getAdminWithdrawals,
+  updateWithdrawalStatusAdmin,
+  getAdminPayouts,
+  getAdminTransactions,
   updatePayoutStatusAdmin,
   getFinancialsSummary,
   getAuditLogs,

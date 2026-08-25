@@ -4,6 +4,7 @@ import { Search, Bell, HelpCircle, Menu } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { Avatar } from '@/components/ui/Avatar';
 
 interface AdminTopbarProps {
   onOpenMenu: () => void;
@@ -13,7 +14,6 @@ export function AdminTopbar({ onOpenMenu }: AdminTopbarProps) {
   const { user } = useAuth();
 
   const displayName = user?.name || 'Admin';
-  const initial = displayName.trim().charAt(0).toUpperCase() || 'A';
 
   return (
     <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-2.5 md:gap-4 md:px-5">
@@ -51,9 +51,7 @@ export function AdminTopbar({ onOpenMenu }: AdminTopbarProps) {
         </button>
 
         <div className="flex items-center gap-2 rounded-full border border-border py-1 pl-1 pr-3">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-            {initial}
-          </div>
+          <Avatar src={user?.profilePictureUrl} name={displayName} size={28} />
           <div className="hidden leading-tight sm:block">
             <p className="text-sm font-semibold text-foreground">{displayName}</p>
             <p className="text-xs text-muted-foreground">Admin</p>

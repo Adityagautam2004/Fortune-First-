@@ -7,8 +7,10 @@ import api from '@/lib/api';
 import { ClientInfoCard } from './components/client-info-card';
 import { ClientStatTile } from './components/client-stat-tile';
 import { InvestmentHistoryTable } from './components/investment-history-table';
+import { WithdrawalHistoryTable } from './components/withdrawal-history-table';
 import { QuickActionsCard } from './components/quick-actions-card';
 import { AddInvestmentModal } from './components/add-investment-modal';
+import { AddWithdrawalModal } from './components/add-withdrawal-modal';
 import type { ClientDetail } from './types';
 
 function formatCrore(value: number) {
@@ -23,6 +25,7 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
   const [detail, setDetail] = useState<ClientDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [withdrawalModalOpen, setWithdrawalModalOpen] = useState(false);
 
   const fetchDetail = useCallback(() => {
     return api
@@ -63,13 +66,25 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-        <InvestmentHistoryTable investments={detail.investments} />
-        <QuickActionsCard onAddInvestment={() => setModalOpen(true)} />
+        <div className="space-y-6">
+          <InvestmentHistoryTable investments={detail.investments} />
+          <WithdrawalHistoryTable withdrawals={detail.withdrawals} />
+        </div>
+        <QuickActionsCard
+          onAddInvestment={() => setModalOpen(true)}
+          onAddWithdrawal={() => setWithdrawalModalOpen(true)}
+        />
       </div>
 
       <AddInvestmentModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
+        customerId={clientId}
+        onSuccess={fetchDetail}
+      />
+      <AddWithdrawalModal
+        isOpen={withdrawalModalOpen}
+        onClose={() => setWithdrawalModalOpen(false)}
         customerId={clientId}
         onSuccess={fetchDetail}
       />

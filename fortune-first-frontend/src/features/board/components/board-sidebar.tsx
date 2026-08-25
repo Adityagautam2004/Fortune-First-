@@ -24,6 +24,7 @@ import { logout } from '@/store/authSlice';
 import type { AppDispatch } from '@/store/store';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { Avatar } from '@/components/ui/Avatar';
 
 const navItems = [
   { name: 'Board Overview', href: '/board', icon: LayoutGrid },
@@ -60,7 +61,6 @@ export function BoardSidebar({ mobileOpen, onClose }: BoardSidebarProps) {
   };
 
   const displayName = user?.name || 'Board Member';
-  const initial = displayName.trim().charAt(0).toUpperCase() || 'B';
 
   return (
     <>
@@ -138,9 +138,7 @@ export function BoardSidebar({ mobileOpen, onClose }: BoardSidebarProps) {
               collapsed && 'justify-center px-1.5'
             )}
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-              {initial}
-            </div>
+            <Avatar src={user?.profilePictureUrl} name={displayName} size={36} />
             {!collapsed && (
               <div className="min-w-0 leading-tight">
                 <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>

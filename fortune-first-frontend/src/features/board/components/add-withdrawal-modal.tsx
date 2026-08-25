@@ -1,13 +1,12 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { UploadCloud } from 'lucide-react';
+import { useState } from 'react';
 
 import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
 
-interface AddInvestmentModalProps {
+interface AddWithdrawalModalProps {
   isOpen: boolean;
   onClose: () => void;
   customerId: string;
@@ -17,52 +16,45 @@ interface AddInvestmentModalProps {
 const WEEK_OPTIONS = [1, 2, 3, 4];
 const NOTES_MAX = 250;
 
-export function AddInvestmentModal({ isOpen, onClose, customerId, onSuccess }: AddInvestmentModalProps) {
+// Same fields as AddInvestmentModal minus the payment screenshot — a
+// withdrawal request never carries one at creation time; the admin can add
+// one only when marking it completed.
+export function AddWithdrawalModal({ isOpen, onClose, customerId, onSuccess }: AddWithdrawalModalProps) {
   const [amount, setAmount] = useState(5000);
-  const [investmentDate, setInvestmentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [withdrawalDate, setWithdrawalDate] = useState(new Date().toISOString().slice(0, 10));
   const [weekOfMonth, setWeekOfMonth] = useState(1);
   const [notes, setNotes] = useState('');
-  const [screenshot, setScreenshot] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const resetForm = () => {
-    setAmount(5000);
-    setNotes('');
-    setScreenshot(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append('customerId', customerId);
-      formData.append('amount', String(amount));
-      formData.append('investmentDate', investmentDate);
-      formData.append('weekOfMonth', String(weekOfMonth));
-      formData.append('notes', notes);
-      if (screenshot) formData.append('screenshot', screenshot);
-
-      await api.post('/board/investments', formData);
+      await api.post('/board/withdrawals', {
+        customerId,
+        amount,
+        withdrawalDate,
+        weekOfMonth,
+        notes,
+      });
       onSuccess();
       onClose();
-      resetForm();
+      setAmount(5000);
+      setNotes('');
     } catch (err) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || 'Failed to record investment.');
+      setError(axiosErr.response?.data?.message || 'Failed to record withdrawal.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Investment" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Request Withdrawal" size="md">
       <p className="-mt-4 mb-5 text-sm text-muted-foreground">
-        Enter investment details. This will be submitted for admin approval before it goes active.
+        Enter withdrawal details. This will be submitted for admin review before it&apos;s settled.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -81,12 +73,12 @@ export function AddInvestmentModal({ isOpen, onClose, customerId, onSuccess }: A
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-sm font-semibold text-foreground">Investment Date</label>
+            <label className="mb-1 block text-sm font-semibold text-foreground">Withdrawal Date</label>
             <input
               type="date"
               required
-              value={investmentDate}
-              onChange={(e) => setInvestmentDate(e.target.value)}
+              value={withdrawalDate}
+              onChange={(e) => setWithdrawalDate(e.target.value)}
               className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -121,25 +113,6 @@ export function AddInvestmentModal({ isOpen, onClose, customerId, onSuccess }: A
           </p>
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-foreground">Payment Screenshot (Optional)</label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg"
-            onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
-            className="hidden"
-            id="investment-screenshot-input"
-          />
-          <label
-            htmlFor="investment-screenshot-input"
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
-          >
-            <UploadCloud size={16} />
-            {screenshot ? screenshot.name : 'Attach a screenshot as proof of payment'}
-          </label>
-        </div>
-
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <div className="flex justify-end gap-3 pt-2">
@@ -147,7 +120,7 @@ export function AddInvestmentModal({ isOpen, onClose, customerId, onSuccess }: A
             Cancel
           </Button>
           <Button type="submit" isLoading={submitting}>
-            Submit for Approval
+            Submit for Review
           </Button>
         </div>
       </form>

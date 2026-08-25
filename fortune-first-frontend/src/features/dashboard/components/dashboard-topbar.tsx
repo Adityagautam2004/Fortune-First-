@@ -6,6 +6,7 @@ import { Menu, Search } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { Avatar } from '@/components/ui/Avatar';
 
 const ROLE_LABELS: Record<string, string> = {
   customer: 'Customer',
@@ -17,6 +18,7 @@ const ROLE_LABELS: Record<string, string> = {
 interface ProfileData {
   name: string;
   email: string;
+  profile_picture_url?: string | null;
 }
 
 interface DashboardTopbarProps {
@@ -43,7 +45,9 @@ export function DashboardTopbar({ onOpenMenu }: DashboardTopbarProps) {
   }, []);
 
   const displayName = profile?.name || user?.name || 'Customer';
-  const initial = displayName.trim().charAt(0).toUpperCase() || 'U';
+  // Prefer the live Redux value (updated instantly on self-upload) over the
+  // one-time /customer/profile snapshot fetched on mount.
+  const pictureUrl = user?.profilePictureUrl ?? profile?.profile_picture_url;
 
   return (
     <header className="flex items-center justify-between gap-3 border-b border-brand-border bg-card px-4 py-4 md:gap-4 md:px-6">
@@ -68,9 +72,7 @@ export function DashboardTopbar({ onOpenMenu }: DashboardTopbarProps) {
       <div className="flex shrink-0 items-center gap-2 md:gap-3">
         <ThemeToggle />
         <div className="flex shrink-0 items-center gap-3 rounded-full border border-brand-border py-1.5 pl-1.5 pr-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-            {initial}
-          </div>
+          <Avatar src={pictureUrl} name={displayName} size={36} />
           <div className="hidden leading-tight sm:block">
             <p className="text-sm font-semibold text-foreground">{displayName}</p>
             <p className="text-xs text-muted-foreground">{(user?.role && ROLE_LABELS[user.role]) || 'Customer'}</p>
