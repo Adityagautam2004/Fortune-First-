@@ -2,38 +2,57 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { useLenis } from './lenis-provider';
 
 const NAV_LINKS = [
   { name: 'Home', href: '/' },
   { name: 'Services', href: '#services' },
   { name: 'Investments', href: '#investments' },
   { name: 'Calculators', href: '#calculators' },
-  { name: 'Blog', href: '#blog' },
+  { name: 'Blog', href: '/blog' },
 ];
+
+// Fixed header height (h-16) plus a little breathing room, so a scrolled-to
+// section doesn't land flush against the sticky header.
+const SCROLL_OFFSET = -80;
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolledPast, setScrolledPast] = useState(false);
+  const lenis = useLenis();
+  const pathname = usePathname();
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => setScrolledPast(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Hash links get an explicit smooth scroll instead of a raw jump — Lenis
-  // (mounted at the landing page root) intercepts this too once loaded, but
-  // this keeps nav correct even if Lenis hasn't mounted yet.
+  // The transparent/white-text look only makes sense sitting on top of the
+  // homepage's dark hero image — every other page that reuses this header
+  // has a plain light background from the very first pixel, so it must
+  // start in the solid/dark-text state there regardless of scroll position.
+  const scrolled = scrolledPast || pathname !== '/';
+
+  // Hash links scroll to an in-page section. Lenis owns the actual scroll
+  // position once mounted (its raf loop fights and undoes a native
+  // scrollIntoView call), so this must go through lenis.scrollTo — falling
+  // back to the native call only for the brief window before Lenis mounts.
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('#')) {
       e.preventDefault();
-      document.querySelector(href)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (lenis) {
+        lenis.scrollTo(href, { offset: SCROLL_OFFSET });
+      } else {
+        document.querySelector(href)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   };
 

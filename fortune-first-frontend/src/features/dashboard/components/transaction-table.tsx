@@ -50,6 +50,7 @@ export function TransactionTable({ history }: TransactionTableProps) {
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="bg-muted text-muted-foreground">
+              <th className="px-6 py-3 font-medium">#</th>
               <th className="px-6 py-3 font-medium">Date</th>
               <th className="px-6 py-3 font-medium">Activity</th>
               <th className="px-6 py-3 font-medium">Amount</th>
@@ -60,13 +61,14 @@ export function TransactionTable({ history }: TransactionTableProps) {
           <tbody className="divide-y divide-brand-border">
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-10 text-center text-muted-foreground">
+                <td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">
                   No transactions match your filters.
                 </td>
               </tr>
             ) : (
-              pageRows.map((record) => (
+              pageRows.map((record, idx) => (
                 <tr key={`${record.type}-${record.id}`}>
+                  <td className="px-6 py-4 text-muted-foreground">{(page - 1) * PAGE_SIZE + idx + 1}</td>
                   <td className="px-6 py-4 text-foreground">{formatDate(record.date)}</td>
                   <td className="px-6 py-4 font-medium text-foreground">{TYPE_LABELS[record.type] || record.type}</td>
                   <td className="px-6 py-4 text-foreground">{formatRupees(Number(record.amount))}</td>

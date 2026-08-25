@@ -43,9 +43,9 @@ export function PortfolioGrowthChart({ history }: PortfolioGrowthChartProps) {
   }, [history, range]);
 
   return (
-    <div className="rounded-2xl border border-brand-border bg-card p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-bold text-foreground">Portfolio Growth</h3>
+    <div className="rounded-2xl border border-brand-border bg-card p-3.5">
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="text-base font-bold text-foreground">Portfolio Growth</h3>
         <select
           value={range}
           onChange={(e) => setRange(Number(e.target.value))}
@@ -60,13 +60,13 @@ export function PortfolioGrowthChart({ history }: PortfolioGrowthChartProps) {
       </div>
 
       {chartData.length === 0 ? (
-        <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">
+        <div className="flex h-[130px] items-center justify-center text-sm text-muted-foreground">
           No payout history yet.
         </div>
       ) : (
-        <div className="h-[320px] w-full">
+        <div className="h-[130px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 24, right: 16, left: 0, bottom: 0 }}>
+            <LineChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis
                 dataKey="label"

@@ -1,12 +1,5 @@
-import { Bitcoin } from 'lucide-react';
-import { ComingSoon } from '@/components/shared/coming-soon';
+import { InvestmentsPage } from '@/features/admin/investments-page';
 
-export default function AdminInvestmentsPage() {
-  return (
-    <ComingSoon
-      icon={Bitcoin}
-      title="Investments"
-      description="A firm-wide investments overview is on the way."
-    />
-  );
+export default function AdminInvestmentsRoute() {
+  return <InvestmentsPage />;
 }

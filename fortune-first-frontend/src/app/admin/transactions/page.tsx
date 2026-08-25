@@ -1,12 +1,5 @@
-import { ArrowLeftRight } from 'lucide-react';
-import { ComingSoon } from '@/components/shared/coming-soon';
+import { TransactionsPage } from '@/features/admin/transactions-page';
 
-export default function AdminTransactionsPage() {
-  return (
-    <ComingSoon
-      icon={ArrowLeftRight}
-      title="Transactions"
-      description="A firm-wide transaction ledger is on the way."
-    />
-  );
+export default function AdminTransactionsRoute() {
+  return <TransactionsPage />;
 }
