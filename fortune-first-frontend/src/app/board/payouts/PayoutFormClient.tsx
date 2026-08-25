@@ -10,8 +10,8 @@ function PayoutForm() {
   const router = useRouter();
 
   // Grab the hidden data from the URL
-  const investmentId = searchParams.get('investmentId');
-  const amount = searchParams.get('amount');
+  const investmentId = searchParams?.get('investmentId') ?? null;
+  const amount = searchParams?.get('amount') ?? null;
 
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());

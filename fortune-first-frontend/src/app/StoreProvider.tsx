@@ -23,7 +23,7 @@ function AuthBootstrap() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (isProtectedRoute(pathname)) {
+    if (pathname && isProtectedRoute(pathname)) {
       store.dispatch(fetchCurrentUser());
     }
   }, [pathname]);

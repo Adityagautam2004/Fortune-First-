@@ -12,7 +12,7 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false);
 
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  const token = searchParams?.get('token') ?? null;
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
