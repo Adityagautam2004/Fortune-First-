@@ -24,6 +24,14 @@ import { logout } from '@/store/authSlice';
 import type { AppDispatch } from '@/store/store';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
+import { useAuth } from '@/hooks/useAuth';
+
+const ROLE_LABELS: Record<string, string> = {
+  customer: 'Customer',
+  investment_head: 'Investment Head',
+  business_head: 'Business Head',
+  super_admin: 'Super Admin',
+};
 
 const navItems = [
   { name: 'Board Overview', href: '/board', icon: LayoutGrid },
@@ -46,6 +54,7 @@ export function BoardSidebar({ mobileOpen, onClose }: BoardSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = async () => {

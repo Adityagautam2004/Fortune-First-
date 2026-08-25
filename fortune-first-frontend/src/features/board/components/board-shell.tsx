@@ -5,6 +5,7 @@ import { Menu } from 'lucide-react';
 
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuth } from '@/hooks/useAuth';
+import { Avatar } from '@/components/ui/Avatar';
 import { BoardSidebar } from './board-sidebar';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -17,7 +18,6 @@ export function BoardShell({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
 
   const displayName = user?.name || 'Board Member';
-  const initial = displayName.trim().charAt(0).toUpperCase() || 'B';
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-surface">
@@ -41,9 +41,7 @@ export function BoardShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <div className="flex items-center gap-3 rounded-full border border-brand-border py-1.5 pl-1.5 pr-4">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                {initial}
-              </div>
+              <Avatar src={user?.profilePictureUrl} name={displayName} size={36} />
               <div className="hidden leading-tight sm:block">
                 <p className="text-sm font-semibold text-foreground">{displayName}</p>
                 <p className="text-xs text-muted-foreground">{(user?.role && ROLE_LABELS[user.role]) || 'Board Member'}</p>
