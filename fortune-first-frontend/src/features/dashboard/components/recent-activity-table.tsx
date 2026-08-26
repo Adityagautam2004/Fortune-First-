@@ -27,12 +27,12 @@ interface RecentActivityTableProps {
 }
 
 export function RecentActivityTable({ history }: RecentActivityTableProps) {
-  const rows = history.slice(0, 5);
+  const rows = history.slice(0, 3);
 
   return (
     <div className="rounded-2xl border border-brand-border bg-card">
-      <div className="flex items-center justify-between p-6 pb-4">
-        <h3 className="text-lg font-bold text-foreground">Recent Activity</h3>
+      <div className="flex items-center justify-between p-3.5 pb-1.5">
+        <h3 className="text-base font-bold text-foreground">Recent Activity</h3>
         <Link
           href="/dashboard/history"
           className="inline-flex items-center justify-center rounded-lg border border-primary/30 bg-muted px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
@@ -45,26 +45,26 @@ export function RecentActivityTable({ history }: RecentActivityTableProps) {
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="bg-muted text-muted-foreground">
-              <th className="px-6 py-3 font-medium">Date</th>
-              <th className="px-6 py-3 font-medium">Activity</th>
-              <th className="px-6 py-3 font-medium">Amount</th>
-              <th className="px-6 py-3 font-medium">Status</th>
+              <th className="px-6 py-2 font-medium">Date</th>
+              <th className="px-6 py-2 font-medium">Activity</th>
+              <th className="px-6 py-2 font-medium">Amount</th>
+              <th className="px-6 py-2 font-medium">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-brand-border">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
+                <td colSpan={4} className="px-6 py-6 text-center text-muted-foreground">
                   No activity yet.
                 </td>
               </tr>
             ) : (
               rows.map((record, idx) => (
                 <tr key={idx}>
-                  <td className="px-6 py-4 text-foreground">{formatDate(record)}</td>
-                  <td className="px-6 py-4 font-medium text-foreground">Monthly Payout</td>
-                  <td className="px-6 py-4 text-foreground">{formatRupees(Number(record.payout_amount))}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-2 text-foreground">{formatDate(record)}</td>
+                  <td className="px-6 py-2 font-medium text-foreground">Monthly Payout</td>
+                  <td className="px-6 py-2 text-foreground">{formatRupees(Number(record.payout_amount))}</td>
+                  <td className="px-6 py-2">
                     <StatusBadge status={record.payout_status} />
                   </td>
                 </tr>

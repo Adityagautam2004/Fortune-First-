@@ -39,22 +39,22 @@ export function TransactionFilters({ filters, onChange }: TransactionFiltersProp
   const set = (patch: Partial<TransactionFiltersState>) => onChange({ ...filters, ...patch });
 
   return (
-    <div className="grid grid-cols-1 gap-5 rounded-2xl border border-primary/15 bg-muted p-5 sm:grid-cols-2 lg:grid-cols-5">
-      <div>
+    <div className="grid grid-cols-1 gap-5 rounded-2xl border border-primary/15 bg-muted p-5 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="sm:col-span-2 lg:col-span-2">
         <label className="mb-1.5 block text-sm font-semibold text-foreground">Date Range</label>
         <div className="flex items-center gap-2">
           <input
             type="date"
             value={filters.startDate}
             onChange={(e) => set({ startDate: e.target.value })}
-            className="w-full rounded-lg border border-brand-border bg-card px-2.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+            className="w-full min-w-0 rounded-lg border border-brand-border bg-card px-2.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
           />
-          <span className="text-muted-foreground">-</span>
+          <span className="shrink-0 text-muted-foreground">-</span>
           <input
             type="date"
             value={filters.endDate}
             onChange={(e) => set({ endDate: e.target.value })}
-            className="w-full rounded-lg border border-brand-border bg-card px-2.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+            className="w-full min-w-0 rounded-lg border border-brand-border bg-card px-2.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
           />
         </div>
       </div>

@@ -1,11 +1,28 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { FileText, UploadCloud, CheckCircle2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  UserCircle2,
+  ShieldCheck,
+  CreditCard,
+  Landmark,
+  IndianRupee,
+  FileText,
+  UploadCloud,
+  CheckCircle2,
+  Pencil,
+  Loader2,
+} from 'lucide-react';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
+import { Badge } from '@/components/ui/Badge';
 import { setProfilePicture } from '@/store/authSlice';
 import type { AppDispatch } from '@/store/store';
 
@@ -13,6 +30,7 @@ interface CustomerProfileData {
   name: string;
   email: string;
   phone?: string | null;
+  created_at: string;
   profile_picture_url?: string | null;
   pan_masked?: string | null;
   bank_name?: string | null;
@@ -25,6 +43,22 @@ interface CustomerProfileData {
 }
 
 const EMPTY_FORM = { panNumber: '', bankName: '', accountNumber: '', ifscCode: '', upiId: '', dateOfBirth: '' };
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function InfoRow({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <span className="flex items-center gap-2.5 text-sm text-muted-foreground">
+        <Icon size={16} className="shrink-0" />
+        {label}
+      </span>
+      <span className="break-words text-right text-sm font-semibold text-foreground">{value}</span>
+    </div>
+  );
+}
 
 export default function CustomerProfile() {
   const dispatch = useDispatch<AppDispatch>();
@@ -57,7 +91,7 @@ export default function CustomerProfile() {
     loadProfile();
   }, []);
 
-  if (!profile) return <div>Loading profile...</div>;
+  if (!profile) return <div className="p-6 text-sm text-muted-foreground">Loading profile...</div>;
 
   const handleKycSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,93 +146,115 @@ export default function CustomerProfile() {
   };
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <h1 className="text-3xl font-bold text-foreground">Profile & KYC</h1>
-
-      <div className="bg-card rounded-xl shadow-sm border border-brand-border p-6">
-        <h2 className="text-xl font-semibold text-foreground mb-4">Personal Details</h2>
-        <div className="mb-5 flex items-center gap-4">
-          <Avatar src={profile.profile_picture_url} name={profile.name} size={64} className="border-2 border-primary/30 text-lg" />
-          <div>
-            <input
-              ref={pictureInputRef}
-              type="file"
-              accept="image/png,image/jpeg"
-              onChange={handlePictureChange}
-              disabled={uploadingPicture}
-              className="hidden"
-              id="profile-picture-input"
-            />
-            <label
-              htmlFor="profile-picture-input"
-              className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-brand-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
-            >
-              <UploadCloud size={14} />
-              {uploadingPicture ? 'Uploading...' : 'Change photo'}
-            </label>
-          </div>
+    <div className="max-w-4xl space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-foreground">Profile & KYC</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            View your profile and KYC details. KYC updates are handled by the admin.
+          </p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div><p className="text-sm text-muted-foreground">Full Name</p><p className="font-medium">{profile.name}</p></div>
-          <div><p className="text-sm text-muted-foreground">Email</p><p className="font-medium">{profile.email}</p></div>
-          <div><p className="text-sm text-muted-foreground">Phone</p><p className="font-medium">{profile.phone || 'N/A'}</p></div>
+
+        <div className="relative shrink-0">
+          <Avatar
+            src={profile.profile_picture_url}
+            name={profile.name}
+            size={64}
+            className="border-2 border-primary/30 text-lg"
+          />
+          <input
+            ref={pictureInputRef}
+            type="file"
+            accept="image/png,image/jpeg"
+            onChange={handlePictureChange}
+            disabled={uploadingPicture}
+            className="hidden"
+            id="profile-picture-input"
+          />
+          <label
+            htmlFor="profile-picture-input"
+            className="absolute -bottom-1 -right-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-card bg-primary text-white shadow-sm transition-colors hover:bg-primary/90"
+            aria-label="Change profile photo"
+          >
+            {uploadingPicture ? <Loader2 size={12} className="animate-spin" /> : <Pencil size={12} />}
+          </label>
         </div>
       </div>
 
-      <div className="bg-card rounded-xl shadow-sm border border-brand-border p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-foreground">KYC Details</h2>
-          <span className={`px-2 py-1 text-xs rounded-full ${profile.verified ? 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400'}`}>
-            {profile.verified ? 'Verified' : 'Pending Verification'}
-          </span>
+      <section className="rounded-2xl border border-primary/15 bg-card p-6">
+        <div className="mb-2 flex items-center gap-2">
+          <UserCircle2 size={22} className="text-primary" />
+          <h2 className="text-lg font-bold text-primary">Personal Information</h2>
         </div>
+        <div className="divide-y divide-brand-border">
+          <InfoRow icon={User} label="Full Name" value={profile.name} />
+          <InfoRow icon={Mail} label="Email Address" value={profile.email} />
+          <InfoRow icon={Phone} label="Phone Number" value={profile.phone || 'Not provided'} />
+          <InfoRow icon={Calendar} label="Date of Joining" value={formatDate(profile.created_at)} />
+        </div>
+      </section>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div><p className="text-sm text-muted-foreground">PAN Number</p><p className="font-medium">{profile.pan_masked || 'Not Submitted'}</p></div>
-          <div><p className="text-sm text-muted-foreground">Bank Account</p><p className="font-medium">{profile.account_masked || 'Not Submitted'}</p></div>
-          <div><p className="text-sm text-muted-foreground">UPI ID</p><p className="font-medium">{profile.upi_id || 'Not Submitted'}</p></div>
-          <div><p className="text-sm text-muted-foreground">Date of Birth</p><p className="font-medium">{profile.date_of_birth ? profile.date_of_birth.slice(0, 10) : 'Not Submitted'}</p></div>
+      <section className="rounded-2xl border border-primary/15 bg-card p-6">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={22} className="text-primary" />
+            <h2 className="text-lg font-bold text-primary">KYC Information</h2>
+          </div>
+          <Badge variant="brand">{profile.verified ? 'Verified' : 'Pending Verification'}</Badge>
         </div>
 
         {profile.verified ? (
-          <p className="text-sm text-muted-foreground">
-            Your KYC has been verified and can no longer be edited here. Contact support if any of these details need to change.
-          </p>
+          <>
+            <div className="divide-y divide-brand-border">
+              <InfoRow icon={CreditCard} label="PAN Number" value={profile.pan_masked || 'Not Submitted'} />
+              <InfoRow icon={Landmark} label="Bank Account" value={profile.account_masked || 'Not Submitted'} />
+              <InfoRow icon={IndianRupee} label="UPI ID" value={profile.upi_id || 'Not Submitted'} />
+              <InfoRow
+                icon={Calendar}
+                label="Date of Birth"
+                value={profile.date_of_birth ? formatDate(profile.date_of_birth) : 'Not Submitted'}
+              />
+            </div>
+            <p className="mt-5 text-sm text-muted-foreground">
+              Your KYC has been verified and can no longer be edited here. Contact support if any of these details
+              need to change.
+            </p>
+          </>
         ) : (
-          <form onSubmit={handleKycSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleKycSubmit} className="mt-3 space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <input
                 required
                 placeholder="PAN Number"
-                className="border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-brand-orange"
+                className="rounded-lg border border-brand-border bg-background p-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
                 value={form.panNumber}
                 onChange={(e) => setForm({ ...form, panNumber: e.target.value.toUpperCase() })}
               />
               <input
                 required
                 placeholder="Bank Name"
-                className="border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-brand-orange"
+                className="rounded-lg border border-brand-border bg-background p-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
                 value={form.bankName}
                 onChange={(e) => setForm({ ...form, bankName: e.target.value })}
               />
               <input
                 required
                 placeholder="Account Number"
-                className="border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-brand-orange"
+                className="rounded-lg border border-brand-border bg-background p-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
                 value={form.accountNumber}
                 onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
               />
               <input
                 required
                 placeholder="IFSC Code"
-                className="border border-brand-border rounded-md p-2 text-sm uppercase focus:outline-none focus:border-brand-orange"
+                className="rounded-lg border border-brand-border bg-background p-2.5 text-sm uppercase text-foreground focus:border-primary focus:outline-none"
                 value={form.ifscCode}
                 onChange={(e) => setForm({ ...form, ifscCode: e.target.value.toUpperCase() })}
               />
               <input
                 required
                 placeholder="UPI ID (e.g. name@bank)"
-                className="border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-brand-orange"
+                className="rounded-lg border border-brand-border bg-background p-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
                 value={form.upiId}
                 onChange={(e) => setForm({ ...form, upiId: e.target.value })}
               />
@@ -207,7 +263,7 @@ export default function CustomerProfile() {
                 type="date"
                 placeholder="Date of Birth"
                 max={new Date().toISOString().slice(0, 10)}
-                className="border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-brand-orange"
+                className="rounded-lg border border-brand-border bg-background p-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
                 value={form.dateOfBirth}
                 onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
               />
@@ -216,27 +272,34 @@ export default function CustomerProfile() {
             <button
               type="submit"
               disabled={savingKyc}
-              className="bg-brand-navy text-white px-6 py-2 rounded-md font-medium hover:bg-opacity-90 disabled:opacity-60"
+              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
               {savingKyc ? 'Saving...' : 'Save KYC Details'}
             </button>
           </form>
         )}
-      </div>
+      </section>
 
-      <div className="bg-card rounded-xl shadow-sm border border-brand-border p-6">
-        <h2 className="text-xl font-semibold text-foreground mb-4">Identity Document</h2>
-        <p className="text-sm text-muted-foreground mb-4">Upload a PAN card, Aadhaar, or bank statement as proof (PDF, JPG, or PNG, max 5MB).</p>
+      <section className="rounded-2xl border border-primary/15 bg-card p-6">
+        <h2 className="mb-1 text-lg font-bold text-primary">Identity Document</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Upload a PAN card, Aadhaar, or bank statement as proof (PDF, JPG, or PNG, max 5MB).
+        </p>
 
         {profile.document_url ? (
-          <div className="flex items-center gap-3 mb-4">
-            <CheckCircle2 className="text-green-600" size={20} />
-            <a href={profile.document_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-brand-orange hover:underline flex items-center gap-1">
+          <div className="mb-4 flex items-center gap-2">
+            <CheckCircle2 size={18} className="text-primary" />
+            <a
+              href={profile.document_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+            >
               <FileText size={16} /> View uploaded document
             </a>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground mb-4">No document uploaded yet.</p>
+          <p className="mb-4 text-sm text-muted-foreground">No document uploaded yet.</p>
         )}
 
         <input
@@ -250,13 +313,13 @@ export default function CustomerProfile() {
         />
         <label
           htmlFor="kyc-document-input"
-          className="inline-flex items-center gap-2 cursor-pointer bg-brand-navy text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-opacity-90"
+          className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
         >
           <UploadCloud size={16} />
           {uploading ? 'Uploading...' : profile.document_url ? 'Replace Document' : 'Upload Document'}
         </label>
-        {uploadError && <p className="text-sm text-red-600 mt-2">{uploadError}</p>}
-      </div>
+        {uploadError && <p className="mt-2 text-sm text-red-600">{uploadError}</p>}
+      </section>
     </div>
   );
 }

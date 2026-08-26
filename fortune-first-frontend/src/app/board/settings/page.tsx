@@ -1,12 +1,5 @@
-import { Settings } from 'lucide-react';
-import { ComingSoon } from '@/components/shared/coming-soon';
+import { BoardSettingsPage } from '@/features/board/board-settings-page';
 
-export default function BoardSettingsPage() {
-  return (
-    <ComingSoon
-      icon={Settings}
-      title="Settings"
-      description="Account and notification settings are on the way."
-    />
-  );
+export default function BoardSettingsRoute() {
+  return <BoardSettingsPage />;
 }

@@ -7,10 +7,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import {
   LayoutGrid,
-  ArrowLeftRight,
-  MessageSquareWarning,
+  Bitcoin,
+  UserPlus,
+  FileText,
   Info,
-  Settings,
   LogOut,
   ChevronLeft,
   X,
@@ -21,11 +21,11 @@ import type { AppDispatch } from '@/store/store';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
-  { name: 'Transactions', href: '/dashboard/history', icon: ArrowLeftRight },
-  { name: 'Reports', href: '/dashboard/reports', icon: MessageSquareWarning },
+  { name: 'Dashboard Overview Page', href: '/dashboard', icon: LayoutGrid },
+  { name: 'Investment History', href: '/dashboard/history', icon: Bitcoin },
+  { name: 'Profile & KYC', href: '/dashboard/profile', icon: UserPlus },
+  { name: 'Reports', href: '/dashboard/reports', icon: FileText },
   { name: 'Support', href: '/dashboard/support', icon: Info },
-  { name: 'Profile & KYC', href: '/dashboard/profile', icon: Settings },
 ];
 
 interface DashboardSidebarProps {
@@ -76,11 +76,14 @@ export function DashboardSidebar({ mobileOpen, onClose }: DashboardSidebarProps)
             height={40}
             className="h-10 w-10 shrink-0 rounded-full object-contain"
           />
-          {!collapsed && (
-            <span className="text-lg font-extrabold leading-tight tracking-tight text-foreground">
-              Fortune First
-            </span>
-          )}
+          <span
+            className={cn(
+              'text-lg font-extrabold leading-tight tracking-tight text-foreground',
+              collapsed && 'md:hidden'
+            )}
+          >
+            Fortune First
+          </span>
           <button
             onClick={onClose}
             className="ml-auto text-muted-foreground transition-colors hover:text-foreground md:hidden"
@@ -102,12 +105,12 @@ export function DashboardSidebar({ mobileOpen, onClose }: DashboardSidebarProps)
                 className={cn(
                   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                   active ? 'bg-muted text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  collapsed && 'justify-center'
+                  collapsed && 'md:justify-center'
                 )}
                 title={collapsed ? item.name : undefined}
               >
                 <Icon size={19} strokeWidth={2} className="shrink-0" />
-                {!collapsed && <span>{item.name}</span>}
+                <span className={cn(collapsed && 'md:hidden')}>{item.name}</span>
               </Link>
             );
           })}
@@ -118,11 +121,12 @@ export function DashboardSidebar({ mobileOpen, onClose }: DashboardSidebarProps)
             onClick={handleLogout}
             className={cn(
               'flex w-full items-center gap-3 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-500 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20',
-              collapsed && 'justify-center'
+              collapsed && 'md:justify-center'
             )}
+            title={collapsed ? 'Logout' : undefined}
           >
             <LogOut size={18} className="shrink-0" />
-            {!collapsed && <span>Logout</span>}
+            <span className={cn(collapsed && 'md:hidden')}>Logout</span>
           </button>
         </div>
       </aside>
