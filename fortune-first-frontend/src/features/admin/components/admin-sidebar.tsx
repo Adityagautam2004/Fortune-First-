@@ -8,6 +8,7 @@ import { useDispatch } from 'react-redux';
 import {
   LayoutGrid,
   Users,
+  IdCard,
   UserPlus,
   Landmark,
   ClipboardList,
@@ -28,6 +29,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { name: 'Dashboard Overview', href: '/admin', icon: LayoutGrid },
   { name: 'User Management', href: '/admin/users', icon: Users },
+  { name: 'Client Details', href: '/admin/client-details', icon: IdCard },
   { name: 'Join Requests', href: '/admin/join-requests', icon: UserPlus },
   { name: 'Financial Operations', href: '/admin/financial-operations', icon: Landmark },
   { name: 'Portfolio Dashboard', href: '/admin/portfolio', icon: PieChart },
