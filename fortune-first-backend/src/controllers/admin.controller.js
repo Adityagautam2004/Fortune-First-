@@ -84,10 +84,21 @@ const createUser = async (req, res) => {
       profilePictureUrl = uploaded.secure_url;
     }
 
+    // Client codes (FR-ADMIN-22, e.g. FF06240007) are customer-only.
+    // nextval() is atomic regardless of which query calls it, so computing
+    // it here first (rather than inline in the INSERT) is just as race-safe
+    // — the only cost is a burned, skipped sequence value if the INSERT
+    // below ever fails, which is normal/expected sequence behavior.
+    let clientCode = null;
+    if (role === 'customer') {
+      const { rows } = await db.query(`SELECT to_char(NOW(), 'MMYY') AS mmyy, nextval('client_code_seq') AS seq`);
+      clientCode = `FF${rows[0].mmyy}${String(rows[0].seq).padStart(4, '0')}`;
+    }
+
     const newUser = await db.query(
-      `INSERT INTO users (name, email, password_hash, role, phone, assigned_to, must_change_password, profile_picture_url)
-       VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7) RETURNING id, name, email, profile_picture_url`,
-      [name, email, hashedPassword, role, phone, assignedTo || null, profilePictureUrl]
+      `INSERT INTO users (name, email, password_hash, role, phone, assigned_to, must_change_password, profile_picture_url, client_code)
+       VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7, $8) RETURNING id, name, email, profile_picture_url, client_code`,
+      [name, email, hashedPassword, role, phone, assignedTo || null, profilePictureUrl, clientCode]
     );
 
     // FR-ADMIN-11: final onboarding step — the account now exists, so the

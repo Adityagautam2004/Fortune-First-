@@ -10,6 +10,7 @@ interface BoardClient {
   email: string;
   phone: string | null;
   total_invested: string;
+  client_code?: string | null;
 }
 
 interface ClientListPageProps {
@@ -41,6 +42,7 @@ export function ClientListPage({ basePath, title = 'Clients' }: ClientListPagePr
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-brand-surface text-foreground">
+              <th className="p-4 text-sm font-medium">Client ID</th>
               <th className="p-4 text-sm font-medium">Name</th>
               <th className="p-4 text-sm font-medium">Email</th>
               <th className="p-4 text-sm font-medium">Phone</th>
@@ -50,11 +52,12 @@ export function ClientListPage({ basePath, title = 'Clients' }: ClientListPagePr
           </thead>
           <tbody className="divide-y divide-border">
             {loading ? (
-              <tr><td colSpan={5} className="p-4 text-center">Loading clients...</td></tr>
+              <tr><td colSpan={6} className="p-4 text-center">Loading clients...</td></tr>
             ) : clients.length === 0 ? (
-              <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">No clients found.</td></tr>
+              <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No clients found.</td></tr>
             ) : clients.map((client) => (
               <tr key={client.id} className="hover:bg-muted">
+                <td className="p-4 text-sm font-mono text-muted-foreground">{client.client_code || '—'}</td>
                 <td className="p-4 text-sm font-medium">{client.name}</td>
                 <td className="p-4 text-sm">{client.email}</td>
                 <td className="p-4 text-sm">{client.phone || 'N/A'}</td>

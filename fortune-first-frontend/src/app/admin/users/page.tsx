@@ -13,6 +13,7 @@ interface AdminUser {
   role: string;
   is_active: boolean;
   profile_picture_url?: string | null;
+  client_code?: string | null;
 }
 
 interface KycData {
@@ -106,6 +107,7 @@ export default function AdminUsersPage() {
           <thead>
             <tr className="bg-brand-surface text-foreground">
               <th className="p-4 text-sm font-medium">Name</th>
+              <th className="p-4 text-sm font-medium">Client ID</th>
               <th className="p-4 text-sm font-medium">Email</th>
               <th className="p-4 text-sm font-medium">Role</th>
               <th className="p-4 text-sm font-medium">Status</th>
@@ -121,6 +123,7 @@ export default function AdminUsersPage() {
                     {u.name}
                   </div>
                 </td>
+                <td className="p-4 text-sm font-mono text-muted-foreground">{u.client_code || '—'}</td>
                 <td className="p-4 text-sm">{u.email}</td>
                 <td className="p-4 text-sm capitalize">{u.role.replace('_', ' ')}</td>
                 <td className="p-4 text-sm">
@@ -149,6 +152,7 @@ export default function AdminUsersPage() {
               <div className="min-w-0">
                 <p className="truncate font-semibold text-foreground">{u.name}</p>
                 <p className="truncate text-sm text-muted-foreground">{u.email}</p>
+                {u.client_code && <p className="mt-0.5 font-mono text-xs text-muted-foreground">{u.client_code}</p>}
               </div>
               <span
                 className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${

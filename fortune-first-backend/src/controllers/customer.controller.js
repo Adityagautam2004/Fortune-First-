@@ -104,7 +104,7 @@ const getProfile = async (req, res) => {
     const customerId = req.user.userId;
 
     const profileQuery = await db.query(
-      `SELECT u.name, u.email, u.phone, u.created_at, u.profile_picture_url,
+      `SELECT u.name, u.email, u.phone, u.created_at, u.profile_picture_url, u.client_code,
               k.pan_number_enc, k.bank_name, k.account_number_enc, k.ifsc_code,
               k.upi_id, k.date_of_birth, k.document_url, k.verified
        FROM users u

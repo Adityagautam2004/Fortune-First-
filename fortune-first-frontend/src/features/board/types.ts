@@ -6,6 +6,7 @@ export interface BoardClient {
   is_active: boolean;
   created_at: string;
   profile_picture_url?: string | null;
+  client_code?: string | null;
   relationship_manager: string | null;
   total_invested: number | string;
   active_mandates: number | string;
@@ -19,6 +20,7 @@ export interface ClientProfile {
   is_active: boolean;
   created_at: string;
   profile_picture_url?: string | null;
+  client_code?: string | null;
   relationship_manager: string | null;
 }
 
