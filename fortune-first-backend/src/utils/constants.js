@@ -40,6 +40,12 @@ const TRANSACTION_TYPE = Object.freeze({
   PAYOUT: 'payout',
 });
 
+// stock_transactions.transaction_type (firm-wide portfolio, FR-PORTFOLIO-01)
+const STOCK_TRANSACTION_TYPE = Object.freeze({
+  BUY: 'buy',
+  SELL: 'sell',
+});
+
 // Minimum investment amount enforced by the DB CHECK constraint
 const MIN_INVESTMENT_AMOUNT = 5000;
 
@@ -49,5 +55,6 @@ module.exports = {
   WITHDRAWAL_STATUS,
   PAYOUT_STATUS,
   TRANSACTION_TYPE,
+  STOCK_TRANSACTION_TYPE,
   MIN_INVESTMENT_AMOUNT,
 };

@@ -8,7 +8,9 @@ const {
   getClientActiveInvestments, getClientDetail, getPendingPayouts,
   sendClientReport, sendClientEmail, getBoardReturnRate,
 } = require('../controllers/board.controller');
-const { getLivePortfolio, addPosition, removePosition } = require('../controllers/portfolio.controller');
+const {
+  searchStocks, getPortfolio, getBusinessHeads, addStock, buyMoreStock, sellStock, getFundsTransactions,
+} = require('../controllers/stockPortfolio.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireRole } = require('../middleware/role.middleware');
 const { uploadImage } = require('../middleware/upload.middleware');
@@ -28,6 +30,18 @@ const withdrawalSchema = Joi.object({
   withdrawalDate: Joi.date().iso().required(),
   weekOfMonth: Joi.number().integer().min(1).max(4).allow(null),
   notes: Joi.string().max(500).allow('', null),
+});
+
+const addStockSchema = Joi.object({
+  symbol: Joi.string().trim().max(20).required(),
+  companyName: Joi.string().trim().max(255).required(),
+  quantity: Joi.number().greater(0).required(),
+  price: Joi.number().greater(0).required(),
+});
+
+const stockTradeSchema = Joi.object({
+  quantity: Joi.number().greater(0).required(),
+  price: Joi.number().greater(0).required(),
 });
 
 router.use(requireAuth);
@@ -52,18 +66,19 @@ router.post(
   sendClientEmail
 );
 
-// ── Investments (FR-INV-01/APPROVAL) — only investment_head may create ────
+// ── Investments (FR-INV-01/APPROVAL) — investment_head or super_admin may
+// create one; business_head cannot (its own domain is the stock portfolio) ─
 router.post(
   '/investments',
-  requireRole('investment_head'),
+  requireRole('investment_head', 'super_admin'),
   uploadImage.single('screenshot'),
   validate(investmentSchema),
   addInvestment
 );
 router.get('/investments', getBoardInvestments);
 
-// ── Withdrawals (FR-WD-01..03) — only investment_head may request one ─────
-router.post('/withdrawals', requireRole('investment_head'), validate(withdrawalSchema), addWithdrawal);
+// ── Withdrawals (FR-WD-01..03) — investment_head or super_admin only ──────
+router.post('/withdrawals', requireRole('investment_head', 'super_admin'), validate(withdrawalSchema), addWithdrawal);
 router.get('/withdrawals', getBoardWithdrawals);
 
 // ── Payouts ────────────────────────────────────────────────────────────────
@@ -77,7 +92,15 @@ router.get('/transactions', getBoardTransactions);
 
 router.get('/chat/contacts', getChatContacts);
 router.get('/chat/:conversationId', getChatHistory);
-router.get('/portfolio', getLivePortfolio);
-router.post('/portfolio', addPosition);
-router.delete('/portfolio/:id', removePosition);
+
+// ── Firm-wide stock portfolio (FR-PORTFOLIO-01) — everyone here can view;
+// only business_head can add/buy-more/sell ────────────────────────────────
+router.get('/stocks/search', requireRole('business_head'), searchStocks);
+router.get('/portfolio/business-heads', getBusinessHeads);
+router.get('/portfolio', getPortfolio);
+router.post('/portfolio', requireRole('business_head'), validate(addStockSchema), addStock);
+router.post('/portfolio/:id/buy', requireRole('business_head'), validate(stockTradeSchema), buyMoreStock);
+router.post('/portfolio/:id/sell', requireRole('business_head'), validate(stockTradeSchema), sellStock);
+router.get('/funds-transactions', getFundsTransactions);
+
 module.exports = router;

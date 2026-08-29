@@ -13,7 +13,7 @@ import type { AppDispatch } from '@/store/store';
 
 const ROLE_LABELS: Record<string, string> = {
   investment_head: 'Investment Head',
-  business_head: 'Board Member',
+  business_head: 'Business Head',
 };
 
 export function BoardSettingsPage() {
@@ -22,7 +22,7 @@ export function BoardSettingsPage() {
   const [uploadingPicture, setUploadingPicture] = useState(false);
   const pictureInputRef = useRef<HTMLInputElement>(null);
 
-  const displayName = user?.name || 'Board Member';
+  const displayName = user?.name || 'Business Head';
 
   const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
