@@ -23,7 +23,7 @@ export function ClientInfoCard({ profile }: ClientInfoCardProps) {
         />
         <div className="min-w-0">
           <h2 className="truncate text-xl font-extrabold text-foreground">{profile.name}</h2>
-          <p className="text-sm text-muted-foreground">{profile.id.slice(0, 8).toUpperCase()}</p>
+          <p className="text-sm text-muted-foreground">{profile.client_code || profile.id.slice(0, 8).toUpperCase()}</p>
           <div className="mt-1.5 flex flex-col gap-0.5 text-xs text-muted-foreground sm:flex-row sm:gap-4">
             <span className="inline-flex items-center gap-1.5">
               <Mail size={12} /> {profile.email}

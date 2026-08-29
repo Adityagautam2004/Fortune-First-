@@ -15,7 +15,7 @@ const getAssignedClients = async (req, res) => {
     const userRole = req.user.role;
 
     let queryStr = `
-      SELECT u.id, u.name, u.email, u.phone, u.is_active, u.created_at, u.profile_picture_url,
+      SELECT u.id, u.name, u.email, u.phone, u.is_active, u.created_at, u.profile_picture_url, u.client_code,
              am.name AS relationship_manager,
              COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0)
                - COALESCE((SELECT SUM(w.amount) FROM withdrawals w WHERE w.customer_id = u.id AND w.status = 'completed'), 0)
@@ -446,7 +446,7 @@ const getClientDetail = async (req, res) => {
     const { id } = req.params;
 
     const profileRes = await db.query(
-      `SELECT u.id, u.name, u.email, u.phone, u.is_active, u.created_at, u.profile_picture_url,
+      `SELECT u.id, u.name, u.email, u.phone, u.is_active, u.created_at, u.profile_picture_url, u.client_code,
               am.name AS relationship_manager
        FROM users u
        LEFT JOIN users am ON am.id = u.assigned_to
