@@ -66,18 +66,19 @@ router.post(
   sendClientEmail
 );
 
-// ── Investments (FR-INV-01/APPROVAL) — only investment_head may create ────
+// ── Investments (FR-INV-01/APPROVAL) — investment_head or super_admin may
+// create one; business_head cannot (its own domain is the stock portfolio) ─
 router.post(
   '/investments',
-  requireRole('investment_head'),
+  requireRole('investment_head', 'super_admin'),
   uploadImage.single('screenshot'),
   validate(investmentSchema),
   addInvestment
 );
 router.get('/investments', getBoardInvestments);
 
-// ── Withdrawals (FR-WD-01..03) — only investment_head may request one ─────
-router.post('/withdrawals', requireRole('investment_head'), validate(withdrawalSchema), addWithdrawal);
+// ── Withdrawals (FR-WD-01..03) — investment_head or super_admin only ──────
+router.post('/withdrawals', requireRole('investment_head', 'super_admin'), validate(withdrawalSchema), addWithdrawal);
 router.get('/withdrawals', getBoardWithdrawals);
 
 // ── Payouts ────────────────────────────────────────────────────────────────

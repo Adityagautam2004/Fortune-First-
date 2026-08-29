@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { IndianRupee, FileText, PieChart, Percent } from 'lucide-react';
 
 import api from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import { ClientInfoCard } from './components/client-info-card';
 import { ClientStatTile } from './components/client-stat-tile';
 import { InvestmentHistoryTable } from './components/investment-history-table';
@@ -22,6 +23,13 @@ interface ClientDetailPageProps {
 }
 
 export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
+  const { user } = useAuth();
+  // Quick Actions (Add Investment/Withdrawal) is for investment_head and
+  // super_admin — business_head's domain is the stock portfolio, not client
+  // investments, so it's hidden for them (matches the server-side gate on
+  // POST /board/investments and /board/withdrawals).
+  const canManageClient = user?.role === 'investment_head' || user?.role === 'super_admin';
+
   const [detail, setDetail] = useState<ClientDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -65,29 +73,35 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
         <ClientStatTile icon={Percent} label="Total Returns (YTD)" value={formatCrore(totalReturnsYtd)} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+      <div className={canManageClient ? 'grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]' : 'space-y-6'}>
         <div className="space-y-6">
           <InvestmentHistoryTable investments={detail.investments} />
           <WithdrawalHistoryTable withdrawals={detail.withdrawals} />
         </div>
-        <QuickActionsCard
-          onAddInvestment={() => setModalOpen(true)}
-          onAddWithdrawal={() => setWithdrawalModalOpen(true)}
-        />
+        {canManageClient && (
+          <QuickActionsCard
+            onAddInvestment={() => setModalOpen(true)}
+            onAddWithdrawal={() => setWithdrawalModalOpen(true)}
+          />
+        )}
       </div>
 
-      <AddInvestmentModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        customerId={clientId}
-        onSuccess={fetchDetail}
-      />
-      <AddWithdrawalModal
-        isOpen={withdrawalModalOpen}
-        onClose={() => setWithdrawalModalOpen(false)}
-        customerId={clientId}
-        onSuccess={fetchDetail}
-      />
+      {canManageClient && (
+        <>
+          <AddInvestmentModal
+            isOpen={modalOpen}
+            onClose={() => setModalOpen(false)}
+            customerId={clientId}
+            onSuccess={fetchDetail}
+          />
+          <AddWithdrawalModal
+            isOpen={withdrawalModalOpen}
+            onClose={() => setWithdrawalModalOpen(false)}
+            customerId={clientId}
+            onSuccess={fetchDetail}
+          />
+        </>
+      )}
     </div>
   );
 }

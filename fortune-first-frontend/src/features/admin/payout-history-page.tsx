@@ -18,10 +18,17 @@ function formatRupees(value: number) {
   return `₹${Math.round(value).toLocaleString('en-IN')}`;
 }
 
+interface PayoutHistoryPageProps {
+  /** GET /admin/payouts (super_admin) by default; the board panel's Monthly
+   * Payout page passes GET /board/payouts instead — same shape, scoped for
+   * investment_head/business_head server-side. */
+  endpoint?: string;
+}
+
 // Flat, firm-wide record of every processed payout — fed by GET /admin/payouts,
 // which replaced the old per-investment-only endpoint nothing in the
 // frontend actually called.
-export function PayoutHistoryPage() {
+export function PayoutHistoryPage({ endpoint = '/admin/payouts' }: PayoutHistoryPageProps) {
   const [payouts, setPayouts] = useState<AdminPayoutRow[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [page, setPage] = useState(1);
@@ -30,14 +37,14 @@ export function PayoutHistoryPage() {
   useEffect(() => {
     setLoading(true);
     api
-      .get('/admin/payouts', { params: { page, limit: 15 } })
+      .get(endpoint, { params: { page, limit: 15 } })
       .then((res) => {
         setPayouts(res.data.data.payouts || []);
         setPagination(res.data.data.pagination);
       })
       .catch((error) => console.error('Failed to load payout history', error))
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [endpoint, page]);
 
   return (
     <div className="space-y-4">

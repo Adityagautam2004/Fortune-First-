@@ -1,12 +1,5 @@
-import { User } from 'lucide-react';
-import { ComingSoon } from '@/components/shared/coming-soon';
+import { ClientListPage } from '@/features/clients/client-list-page';
 
-export default function ClientDetailsPage() {
-  return (
-    <ComingSoon
-      icon={User}
-      title="Client Details"
-      description="A firm-wide client directory is on the way."
-    />
-  );
+export default function AdminClientDetailsPage() {
+  return <ClientListPage basePath="/admin/client-details" title="Client Details" />;
 }

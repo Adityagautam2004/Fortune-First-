@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Plus, ArrowLeftRight } from 'lucide-react';
 
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -25,6 +27,8 @@ function formatRupees(value: number) {
 export function PortfolioDashboardPage() {
   const { user } = useAuth();
   const canTrade = user?.role === 'business_head';
+  const pathname = usePathname();
+  const fundsTransactionsHref = pathname?.startsWith('/admin') ? '/admin/funds-transactions' : '/board/funds-transactions';
 
   const [positions, setPositions] = useState<StockPosition[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
@@ -75,7 +79,15 @@ export function PortfolioDashboardPage() {
           colored P&L pill, and invested/count as small secondary text —
           not a grid of icon tiles. */}
       <div className="rounded-2xl border border-brand-border bg-card p-5">
-        <p className="text-xs font-medium text-muted-foreground">Current Value</p>
+        <div className="flex items-start justify-between">
+          <p className="text-xs font-medium text-muted-foreground">Current Value</p>
+          <Link
+            href={fundsTransactionsHref}
+            className="-mt-1 flex items-center gap-1 rounded-full border border-brand-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors active:bg-muted sm:hidden"
+          >
+            <ArrowLeftRight size={12} /> Transactions
+          </Link>
+        </div>
         <p className="mt-1 text-3xl font-extrabold text-foreground">
           {summary ? formatRupees(summary.current_value) : '—'}
         </p>
