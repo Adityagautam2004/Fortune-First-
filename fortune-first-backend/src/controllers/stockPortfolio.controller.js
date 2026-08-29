@@ -145,6 +145,24 @@ const getFundsTransactions = async (req, res) => {
   }
 };
 
+// DELETE /admin/funds-transactions/:id — super_admin only (admin.routes.js's
+// router-level gate). Removes a log entry; does not touch the position.
+const deleteFundsTransaction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await fundsTransactionService.deleteTransaction(id);
+    await db.query(
+      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, old_value, ip)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [req.user.userId, 'DELETE', 'stock_transaction', id, JSON.stringify(deleted), req.ip]
+    );
+    return res.status(200).json({ status: 'success', message: 'Transaction deleted' });
+  } catch (error) {
+    console.error('Delete Funds Transaction Error:', error);
+    return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to delete transaction' });
+  }
+};
+
 module.exports = {
   searchStocks,
   getPortfolio,
@@ -153,4 +171,5 @@ module.exports = {
   buyMoreStock,
   sellStock,
   getFundsTransactions,
+  deleteFundsTransaction,
 };

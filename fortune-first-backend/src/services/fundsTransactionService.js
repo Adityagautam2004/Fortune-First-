@@ -1,4 +1,5 @@
 const db = require('../models/db');
+const ApiError = require('../utils/apiError');
 
 /**
  * Paginated stock buy/sell log ("Funds Transactions"), plus summary
@@ -79,4 +80,18 @@ const getTransactions = async ({ businessHeadId, type, outcome, dateFrom, dateTo
   };
 };
 
-module.exports = { getTransactions };
+/**
+ * Deletes a log entry outright — this is a correction tool for a bad/duplicate
+ * entry, not a trade reversal: the associated position's quantity/average
+ * price is intentionally left untouched (recomputing it correctly would mean
+ * replaying every other transaction on that position, which is out of scope
+ * for "remove this row"). super_admin only, enforced at the route level.
+ * @param {string} id
+ */
+const deleteTransaction = async (id) => {
+  const { rows } = await db.query(`DELETE FROM stock_transactions WHERE id = $1 RETURNING *`, [id]);
+  if (!rows[0]) throw ApiError.notFound('Transaction not found');
+  return rows[0];
+};
+
+module.exports = { getTransactions, deleteTransaction };

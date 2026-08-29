@@ -17,6 +17,7 @@ const {
   createPublicReturn, updatePublicReturn, deletePublicReturn,
 }= require('../controllers/admin.controller');
 const { getChatHistory, getChatContacts } = require('../controllers/board.controller');
+const { deleteFundsTransaction } = require('../controllers/stockPortfolio.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const {requireRole}=require('../middleware/role.middleware')
 const { uploadImage } = require('../middleware/upload.middleware');
@@ -106,8 +107,10 @@ router.get('/return-rate', getReturnRate);
 router.patch('/return-rate', setReturnRate);
 
 // ── Support, chat (reused board logic) ─────────────────────
-// Portfolio/funds-transactions have no separate /admin/* mount — super_admin
-// already reaches them via /board/* (its role gate includes super_admin).
+// Viewing/adding portfolio positions has no separate /admin/* mount — super_admin
+// already reaches those via /board/* (its role gate includes super_admin).
+// Deleting a funds-transaction log entry is admin-exclusive, so it lives here.
+router.delete('/funds-transactions/:id', deleteFundsTransaction);
 router.get('/support', getAllSupportTickets);
 router.patch('/support/:id/resolve', resolveSupportTicket);
 router.patch(
