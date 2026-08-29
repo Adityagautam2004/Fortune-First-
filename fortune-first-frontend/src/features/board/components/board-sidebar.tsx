@@ -13,6 +13,7 @@ import {
   Wallet,
   Banknote,
   PieChart,
+  Receipt,
   MessageSquareWarning,
   MessageCircle,
   LogOut,
@@ -41,6 +42,7 @@ const navItems = [
   { name: 'Monthly Payout', href: '/board/payouts', icon: Wallet },
   { name: 'Withdrawal', href: '/board/withdrawal', icon: Banknote },
   { name: 'Portfolio Dashboard', href: '/board/portfolio', icon: PieChart },
+  { name: 'Funds Transactions', href: '/board/funds-transactions', icon: Receipt },
   { name: 'Reports', href: '/board/reports', icon: MessageSquareWarning },
   { name: 'Secure Messages', href: '/board/chat', icon: MessageCircle },
 ];
@@ -62,7 +64,7 @@ export function BoardSidebar({ mobileOpen, onClose }: BoardSidebarProps) {
     router.push('/login');
   };
 
-  const displayName = user?.name || 'Board Member';
+  const displayName = user?.name || 'Business Head';
 
   return (
     <>
@@ -144,7 +146,7 @@ export function BoardSidebar({ mobileOpen, onClose }: BoardSidebarProps) {
             {!collapsed && (
               <div className="min-w-0 leading-tight">
                 <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
-                <p className="text-xs text-muted-foreground">{(user?.role && ROLE_LABELS[user.role]) || 'Board Member'}</p>
+                <p className="text-xs text-muted-foreground">{(user?.role && ROLE_LABELS[user.role]) || 'Business Head'}</p>
               </div>
             )}
           </div>

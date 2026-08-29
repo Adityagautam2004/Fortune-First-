@@ -36,11 +36,10 @@ function TicketStatusBadge({ status }: { status: string }) {
   const isResolved = status === 'Resolved';
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
-        isResolved
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${isResolved
           ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400'
           : 'border-red-200 bg-red-50 text-red-500 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400'
-      }`}
+        }`}
     >
       {status}
     </span>
@@ -154,7 +153,7 @@ export default function SupportPage() {
                 <Mail size={16} />
               </span>
               <p className="text-sm text-foreground">
-                When you raise a new ticket, your assigned board member will receive an email notification.
+                When you raise a new ticket, your assigned Business Head will receive an email notification.
               </p>
             </li>
             <li className="flex items-start gap-3">
@@ -226,9 +225,8 @@ export default function SupportPage() {
               <button
                 key={n}
                 onClick={() => setPage(n)}
-                className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${
-                  n === page ? 'bg-primary text-white' : 'border border-brand-border text-muted-foreground hover:bg-muted'
-                }`}
+                className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${n === page ? 'bg-primary text-white' : 'border border-brand-border text-muted-foreground hover:bg-muted'
+                  }`}
               >
                 {n}
               </button>

@@ -10,14 +10,14 @@ import { BoardSidebar } from './board-sidebar';
 
 const ROLE_LABELS: Record<string, string> = {
   investment_head: 'Investment Head',
-  business_head: 'Board Member',
+  business_head: 'Business Head',
 };
 
 export function BoardShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuth();
 
-  const displayName = user?.name || 'Board Member';
+  const displayName = user?.name || 'Business Head';
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-surface">
@@ -44,7 +44,7 @@ export function BoardShell({ children }: { children: React.ReactNode }) {
               <Avatar src={user?.profilePictureUrl} name={displayName} size={36} />
               <div className="hidden leading-tight sm:block">
                 <p className="text-sm font-semibold text-foreground">{displayName}</p>
-                <p className="text-xs text-muted-foreground">{(user?.role && ROLE_LABELS[user.role]) || 'Board Member'}</p>
+                <p className="text-xs text-muted-foreground">{(user?.role && ROLE_LABELS[user.role]) || 'Business Head'}</p>
               </div>
             </div>
           </div>

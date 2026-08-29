@@ -6,7 +6,7 @@ const validate = require('../middleware/validate');
 const {
   getUsers, createUser, getUserByIdAdmin, updateUserAdmin, toggleUserActiveAdmin,
   getUserKYC, verifyUserKYC,
-  getJoinRequests, updateJoinRequestStatus, getDashboardStats, removePosition,
+  getJoinRequests, updateJoinRequestStatus, getDashboardStats,
   getAllSupportTickets, resolveSupportTicket, assignSupportTicket,
   getAllInvestmentsAdmin, getInvestmentByIdAdmin, updateInvestmentStatusAdmin,
   getAdminWithdrawals, updateWithdrawalStatusAdmin, getAdminPayouts, getAdminTransactions,
@@ -105,8 +105,9 @@ router.get('/transactions', getAdminTransactions);
 router.get('/return-rate', getReturnRate);
 router.patch('/return-rate', setReturnRate);
 
-// ── Portfolio, support, chat (reused board logic) ─────────
-router.delete('/portfolio/:id', removePosition);
+// ── Support, chat (reused board logic) ─────────────────────
+// Portfolio/funds-transactions have no separate /admin/* mount — super_admin
+// already reaches them via /board/* (its role gate includes super_admin).
 router.get('/support', getAllSupportTickets);
 router.patch('/support/:id/resolve', resolveSupportTicket);
 router.patch(

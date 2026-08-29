@@ -8,7 +8,9 @@ const {
   getClientActiveInvestments, getClientDetail, getPendingPayouts,
   sendClientReport, sendClientEmail, getBoardReturnRate,
 } = require('../controllers/board.controller');
-const { getLivePortfolio, addPosition, removePosition } = require('../controllers/portfolio.controller');
+const {
+  searchStocks, getPortfolio, getBusinessHeads, addStock, buyMoreStock, sellStock, getFundsTransactions,
+} = require('../controllers/stockPortfolio.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireRole } = require('../middleware/role.middleware');
 const { uploadImage } = require('../middleware/upload.middleware');
@@ -28,6 +30,18 @@ const withdrawalSchema = Joi.object({
   withdrawalDate: Joi.date().iso().required(),
   weekOfMonth: Joi.number().integer().min(1).max(4).allow(null),
   notes: Joi.string().max(500).allow('', null),
+});
+
+const addStockSchema = Joi.object({
+  symbol: Joi.string().trim().max(20).required(),
+  companyName: Joi.string().trim().max(255).required(),
+  quantity: Joi.number().greater(0).required(),
+  price: Joi.number().greater(0).required(),
+});
+
+const stockTradeSchema = Joi.object({
+  quantity: Joi.number().greater(0).required(),
+  price: Joi.number().greater(0).required(),
 });
 
 router.use(requireAuth);
@@ -77,7 +91,15 @@ router.get('/transactions', getBoardTransactions);
 
 router.get('/chat/contacts', getChatContacts);
 router.get('/chat/:conversationId', getChatHistory);
-router.get('/portfolio', getLivePortfolio);
-router.post('/portfolio', addPosition);
-router.delete('/portfolio/:id', removePosition);
+
+// ── Firm-wide stock portfolio (FR-PORTFOLIO-01) — everyone here can view;
+// only business_head can add/buy-more/sell ────────────────────────────────
+router.get('/stocks/search', requireRole('business_head'), searchStocks);
+router.get('/portfolio/business-heads', getBusinessHeads);
+router.get('/portfolio', getPortfolio);
+router.post('/portfolio', requireRole('business_head'), validate(addStockSchema), addStock);
+router.post('/portfolio/:id/buy', requireRole('business_head'), validate(stockTradeSchema), buyMoreStock);
+router.post('/portfolio/:id/sell', requireRole('business_head'), validate(stockTradeSchema), sellStock);
+router.get('/funds-transactions', getFundsTransactions);
+
 module.exports = router;
