@@ -18,8 +18,8 @@ type Mode = 'sell' | 'buy';
 
 export function PositionActionModal({ position, onClose, onSuccess }: PositionActionModalProps) {
   const [mode, setMode] = useState<Mode>('sell');
-  const [quantity, setQuantity] = useState(1);
-  const [price, setPrice] = useState(0);
+  const [quantity, setQuantity] = useState<number | ''>('');
+  const [price, setPrice] = useState<number | ''>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,8 +27,8 @@ export function PositionActionModal({ position, onClose, onSuccess }: PositionAc
 
   const resetAndClose = () => {
     setMode('sell');
-    setQuantity(1);
-    setPrice(0);
+    setQuantity('');
+    setPrice('');
     setError('');
     onClose();
   };
@@ -37,6 +37,10 @@ export function PositionActionModal({ position, onClose, onSuccess }: PositionAc
     e.preventDefault();
     setError('');
 
+    if (quantity === '' || price === '') {
+      setError('Enter both quantity and price.');
+      return;
+    }
     if (mode === 'sell' && quantity > position.quantity) {
       setError(`Cannot sell ${quantity} shares — only ${position.quantity} currently held.`);
       return;
@@ -54,7 +58,9 @@ export function PositionActionModal({ position, onClose, onSuccess }: PositionAc
     }
   };
 
-  const estimatedPnl = mode === 'sell' ? (price - position.average_price) * quantity : null;
+  const quantityNum = quantity === '' ? 0 : quantity;
+  const priceNum = price === '' ? 0 : price;
+  const estimatedPnl = mode === 'sell' ? (priceNum - position.average_price) * quantityNum : null;
 
   return (
     <Modal isOpen={!!position} onClose={resetAndClose} title={`${position.symbol} — ${position.company_name}`} size="md">
@@ -101,18 +107,34 @@ export function PositionActionModal({ position, onClose, onSuccess }: PositionAc
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-sm font-semibold text-foreground">
-              Quantity {mode === 'sell' && `(max ${position.quantity})`}
-            </label>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="block text-sm font-semibold text-foreground">
+                Quantity {mode === 'sell' && `(max ${position.quantity})`}
+              </label>
+              {mode === 'sell' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuantity(position.quantity);
+                    if (position.current_price !== null) setPrice(position.current_price);
+                  }}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  Sell All
+                </button>
+              )}
+            </div>
             <input
               type="number"
               min={0.0001}
               max={mode === 'sell' ? position.quantity : undefined}
               step="any"
               required
+              placeholder="e.g. 10"
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              onChange={(e) => setQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+              onWheel={(e) => e.currentTarget.blur()}
+              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
           <div>
@@ -124,22 +146,24 @@ export function PositionActionModal({ position, onClose, onSuccess }: PositionAc
               min={0.01}
               step="any"
               required
+              placeholder="e.g. 250.50"
               value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
-              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+              onWheel={(e) => e.currentTarget.blur()}
+              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
         </div>
 
-        {mode === 'sell' && price > 0 && (
+        {mode === 'sell' && priceNum > 0 && (
           <p className={cn('text-sm font-semibold', (estimatedPnl ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-600')}>
             Estimated {(estimatedPnl ?? 0) >= 0 ? 'profit' : 'loss'}: ₹{Math.abs(estimatedPnl ?? 0).toLocaleString('en-IN')}
           </p>
         )}
-        {mode === 'buy' && price > 0 && (
+        {mode === 'buy' && priceNum > 0 && (
           <p className="text-sm text-muted-foreground">
             New average price will be ₹
-            {(((position.quantity * position.average_price) + quantity * price) / (position.quantity + quantity)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+            {(((position.quantity * position.average_price) + quantityNum * priceNum) / (position.quantity + quantityNum)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </p>
         )}
 

@@ -6,7 +6,7 @@ import { Search, Loader2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
-import { getErrorMessage } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { StockSearchResult } from '../types';
 
@@ -16,6 +16,8 @@ interface AddStockModalProps {
   onSuccess: () => void;
 }
 
+type OrderType = 'regular' | 'mtf';
+
 export function AddStockModal({ isOpen, onClose, onSuccess }: AddStockModalProps) {
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 350);
@@ -24,8 +26,9 @@ export function AddStockModal({ isOpen, onClose, onSuccess }: AddStockModalProps
   const [showResults, setShowResults] = useState(false);
 
   const [selected, setSelected] = useState<StockSearchResult | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [price, setPrice] = useState(0);
+  const [orderType, setOrderType] = useState<OrderType>('regular');
+  const [quantity, setQuantity] = useState<number | ''>('');
+  const [price, setPrice] = useState<number | ''>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -58,8 +61,9 @@ export function AddStockModal({ isOpen, onClose, onSuccess }: AddStockModalProps
     setQuery('');
     setResults([]);
     setSelected(null);
-    setQuantity(1);
-    setPrice(0);
+    setOrderType('regular');
+    setQuantity('');
+    setPrice('');
     setError('');
   };
 
@@ -73,6 +77,10 @@ export function AddStockModal({ isOpen, onClose, onSuccess }: AddStockModalProps
     e.preventDefault();
     if (!selected) {
       setError('Search for a stock and select it from the list first.');
+      return;
+    }
+    if (quantity === '' || price === '') {
+      setError('Enter both quantity and price per share.');
       return;
     }
     setError('');
@@ -139,6 +147,32 @@ export function AddStockModal({ isOpen, onClose, onSuccess }: AddStockModalProps
           )}
         </div>
 
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-foreground">Order Type</label>
+          <div className="flex rounded-lg border border-brand-border p-1">
+            <button
+              type="button"
+              onClick={() => setOrderType('regular')}
+              className={cn(
+                'flex-1 rounded-md py-1.5 text-sm font-semibold transition-colors',
+                orderType === 'regular' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Regular
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrderType('mtf')}
+              className={cn(
+                'flex-1 rounded-md py-1.5 text-sm font-semibold transition-colors',
+                orderType === 'mtf' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              MTF
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1 block text-sm font-semibold text-foreground">Quantity</label>
@@ -147,9 +181,11 @@ export function AddStockModal({ isOpen, onClose, onSuccess }: AddStockModalProps
               min={0.0001}
               step="any"
               required
+              placeholder="e.g. 10"
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              onChange={(e) => setQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+              onWheel={(e) => e.currentTarget.blur()}
+              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
           <div>
@@ -159,9 +195,11 @@ export function AddStockModal({ isOpen, onClose, onSuccess }: AddStockModalProps
               min={0.01}
               step="any"
               required
+              placeholder="e.g. 250.50"
               value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
-              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+              onWheel={(e) => e.currentTarget.blur()}
+              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
         </div>

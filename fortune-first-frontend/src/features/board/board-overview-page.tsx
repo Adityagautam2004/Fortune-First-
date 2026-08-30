@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Landmark, IndianRupee, Activity, ArrowLeftRight, TriangleAlert, Equal, Wallet, UserPlus, Download } from 'lucide-react';
+import { Landmark, IndianRupee, Activity, ArrowLeftRight, Download } from 'lucide-react';
 
 import api from '@/lib/api';
 import { downloadCsv } from '@/lib/csv';
@@ -10,8 +10,8 @@ import { ClientFilters, type ClientFiltersState } from './components/client-filt
 import { ClientSummaryTable } from './components/client-summary-table';
 import type { BoardClient, BoardStats } from './types';
 
-function formatCrore(value: number) {
-  return `₹${(value / 1e7).toFixed(2)} Cr`;
+function formatLakh(value: number) {
+  return `₹${(value / 1e5).toFixed(2)} L`;
 }
 
 // Built from local Y/M/D components (not toISOString(), which converts to UTC and can
@@ -124,25 +124,25 @@ export function BoardOverviewPage() {
           <h1 className="text-2xl font-extrabold text-foreground">Board Overview</h1>
           <p className="mt-1 text-sm text-muted-foreground">Get a consolidated view of your business and clients.</p>
         </div>
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:shrink-0">
           <div className="flex items-center gap-2 rounded-lg border border-brand-border px-3 py-2 text-sm text-foreground">
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border-none bg-transparent p-0 text-sm text-foreground focus:outline-none"
+              className="w-full min-w-0 border-none bg-transparent p-0 text-sm text-foreground focus:outline-none"
             />
-            <span className="text-muted-foreground">-</span>
+            <span className="shrink-0 text-muted-foreground">-</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="border-none bg-transparent p-0 text-sm text-foreground focus:outline-none"
+              className="w-full min-w-0 border-none bg-transparent p-0 text-sm text-foreground focus:outline-none"
             />
           </div>
           <button
             onClick={handleExportReport}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
           >
             <Download size={16} />
             Export Report
@@ -152,13 +152,9 @@ export function BoardOverviewPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
         <BoardStatTile icon={Landmark} label="Total Clients" value={Number(stats?.total_clients ?? 0).toLocaleString('en-IN')} />
-        <BoardStatTile icon={IndianRupee} label="AUM" value={formatCrore(totalAum)} />
+        <BoardStatTile icon={IndianRupee} label="AUM" value={formatLakh(totalAum)} />
         <BoardStatTile icon={Activity} label="Active Mandates" value={activeMandates.toLocaleString('en-IN')} />
         <BoardStatTile icon={ArrowLeftRight} label="Transactions" value={Number(stats?.transactions ?? 0).toLocaleString('en-IN')} />
-        <BoardStatTile icon={TriangleAlert} label="Risk Alerts" value="—" />
-        <BoardStatTile icon={Equal} label="Allocation to Equity" value="—" />
-        <BoardStatTile icon={Wallet} label="Average Ticket Size" value={avgTicketSize > 0 ? formatCrore(avgTicketSize) : '—'} />
-        <BoardStatTile icon={UserPlus} label="New Clients" value={Number(stats?.new_clients ?? 0).toLocaleString('en-IN')} />
       </div>
 
       <ClientFilters relationshipManagers={relationshipManagers} onApply={setFilters} />

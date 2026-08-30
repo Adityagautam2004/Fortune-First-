@@ -10,8 +10,8 @@ import type { BoardClient } from '../types';
 
 const PAGE_SIZE = 8;
 
-function formatCrore(value: number) {
-  return `₹${(value / 1e7).toFixed(2)} Cr`;
+function formatLakh(value: number) {
+  return `₹${(value / 1e5).toFixed(2)} L`;
 }
 
 interface ClientSummaryTableProps {
@@ -63,46 +63,45 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
         </button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="bg-muted text-foreground">
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Client Name</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Client ID</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Relationship Manager</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Segment</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">AUM (₹)</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Active Mandate</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Risk Profile</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Client Status</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-brand-border">
-            {pageRows.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-6 py-10 text-center text-muted-foreground">
-                  No clients match your filters.
-                </td>
-              </tr>
-            ) : (
-              pageRows.map((client) => (
-                <tr key={client.id}>
-                  <td className="px-6 py-4 font-medium text-foreground">
-                    <div className="flex items-center gap-2.5">
-                      <Avatar src={client.profile_picture_url} name={client.name} size={28} />
-                      {client.name}
+      {pageRows.length === 0 ? (
+        <div className="px-6 py-10 text-center text-muted-foreground">No clients match your filters.</div>
+      ) : (
+        <>
+          {/* Card list — mobile only, so every field is visible without side-scrolling. */}
+          <div className="space-y-3 px-6 pb-2 md:hidden">
+            {pageRows.map((client) => (
+              <div key={client.id} className="rounded-2xl border border-brand-border p-4">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <Avatar src={client.profile_picture_url} name={client.name} size={28} />
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-foreground">{client.name}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{client.client_code || client.id.slice(0, 8).toUpperCase()}</p>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs text-muted-foreground">
-                    {client.id.slice(0, 8).toUpperCase()}
-                  </td>
-                  <td className="px-6 py-4 text-foreground">{client.relationship_manager || '—'}</td>
-                  <td className="px-6 py-4 text-muted-foreground">—</td>
-                  <td className="px-6 py-4 font-medium text-primary">{formatCrore(Number(client.total_invested))}</td>
-                  <td className="px-6 py-4 text-foreground">{client.active_mandates}</td>
-                  <td className="px-6 py-4 text-muted-foreground">—</td>
-                  <td className="px-6 py-4">
+                  </div>
+                  <Link
+                    href={`/board/clients/${client.id}`}
+                    className="inline-flex h-7 w-9 shrink-0 items-center justify-center rounded-md border border-brand-border text-muted-foreground hover:bg-muted"
+                    aria-label={`View ${client.name}`}
+                  >
+                    <MoreHorizontal size={16} />
+                  </Link>
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Relationship Manager</span>
+                    <span className="text-foreground">{client.relationship_manager || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">AUM (₹)</span>
+                    <span className="font-medium text-primary">{formatLakh(Number(client.total_invested))}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Active Mandate</span>
+                    <span className="text-foreground">{client.active_mandates}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Client Status</span>
                     <span
                       className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                         client.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-muted text-muted-foreground'
@@ -110,22 +109,68 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
                     >
                       {client.is_active ? 'Active' : 'Inactive'}
                     </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Link
-                      href={`/board/clients/${client.id}`}
-                      className="inline-flex h-7 w-9 items-center justify-center rounded-md border border-brand-border text-muted-foreground hover:bg-muted"
-                      aria-label={`View ${client.name}`}
-                    >
-                      <MoreHorizontal size={16} />
-                    </Link>
-                  </td>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Table — tablet/desktop only. */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="bg-muted text-foreground">
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Client Name</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Client ID</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Relationship Manager</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Segment</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">AUM (₹)</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Active Mandate</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Client Status</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Action</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-brand-border">
+                {pageRows.map((client) => (
+                  <tr key={client.id}>
+                    <td className="px-6 py-4 font-medium text-foreground">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar src={client.profile_picture_url} name={client.name} size={28} />
+                        {client.name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-muted-foreground">
+                      {client.client_code || client.id.slice(0, 8).toUpperCase()}
+                    </td>
+                    <td className="px-6 py-4 text-foreground">{client.relationship_manager || '—'}</td>
+                    <td className="px-6 py-4 text-muted-foreground">—</td>
+                    <td className="px-6 py-4 font-medium text-primary">{formatLakh(Number(client.total_invested))}</td>
+                    <td className="px-6 py-4 text-foreground">{client.active_mandates}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                          client.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {client.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Link
+                        href={`/board/clients/${client.id}`}
+                        className="inline-flex h-7 w-9 items-center justify-center rounded-md border border-brand-border text-muted-foreground hover:bg-muted"
+                        aria-label={`View ${client.name}`}
+                      >
+                        <MoreHorizontal size={16} />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       <div className="flex flex-col gap-3 border-t border-brand-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">

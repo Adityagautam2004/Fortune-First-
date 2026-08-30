@@ -87,34 +87,33 @@ export function BoardInvestmentsPage() {
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-brand-border bg-card">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="bg-muted text-foreground">
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Client</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Amount</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Date</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Status</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Proof</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {loading ? (
-              <tr><td colSpan={5} className="px-6 py-10 text-center text-muted-foreground">Loading...</td></tr>
-            ) : investments.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-10 text-center text-muted-foreground">No investments found.</td></tr>
-            ) : (
-              investments.map((inv) => (
-                <tr key={inv.id}>
-                  <td className="px-6 py-4 font-medium text-foreground">{inv.customer_name}</td>
-                  <td className="px-6 py-4 font-medium text-foreground">{formatRupees(Number(inv.amount))}</td>
-                  <td className="px-6 py-4 text-foreground">{formatDate(inv.investment_date)}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[inv.status] || 'bg-muted text-muted-foreground'}`}>
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
+      {loading ? (
+        <div className="rounded-2xl border border-brand-border bg-card px-6 py-10 text-center text-muted-foreground">Loading...</div>
+      ) : investments.length === 0 ? (
+        <div className="rounded-2xl border border-brand-border bg-card px-6 py-10 text-center text-muted-foreground">No investments found.</div>
+      ) : (
+        <>
+          {/* Card list — mobile only, so every field is visible without side-scrolling. */}
+          <div className="space-y-3 md:hidden">
+            {investments.map((inv) => (
+              <div key={inv.id} className="rounded-2xl border border-brand-border bg-card p-4">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <p className="font-medium text-foreground">{inv.customer_name}</p>
+                  <span className={`inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[inv.status] || 'bg-muted text-muted-foreground'}`}>
+                    {inv.status}
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Amount</span>
+                    <span className="font-medium text-foreground">{formatRupees(Number(inv.amount))}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Date</span>
+                    <span className="text-foreground">{formatDate(inv.investment_date)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Proof</span>
                     {inv.payment_screenshot_url ? (
                       <a href={inv.payment_screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
                         <ImageIcon size={14} /> View
@@ -122,13 +121,51 @@ export function BoardInvestmentsPage() {
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
-                  </td>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Table — tablet/desktop only. */}
+          <div className="hidden overflow-x-auto rounded-2xl border border-brand-border bg-card md:block">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="bg-muted text-foreground">
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Client</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Amount</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Date</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Status</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Proof</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {investments.map((inv) => (
+                  <tr key={inv.id}>
+                    <td className="px-6 py-4 font-medium text-foreground">{inv.customer_name}</td>
+                    <td className="px-6 py-4 font-medium text-foreground">{formatRupees(Number(inv.amount))}</td>
+                    <td className="px-6 py-4 text-foreground">{formatDate(inv.investment_date)}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[inv.status] || 'bg-muted text-muted-foreground'}`}>
+                        {inv.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {inv.payment_screenshot_url ? (
+                        <a href={inv.payment_screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                          <ImageIcon size={14} /> View
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
