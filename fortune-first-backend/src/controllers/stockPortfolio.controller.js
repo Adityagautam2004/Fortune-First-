@@ -48,11 +48,11 @@ const getBusinessHeads = async (req, res) => {
 const addStock = async (req, res) => {
   const client = await db.pool.connect();
   try {
-    const { symbol, companyName, quantity, price } = req.body;
+    const { symbol, companyName, quantity, price, orderType } = req.body;
     const addedBy = req.user.userId;
 
     await client.query('BEGIN');
-    const position = await stockPortfolioService.addPosition({ symbol, companyName, quantity, price, addedBy }, client);
+    const position = await stockPortfolioService.addPosition({ symbol, companyName, quantity, price, addedBy, orderType }, client);
     await client.query(
       `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, new_value, ip)
        VALUES ($1, $2, $3, $4, $5, $6)`,

@@ -37,6 +37,7 @@ const addStockSchema = Joi.object({
   companyName: Joi.string().trim().max(255).required(),
   quantity: Joi.number().greater(0).required(),
   price: Joi.number().greater(0).required(),
+  orderType: Joi.string().valid('regular', 'mtf').default('regular'),
 });
 
 const stockTradeSchema = Joi.object({

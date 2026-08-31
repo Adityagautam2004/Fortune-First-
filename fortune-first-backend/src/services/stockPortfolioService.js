@@ -6,22 +6,25 @@ const stockPriceService = require('./stockPriceService');
 /**
  * Create a brand-new position. The initial buy is itself logged as a
  * stock_transaction, so it shows up in the Funds Transactions log too.
- * @param {{ symbol: string, companyName: string, quantity: number, price: number, addedBy: string }} data
+ * order_type ('regular'|'mtf') is fixed at creation and carried through
+ * onto every later transaction for this position (buy-more, sell) —
+ * it's never re-chosen per trade.
+ * @param {{ symbol: string, companyName: string, quantity: number, price: number, addedBy: string, orderType: string }} data
  * @param {import('pg').PoolClient} dbClient
  */
-const addPosition = async ({ symbol, companyName, quantity, price, addedBy }, dbClient = db) => {
+const addPosition = async ({ symbol, companyName, quantity, price, addedBy, orderType }, dbClient = db) => {
   const { rows } = await dbClient.query(
-    `INSERT INTO stock_positions (symbol, company_name, quantity, average_price, added_by)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO stock_positions (symbol, company_name, quantity, average_price, added_by, order_type)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [symbol.toUpperCase(), companyName, quantity, price, addedBy]
+    [symbol.toUpperCase(), companyName, quantity, price, addedBy, orderType]
   );
   const position = rows[0];
 
   await dbClient.query(
-    `INSERT INTO stock_transactions (position_id, symbol, company_name, transaction_type, quantity, price, business_head_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [position.id, position.symbol, position.company_name, STOCK_TRANSACTION_TYPE.BUY, quantity, price, addedBy]
+    `INSERT INTO stock_transactions (position_id, symbol, company_name, transaction_type, quantity, price, business_head_id, order_type)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [position.id, position.symbol, position.company_name, STOCK_TRANSACTION_TYPE.BUY, quantity, price, addedBy, position.order_type]
   );
 
   return position;
@@ -52,9 +55,9 @@ const buyMore = async (positionId, { quantity, price, businessHeadId }, dbClient
   );
 
   await dbClient.query(
-    `INSERT INTO stock_transactions (position_id, symbol, company_name, transaction_type, quantity, price, business_head_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [position.id, position.symbol, position.company_name, STOCK_TRANSACTION_TYPE.BUY, quantity, price, businessHeadId]
+    `INSERT INTO stock_transactions (position_id, symbol, company_name, transaction_type, quantity, price, business_head_id, order_type)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [position.id, position.symbol, position.company_name, STOCK_TRANSACTION_TYPE.BUY, quantity, price, businessHeadId, position.order_type]
   );
 
   return updatedRows[0];
@@ -90,9 +93,9 @@ const sellPosition = async (positionId, { quantity, price, businessHeadId }, dbC
   );
 
   await dbClient.query(
-    `INSERT INTO stock_transactions (position_id, symbol, company_name, transaction_type, quantity, price, profit_loss, business_head_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [position.id, position.symbol, position.company_name, STOCK_TRANSACTION_TYPE.SELL, quantity, price, profitLoss.toFixed(2), businessHeadId]
+    `INSERT INTO stock_transactions (position_id, symbol, company_name, transaction_type, quantity, price, profit_loss, business_head_id, order_type)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [position.id, position.symbol, position.company_name, STOCK_TRANSACTION_TYPE.SELL, quantity, price, profitLoss.toFixed(2), businessHeadId, position.order_type]
   );
 
   return updatedRows[0];
