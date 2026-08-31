@@ -12,8 +12,8 @@ import { TopFundsPlaceholder } from './components/top-funds-placeholder';
 import { QuickActions } from './components/quick-actions';
 import type { AdminDashboardStats, AdminSupportTicket, AdminInvestmentRow } from './types';
 
-function formatCrore(value: number) {
-  if (value >= 1e7) return `₹${(value / 1e7).toFixed(2)} Cr`;
+function formatLakh(value: number) {
+  if (value >= 1e5) return `₹${(value / 1e5).toFixed(2)} L`;
   return `₹${Math.round(value).toLocaleString('en-IN')}`;
 }
 
@@ -95,11 +95,11 @@ export function DashboardOverviewPage() {
           label="Total Clients"
           value={(stats?.totalClients ?? 0).toLocaleString('en-IN')}
         />
-        <AdminStatCard icon={IndianRupee} label="Total AUM" value={formatCrore(stats?.totalAum ?? 0)} />
+        <AdminStatCard icon={IndianRupee} label="Total AUM" value={formatLakh(stats?.totalAum ?? 0)} />
         <AdminStatCard
           icon={TrendingUp}
           label="Total Payouts This Month"
-          value={formatCrore(stats?.monthlyPayouts ?? 0)}
+          value={formatLakh(stats?.monthlyPayouts ?? 0)}
         />
         <AdminStatCard icon={Headphones} label="Pending Support Tickets" value={String(pendingTickets)} />
       </div>
@@ -108,13 +108,13 @@ export function DashboardOverviewPage() {
         <AdminChartPlaceholder
           icon={LineChart}
           title="AUM Over Time"
-          legend="AUM (₹ Crore)"
+          legend="AUM (₹ Lakh)"
           message="Historical AUM snapshots aren't tracked in the system yet."
         />
         <AdminChartPlaceholder
           icon={BarChart3}
           title="Returns Over Time (YTD)"
-          legend="Returns (₹ Crore)"
+          legend="Returns (₹ Lakh)"
           message="Aggregate monthly returns history isn't tracked yet."
         />
       </div>

@@ -82,38 +82,31 @@ export function WithdrawalHistoryTable({ withdrawals }: WithdrawalHistoryTablePr
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="bg-muted text-foreground">
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Date</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Amount</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Status</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Proof</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-brand-border">
-            {pageRows.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-6 py-10 text-center text-muted-foreground">
-                  No withdrawals recorded yet.
-                </td>
-              </tr>
-            ) : (
-              pageRows.map((w) => (
-                <tr key={w.id}>
-                  <td className="px-6 py-4 text-foreground">{formatDate(w.withdrawal_date)}</td>
-                  <td className="px-6 py-4 font-medium text-foreground">{formatRupees(Number(w.amount))}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                        STATUS_STYLES[w.status] || 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {w.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
+      {pageRows.length === 0 ? (
+        <div className="px-6 py-10 text-center text-muted-foreground">No withdrawals recorded yet.</div>
+      ) : (
+        <>
+          {/* Card list — mobile only, so every field is visible without side-scrolling. */}
+          <div className="space-y-3 px-6 pb-2 md:hidden">
+            {pageRows.map((w) => (
+              <div key={w.id} className="rounded-2xl border border-brand-border p-4">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <span className="text-sm text-foreground">{formatDate(w.withdrawal_date)}</span>
+                  <span
+                    className={`inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                      STATUS_STYLES[w.status] || 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {w.status}
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Amount</span>
+                    <span className="font-medium text-foreground">{formatRupees(Number(w.amount))}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Proof</span>
                     {w.payment_screenshot_url ? (
                       <a
                         href={w.payment_screenshot_url}
@@ -126,13 +119,58 @@ export function WithdrawalHistoryTable({ withdrawals }: WithdrawalHistoryTablePr
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
-                  </td>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Table — tablet/desktop only. */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="bg-muted text-foreground">
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Date</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Amount</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Status</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Proof</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-brand-border">
+                {pageRows.map((w) => (
+                  <tr key={w.id}>
+                    <td className="px-6 py-4 text-foreground">{formatDate(w.withdrawal_date)}</td>
+                    <td className="px-6 py-4 font-medium text-foreground">{formatRupees(Number(w.amount))}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                          STATUS_STYLES[w.status] || 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {w.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {w.payment_screenshot_url ? (
+                        <a
+                          href={w.payment_screenshot_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <ImageIcon size={14} /> View
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       <div className="flex flex-col gap-3 border-t border-brand-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">

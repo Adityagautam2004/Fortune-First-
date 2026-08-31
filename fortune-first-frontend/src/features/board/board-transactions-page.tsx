@@ -82,36 +82,36 @@ export function BoardTransactionsPage() {
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-brand-border bg-card">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="bg-muted text-foreground">
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Type</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Client</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Amount</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Date</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Status</th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">Proof</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {loading ? (
-              <tr><td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">Loading...</td></tr>
-            ) : transactions.length === 0 ? (
-              <tr><td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">No transactions found.</td></tr>
-            ) : (
-              transactions.map((t) => (
-                <tr key={`${t.type}-${t.id}`}>
-                  <td className="px-6 py-4">
+      {loading ? (
+        <div className="rounded-2xl border border-brand-border bg-card px-6 py-10 text-center text-muted-foreground">Loading...</div>
+      ) : transactions.length === 0 ? (
+        <div className="rounded-2xl border border-brand-border bg-card px-6 py-10 text-center text-muted-foreground">No transactions found.</div>
+      ) : (
+        <>
+          {/* Card list — mobile only, so every field is visible without side-scrolling. */}
+          <div className="space-y-3 md:hidden">
+            {transactions.map((t) => (
+              <div key={`${t.type}-${t.id}`} className="rounded-2xl border border-brand-border bg-card p-4">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
                     <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${TYPE_STYLES[t.type] || 'bg-muted text-muted-foreground'}`}>
                       {t.type}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 font-medium text-foreground">{t.customer_name}</td>
-                  <td className="px-6 py-4 font-medium text-foreground">{formatRupees(Number(t.amount))}</td>
-                  <td className="px-6 py-4 text-foreground">{formatDate(t.date)}</td>
-                  <td className="px-6 py-4 capitalize text-foreground">{t.status}</td>
-                  <td className="px-6 py-4">
+                    <p className="mt-1.5 font-medium text-foreground">{t.customer_name}</p>
+                  </div>
+                  <span className="shrink-0 text-xs font-semibold capitalize text-foreground">{t.status}</span>
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Amount</span>
+                    <span className="font-medium text-foreground">{formatRupees(Number(t.amount))}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Date</span>
+                    <span className="text-foreground">{formatDate(t.date)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Proof</span>
                     {t.screenshot_url ? (
                       <a href={t.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
                         <ImageIcon size={14} /> View
@@ -119,13 +119,53 @@ export function BoardTransactionsPage() {
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
-                  </td>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Table — tablet/desktop only. */}
+          <div className="hidden overflow-x-auto rounded-2xl border border-brand-border bg-card md:block">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="bg-muted text-foreground">
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Type</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Client</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Amount</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Date</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Status</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Proof</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {transactions.map((t) => (
+                  <tr key={`${t.type}-${t.id}`}>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${TYPE_STYLES[t.type] || 'bg-muted text-muted-foreground'}`}>
+                        {t.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-medium text-foreground">{t.customer_name}</td>
+                    <td className="px-6 py-4 font-medium text-foreground">{formatRupees(Number(t.amount))}</td>
+                    <td className="px-6 py-4 text-foreground">{formatDate(t.date)}</td>
+                    <td className="px-6 py-4 capitalize text-foreground">{t.status}</td>
+                    <td className="px-6 py-4">
+                      {t.screenshot_url ? (
+                        <a href={t.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                          <ImageIcon size={14} /> View
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
