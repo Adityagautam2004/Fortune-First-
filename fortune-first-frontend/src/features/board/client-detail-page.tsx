@@ -14,8 +14,8 @@ import { AddInvestmentModal } from './components/add-investment-modal';
 import { AddWithdrawalModal } from './components/add-withdrawal-modal';
 import type { ClientDetail } from './types';
 
-function formatCrore(value: number) {
-  return `₹${(value / 1e7).toFixed(2)} Cr`;
+function formatLakh(value: number) {
+  return `₹${(value / 1e5).toFixed(2)} L`;
 }
 
 interface ClientDetailPageProps {
@@ -67,10 +67,10 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
       <ClientInfoCard profile={detail.profile} />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <ClientStatTile icon={IndianRupee} label="Total AUM" value={formatCrore(totalAum)} />
+        <ClientStatTile icon={IndianRupee} label="Total AUM" value={formatLakh(totalAum)} />
         <ClientStatTile icon={FileText} label="Active Mandate" value={String(detail.summary.active_mandates)} />
         <ClientStatTile icon={PieChart} label="Total Investment" value={String(detail.summary.total_investment_count)} />
-        <ClientStatTile icon={Percent} label="Total Returns (YTD)" value={formatCrore(totalReturnsYtd)} />
+        <ClientStatTile icon={Percent} label="Total Returns (YTD)" value={formatLakh(totalReturnsYtd)} />
       </div>
 
       <div className={canManageClient ? 'grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]' : 'space-y-6'}>

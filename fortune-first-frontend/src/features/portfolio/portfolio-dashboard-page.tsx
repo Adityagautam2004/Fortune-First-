@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Plus, ArrowLeftRight } from 'lucide-react';
+import { Plus, ArrowLeftRight, ArrowUp, ArrowDown } from 'lucide-react';
 
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,21 @@ import type { PortfolioSummary, StockPosition } from './types';
 function formatRupees(value: number) {
   return `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 }
+
+function getPnlPct(position: StockPosition) {
+  return position.current_value !== null && position.invested_amount > 0
+    ? ((position.current_value - position.invested_amount) / position.invested_amount) * 100
+    : null;
+}
+
+type SortKey = 'none' | 'pnlPct' | 'pnl' | 'invested';
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: 'none', label: 'Sort: Default' },
+  { value: 'pnlPct', label: '% Change' },
+  { value: 'pnl', label: 'P&L' },
+  { value: 'invested', label: 'Invested' },
+];
 
 // Shared by /board/portfolio (investment_head, business_head) and
 // /admin/portfolio (super_admin) — identical data for every role, only the
@@ -36,6 +51,8 @@ export function PortfolioDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [activePosition, setActivePosition] = useState<StockPosition | null>(null);
+  const [sortBy, setSortBy] = useState<SortKey>('none');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const fetchPortfolio = useCallback(() => {
     return api
@@ -60,6 +77,19 @@ export function PortfolioDashboardPage() {
 
   const pnlPositive = (summary?.unrealized_pnl ?? 0) >= 0;
   const pnlPct = summary && summary.total_invested > 0 ? (summary.unrealized_pnl / summary.total_invested) * 100 : 0;
+
+  const sortedPositions = useMemo(() => {
+    if (sortBy === 'none') return positions;
+    const getValue = (p: StockPosition) => {
+      if (sortBy === 'pnlPct') return getPnlPct(p) ?? -Infinity;
+      if (sortBy === 'pnl') return p.unrealized_pnl ?? -Infinity;
+      return p.invested_amount;
+    };
+    return [...positions].sort((a, b) => {
+      const diff = getValue(a) - getValue(b);
+      return sortDir === 'asc' ? diff : -diff;
+    });
+  }, [positions, sortBy, sortDir]);
 
   return (
     <div className="space-y-5 pb-20 sm:pb-6">
@@ -108,9 +138,34 @@ export function PortfolioDashboardPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-bold text-foreground">Holdings</h2>
-        <BusinessHeadFilter value={businessHeadId} onChange={setBusinessHeadId} className="w-44" />
+        <div className="flex flex-wrap items-center gap-2">
+          <BusinessHeadFilter value={businessHeadId} onChange={setBusinessHeadId} className="w-full sm:w-44" />
+          <div className="flex flex-1 items-center gap-1.5 sm:flex-none">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortKey)}
+              aria-label="Sort holdings by"
+              className="flex-1 rounded-lg border border-brand-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none sm:flex-none"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+              disabled={sortBy === 'none'}
+              aria-label={sortDir === 'asc' ? 'Sort ascending' : 'Sort descending'}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-brand-border text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {sortDir === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+            </button>
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -122,7 +177,7 @@ export function PortfolioDashboardPage() {
           {/* Mobile: one card per stock, everything stacked — no horizontal
               scrolling to see the rest of a row. */}
           <div className="space-y-2.5 md:hidden">
-            {positions.map((position) => (
+            {sortedPositions.map((position) => (
               <PositionCard key={position.id} position={position} canTrade={canTrade} onTap={setActivePosition} />
             ))}
           </div>
@@ -135,14 +190,16 @@ export function PortfolioDashboardPage() {
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Stock</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Qty</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Avg. Price</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Invested Amount</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Live Price</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Current Value</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">P&amp;L</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {positions.map((position) => {
+                {sortedPositions.map((position) => {
                   const positive = (position.unrealized_pnl ?? 0) >= 0;
+                  const pnlPct = getPnlPct(position);
                   return (
                     <tr key={position.id}>
                       <td className="px-6 py-4">
@@ -158,6 +215,7 @@ export function PortfolioDashboardPage() {
                       </td>
                       <td className="px-6 py-4 text-foreground">{position.quantity}</td>
                       <td className="px-6 py-4 text-foreground">{formatRupees(position.average_price)}</td>
+                      <td className="px-6 py-4 text-foreground">{formatRupees(position.invested_amount)}</td>
                       <td className="px-6 py-4 text-foreground">
                         {position.current_price !== null ? formatRupees(position.current_price) : '—'}
                       </td>
@@ -165,7 +223,9 @@ export function PortfolioDashboardPage() {
                         {position.current_value !== null ? formatRupees(position.current_value) : '—'}
                       </td>
                       <td className={cn('px-6 py-4 font-semibold', position.unrealized_pnl === null ? 'text-muted-foreground' : positive ? 'text-emerald-600' : 'text-red-600')}>
-                        {position.unrealized_pnl !== null ? `${positive ? '+' : ''}${formatRupees(position.unrealized_pnl)}` : '—'}
+                        {position.unrealized_pnl !== null
+                          ? `${positive ? '+' : ''}${formatRupees(position.unrealized_pnl)}${pnlPct !== null ? ` (${positive ? '+' : ''}${pnlPct.toFixed(2)}%)` : ''}`
+                          : '—'}
                       </td>
                     </tr>
                   );
@@ -204,9 +264,7 @@ function PositionCard({
   onTap: (position: StockPosition) => void;
 }) {
   const positive = (position.unrealized_pnl ?? 0) >= 0;
-  const pnlPct = position.current_value !== null && position.invested_amount > 0
-    ? ((position.current_value - position.invested_amount) / position.invested_amount) * 100
-    : null;
+  const pnlPct = getPnlPct(position);
 
   return (
     <button
@@ -236,8 +294,14 @@ function PositionCard({
       </div>
       <div className="mt-3 flex items-center justify-between border-t border-brand-border pt-2.5 text-xs text-muted-foreground">
         <span>{position.quantity} shares · Avg {formatRupees(position.average_price)}</span>
+        <span>Invested {formatRupees(position.invested_amount)}</span>
+      </div>
+      <div className="mt-1.5 flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">P&amp;L</span>
         <span className={cn('font-semibold', position.unrealized_pnl === null ? 'text-muted-foreground' : positive ? 'text-emerald-600' : 'text-red-600')}>
-          {position.unrealized_pnl !== null ? `${positive ? '+' : ''}${formatRupees(position.unrealized_pnl)}` : '—'}
+          {position.unrealized_pnl !== null
+            ? `${positive ? '+' : ''}${formatRupees(position.unrealized_pnl)}${pnlPct !== null ? ` (${positive ? '+' : ''}${pnlPct.toFixed(2)}%)` : ''}`
+            : '—'}
         </span>
       </div>
     </button>
