@@ -12,7 +12,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { BusinessHeadFilter } from './components/business-head-filter';
 import { AddStockModal } from './components/add-stock-modal';
 import { PositionActionModal } from './components/position-action-modal';
-import type { PortfolioSummary, StockPosition } from './types';
+import type { OrderType, PortfolioSummary, StockPosition } from './types';
+
+const ORDER_TYPE_OPTIONS: { value: OrderType | ''; label: string }[] = [
+  { value: '', label: 'All Order Types' },
+  { value: 'regular', label: 'Regular' },
+  { value: 'mtf', label: 'MTF' },
+];
 
 function formatRupees(value: number) {
   return `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
@@ -48,6 +54,7 @@ export function PortfolioDashboardPage() {
   const [positions, setPositions] = useState<StockPosition[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [businessHeadId, setBusinessHeadId] = useState('');
+  const [orderType, setOrderType] = useState<OrderType | ''>('');
   const [loading, setLoading] = useState(true);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [activePosition, setActivePosition] = useState<StockPosition | null>(null);
@@ -56,13 +63,13 @@ export function PortfolioDashboardPage() {
 
   const fetchPortfolio = useCallback(() => {
     return api
-      .get('/board/portfolio', { params: { addedBy: businessHeadId || undefined } })
+      .get('/board/portfolio', { params: { addedBy: businessHeadId || undefined, orderType: orderType || undefined } })
       .then((res) => {
         setPositions(res.data.data.positions || []);
         setSummary(res.data.data.summary);
       })
       .catch((error) => console.error('Failed to load portfolio', error));
-  }, [businessHeadId]);
+  }, [businessHeadId, orderType]);
 
   useEffect(() => {
     setLoading(true);
@@ -140,30 +147,44 @@ export function PortfolioDashboardPage() {
 
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-bold text-foreground">Holdings</h2>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <BusinessHeadFilter value={businessHeadId} onChange={setBusinessHeadId} className="w-full sm:w-44" />
-          <div className="flex flex-1 items-center gap-1.5 sm:flex-none">
+          <div className="flex items-center gap-2">
             <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortKey)}
-              aria-label="Sort holdings by"
-              className="flex-1 rounded-lg border border-brand-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none sm:flex-none"
+              value={orderType}
+              onChange={(e) => setOrderType(e.target.value as OrderType | '')}
+              aria-label="Filter by order type"
+              className="flex-1 rounded-lg border border-brand-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none sm:w-36 sm:flex-none"
             >
-              {SORT_OPTIONS.map((opt) => (
+              {ORDER_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
               ))}
             </select>
-            <button
-              type="button"
-              onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
-              disabled={sortBy === 'none'}
-              aria-label={sortDir === 'asc' ? 'Sort ascending' : 'Sort descending'}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-brand-border text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {sortDir === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-            </button>
+            <div className="flex flex-1 items-center gap-1.5 sm:flex-none">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortKey)}
+                aria-label="Sort holdings by"
+                className="flex-1 rounded-lg border border-brand-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none sm:flex-none"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+                disabled={sortBy === 'none'}
+                aria-label={sortDir === 'asc' ? 'Sort ascending' : 'Sort descending'}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-brand-border text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {sortDir === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+              </button>
+            </div>
           </div>
         </div>
       </div>

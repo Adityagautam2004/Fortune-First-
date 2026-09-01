@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/hooks/useAuth';
 import { BusinessHeadFilter } from './components/business-head-filter';
-import type { FundsTransactionSummary, PaginationMeta, StockTransaction } from './types';
+import type { FundsTransactionSummary, OrderType, PaginationMeta, StockTransaction } from './types';
 
 function formatRupees(value: number) {
   return `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
@@ -30,6 +30,12 @@ const OUTCOME_OPTIONS = [
   { value: 'loss', label: 'Loss' },
 ];
 
+const ORDER_TYPE_OPTIONS: { value: OrderType | ''; label: string }[] = [
+  { value: '', label: 'All Order Types' },
+  { value: 'regular', label: 'Regular' },
+  { value: 'mtf', label: 'MTF' },
+];
+
 // Shared by /board/funds-transactions and /admin/funds-transactions —
 // view-only for every role except delete, which is super_admin-only. The
 // underlying buy/sell actions themselves live on the portfolio dashboard.
@@ -44,6 +50,7 @@ export function FundsTransactionsPage() {
   const [businessHeadId, setBusinessHeadId] = useState('');
   const [type, setType] = useState('');
   const [outcome, setOutcome] = useState('');
+  const [orderType, setOrderType] = useState<OrderType | ''>('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
@@ -59,6 +66,7 @@ export function FundsTransactionsPage() {
           businessHeadId: businessHeadId || undefined,
           type: type || undefined,
           outcome: outcome || undefined,
+          orderType: orderType || undefined,
           dateFrom: dateFrom || undefined,
           dateTo: dateTo || undefined,
         },
@@ -75,7 +83,7 @@ export function FundsTransactionsPage() {
   useEffect(() => {
     fetchTransactions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, businessHeadId, type, outcome, dateFrom, dateTo]);
+  }, [page, businessHeadId, type, outcome, orderType, dateFrom, dateTo]);
 
   const resetToPageOne = <T,>(setter: (v: T) => void) => (v: T) => {
     setter(v);
@@ -111,7 +119,7 @@ export function FundsTransactionsPage() {
         <SummaryStat label="Loss" value={summary ? formatRupees(Math.abs(summary.total_loss)) : '—'} tone="negative" />
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <BusinessHeadFilter value={businessHeadId} onChange={resetToPageOne(setBusinessHeadId)} />
         <select
           value={type}
@@ -126,6 +134,14 @@ export function FundsTransactionsPage() {
           className="rounded-lg border border-brand-border bg-card px-3 py-1.5 text-sm text-foreground"
         >
           {OUTCOME_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+        </select>
+        <select
+          value={orderType}
+          onChange={(e) => resetToPageOne(setOrderType)(e.target.value as OrderType | '')}
+          aria-label="Filter by order type"
+          className="rounded-lg border border-brand-border bg-card px-3 py-1.5 text-sm text-foreground"
+        >
+          {ORDER_TYPE_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
         </select>
         <input
           type="date"

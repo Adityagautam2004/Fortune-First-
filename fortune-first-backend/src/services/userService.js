@@ -74,11 +74,11 @@ const getUserById = async (id) => {
 /**
  * Update user fields (admin operation).
  * @param {string} id
- * @param {{ name?: string, email?: string, role?: string, phone?: string, assigned_to?: string, shareholding_pct?: number }} data
+ * @param {{ name?: string, email?: string, role?: string, phone?: string, assigned_to?: string, shareholding_pct?: number, profile_picture_url?: string }} data
  * @returns {Promise<object>} Updated user
  */
 const updateUser = async (id, data) => {
-  const allowedFields = ['name', 'email', 'role', 'phone', 'assigned_to', 'shareholding_pct'];
+  const allowedFields = ['name', 'email', 'role', 'phone', 'assigned_to', 'shareholding_pct', 'profile_picture_url'];
   const updates = [];
   const values = [];
   let paramIndex = 1;

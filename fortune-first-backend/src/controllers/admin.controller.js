@@ -43,9 +43,24 @@ const getUserByIdAdmin = async (req, res) => {
 };
 
 // PATCH /admin/users/:id — FR-ADMIN-06: edit investor/board profile, assigned head, etc.
+// An optional multipart 'picture' field lets the admin replace the user's
+// profile picture at the same time — same upload pattern as createUser.
 const updateUserAdmin = async (req, res) => {
   try {
-    const user = await userService.updateUser(req.params.id, req.body);
+    const data = { ...req.body };
+    // userService.updateUser's allowed-fields list is snake_case
+    // (assigned_to), but the request body arrives camelCase (assignedTo) —
+    // same convention as createUser's own assignedTo-to-assigned_to mapping.
+    if (data.assignedTo !== undefined) {
+      data.assigned_to = data.assignedTo || null;
+      delete data.assignedTo;
+    }
+    if (req.file) {
+      const { uploadBuffer } = require('../utils/cloudinary');
+      const uploaded = await uploadBuffer(req.file.buffer, 'profile_pictures');
+      data.profile_picture_url = uploaded.secure_url;
+    }
+    const user = await userService.updateUser(req.params.id, data);
     return res.status(200).json({ status: 'success', message: 'User updated successfully', data: user });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to update user' });

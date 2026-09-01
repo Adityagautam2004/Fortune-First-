@@ -11,6 +11,7 @@ const {
 const {
   searchStocks, getPortfolio, getBusinessHeads, addStock, buyMoreStock, sellStock, getFundsTransactions,
 } = require('../controllers/stockPortfolio.controller');
+const { getReports, getReportById } = require('../controllers/monthlyReport.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireRole } = require('../middleware/role.middleware');
 const { uploadImage } = require('../middleware/upload.middleware');
@@ -103,5 +104,10 @@ router.post('/portfolio', requireRole('business_head'), validate(addStockSchema)
 router.post('/portfolio/:id/buy', requireRole('business_head'), validate(stockTradeSchema), buyMoreStock);
 router.post('/portfolio/:id/sell', requireRole('business_head'), validate(stockTradeSchema), sellStock);
 router.get('/funds-transactions', getFundsTransactions);
+
+// ── Monthly Reports (FR-REPORTS-01) — view-only here for all three board
+// roles; create/edit/delete is super_admin-only, over on /admin/reports ───
+router.get('/reports', getReports);
+router.get('/reports/:id', getReportById);
 
 module.exports = router;

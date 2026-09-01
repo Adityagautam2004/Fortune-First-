@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FileText, UploadCloud } from 'lucide-react';
+import { FileText, Pencil, UploadCloud } from 'lucide-react';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
@@ -11,6 +11,8 @@ interface AdminUser {
   name: string;
   email: string;
   role: string;
+  phone?: string | null;
+  assigned_to?: string | null;
   is_active: boolean;
   profile_picture_url?: string | null;
   client_code?: string | null;
@@ -36,6 +38,12 @@ export default function AdminUsersPage() {
   const [kycUser, setKycUser] = useState<AdminUser | null>(null);
   const [kycData, setKycData] = useState<KycData | null>(null);
   const [kycLoading, setKycLoading] = useState(false);
+
+  const [editUser, setEditUser] = useState<AdminUser | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', role: 'customer', assignedTo: '' });
+  const [editPictureFile, setEditPictureFile] = useState<File | null>(null);
+  const editPictureInputRef = useRef<HTMLInputElement>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const fetchUsers = async () => {
     const res = await api.get('/admin/users');
@@ -67,6 +75,43 @@ export default function AdminUsersPage() {
       setKycData({ ...kycData, verified: res.data.data.verified });
     } catch (error) {
       alert(getErrorMessage(error, 'Failed to update KYC status'));
+    }
+  };
+
+  const openEdit = (user: AdminUser) => {
+    setEditUser(user);
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      phone: user.phone || '',
+      role: user.role,
+      assignedTo: user.assigned_to || '',
+    });
+    setEditPictureFile(null);
+  };
+
+  const closeEdit = () => {
+    setEditUser(null);
+    setEditPictureFile(null);
+    if (editPictureInputRef.current) editPictureInputRef.current.value = '';
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUser) return;
+    setEditSubmitting(true);
+    try {
+      const formData = new FormData();
+      Object.entries(editForm).forEach(([key, value]) => formData.append(key, value));
+      if (editPictureFile) formData.append('picture', editPictureFile);
+
+      await api.patch(`/admin/users/${editUser.id}`, formData);
+      closeEdit();
+      fetchUsers();
+    } catch (error) {
+      alert(getErrorMessage(error, 'Failed to update user'));
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -132,11 +177,16 @@ export default function AdminUsersPage() {
                   </span>
                 </td>
                 <td className="p-4 text-sm">
-                  {u.role === 'customer' && (
-                    <button onClick={() => openKyc(u)} className="text-brand-orange font-medium hover:underline">
-                      View KYC
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => openEdit(u)} className="flex items-center gap-1 text-brand-orange font-medium hover:underline">
+                      <Pencil size={14} /> Edit
                     </button>
-                  )}
+                    {u.role === 'customer' && (
+                      <button onClick={() => openKyc(u)} className="text-brand-orange font-medium hover:underline">
+                        View KYC
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -166,11 +216,16 @@ export default function AdminUsersPage() {
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-brand-border pt-3">
               <span className="text-xs font-medium capitalize text-muted-foreground">{u.role.replace('_', ' ')}</span>
-              {u.role === 'customer' && (
-                <button onClick={() => openKyc(u)} className="text-sm font-medium text-brand-orange hover:underline">
-                  View KYC
+              <div className="flex items-center gap-3">
+                <button onClick={() => openEdit(u)} className="flex items-center gap-1 text-sm font-medium text-brand-orange hover:underline">
+                  <Pencil size={13} /> Edit
                 </button>
-              )}
+                {u.role === 'customer' && (
+                  <button onClick={() => openKyc(u)} className="text-sm font-medium text-brand-orange hover:underline">
+                    View KYC
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -222,6 +277,67 @@ export default function AdminUsersPage() {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {editUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-card p-6 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">Edit {editUser.name}</h2>
+            <form onSubmit={handleUpdateUser} className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Avatar src={editPictureFile ? URL.createObjectURL(editPictureFile) : editUser.profile_picture_url} name={editForm.name || editUser.name} size={48} />
+                <div>
+                  <input
+                    ref={editPictureInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={(e) => setEditPictureFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="edit-user-picture-input"
+                  />
+                  <label
+                    htmlFor="edit-user-picture-input"
+                    className="flex cursor-pointer items-center gap-2 rounded border border-brand-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
+                  >
+                    <UploadCloud size={15} />
+                    {editPictureFile ? editPictureFile.name : 'Change photo'}
+                  </label>
+                </div>
+              </div>
+
+              <input required placeholder="Full Name" className="w-full border p-2 rounded" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
+              <input required type="email" placeholder="Email" className="w-full border p-2 rounded" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} />
+              <input type="tel" placeholder="Phone (optional)" className="w-full border p-2 rounded" value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} />
+              <select className="w-full border p-2 rounded" value={editForm.role} onChange={e => setEditForm({...editForm, role: e.target.value})}>
+                <option value="customer">Customer</option>
+                <option value="investment_head">Investment Head</option>
+                <option value="business_head">Business Head</option>
+                <option value="super_admin">Super Admin</option>
+              </select>
+              {editForm.role === 'customer' && (
+                <select
+                  required
+                  className="w-full border p-2 rounded"
+                  value={editForm.assignedTo}
+                  onChange={e => setEditForm({...editForm, assignedTo: e.target.value})}
+                >
+                  <option value="">Assign to Investment Head...</option>
+                  {heads.map((head) => (
+                    <option key={head.id} value={head.id}>{head.name}</option>
+                  ))}
+                </select>
+              )}
+
+              <div className="flex justify-end space-x-2 mt-4">
+                <button type="button" onClick={closeEdit} className="px-4 py-2 bg-muted rounded">Cancel</button>
+                <button type="submit" disabled={editSubmitting} className="px-4 py-2 bg-brand-navy text-white rounded disabled:opacity-50">
+                  {editSubmitting ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

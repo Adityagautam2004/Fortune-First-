@@ -1,12 +1,5 @@
-import { MessageSquareWarning } from 'lucide-react';
-import { ComingSoon } from '@/components/shared/coming-soon';
+import { ReportsListPage } from '@/features/reports/reports-list-page';
 
-export default function BoardReportsPage() {
-  return (
-    <ComingSoon
-      icon={MessageSquareWarning}
-      title="Reports"
-      description="Firm-wide reporting is on the way."
-    />
-  );
+export default function BoardReportsRoute() {
+  return <ReportsListPage />;
 }

@@ -1,12 +1,5 @@
-import { FileText } from 'lucide-react';
-import { ComingSoon } from '@/components/shared/coming-soon';
+import { ReportsListPage } from '@/features/reports/reports-list-page';
 
-export default function AdminReportsPage() {
-  return (
-    <ComingSoon
-      icon={FileText}
-      title="Reports"
-      description="Firm-wide reporting is on the way."
-    />
-  );
+export default function AdminReportsRoute() {
+  return <ReportsListPage />;
 }

@@ -103,17 +103,22 @@ const sellPosition = async (positionId, { quantity, price, businessHeadId }, dbC
 
 /**
  * All open positions (optionally filtered to one business_head's own
- * additions), enriched with a live quote per symbol and a portfolio-wide
- * summary. Every viewer role (admin/investment_head/business_head) gets the
- * exact same shape — only the frontend's write controls differ by role.
- * @param {{ addedBy?: string }} options
+ * additions and/or one order type), enriched with a live quote per symbol
+ * and a portfolio-wide summary. Every viewer role
+ * (admin/investment_head/business_head) gets the exact same shape — only
+ * the frontend's write controls differ by role.
+ * @param {{ addedBy?: string, orderType?: 'regular'|'mtf' }} options
  */
-const getPositions = async ({ addedBy } = {}) => {
+const getPositions = async ({ addedBy, orderType } = {}) => {
   const conditions = ['p.is_active = TRUE'];
   const values = [];
   if (addedBy) {
     values.push(addedBy);
     conditions.push(`p.added_by = $${values.length}`);
+  }
+  if (orderType) {
+    values.push(orderType);
+    conditions.push(`p.order_type = $${values.length}`);
   }
 
   const { rows } = await db.query(

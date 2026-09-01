@@ -20,11 +20,12 @@ const searchStocks = async (req, res) => {
 };
 
 // GET /board/portfolio — every board/admin role sees the same shared book;
-// optional ?addedBy= filters to one business_head's own additions.
+// optional ?addedBy= filters to one business_head's own additions, ?orderType=
+// filters to regular or mtf positions.
 const getPortfolio = async (req, res) => {
   try {
-    const { addedBy } = req.query;
-    const result = await stockPortfolioService.getPositions({ addedBy });
+    const { addedBy, orderType } = req.query;
+    const result = await stockPortfolioService.getPositions({ addedBy, orderType });
     return res.status(200).json({ status: 'success', data: result });
   } catch (error) {
     console.error('Get Portfolio Error:', error);
@@ -128,11 +129,12 @@ const sellStock = async (req, res) => {
 // with filter-aware summary cards.
 const getFundsTransactions = async (req, res) => {
   try {
-    const { businessHeadId, type, outcome, dateFrom, dateTo, page, limit } = req.query;
+    const { businessHeadId, type, outcome, orderType, dateFrom, dateTo, page, limit } = req.query;
     const result = await fundsTransactionService.getTransactions({
       businessHeadId,
       type,
       outcome,
+      orderType,
       dateFrom,
       dateTo,
       page: page ? parseInt(page, 10) : undefined,

@@ -4,6 +4,8 @@ export interface StockSearchResult {
   exchange: string;
 }
 
+export type OrderType = 'regular' | 'mtf';
+
 export interface StockPosition {
   id: string;
   symbol: string;
@@ -12,6 +14,7 @@ export interface StockPosition {
   average_price: number;
   added_by: string;
   added_by_name: string;
+  order_type: OrderType;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -44,6 +47,7 @@ export interface StockTransaction {
   quantity: number | string;
   price: number | string;
   profit_loss: number | string | null;
+  order_type: OrderType;
   business_head_id: string;
   business_head_name: string;
   transaction_date: string;

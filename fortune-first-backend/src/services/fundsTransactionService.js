@@ -5,9 +5,9 @@ const ApiError = require('../utils/apiError');
  * Paginated stock buy/sell log ("Funds Transactions"), plus summary
  * aggregates computed over the SAME filtered set (so the summary cards move
  * together with whatever the caller has filtered down to).
- * @param {{ businessHeadId?: string, type?: 'buy'|'sell', outcome?: 'profit'|'loss', dateFrom?: string, dateTo?: string, page?: number, limit?: number }} options
+ * @param {{ businessHeadId?: string, type?: 'buy'|'sell', outcome?: 'profit'|'loss', orderType?: 'regular'|'mtf', dateFrom?: string, dateTo?: string, page?: number, limit?: number }} options
  */
-const getTransactions = async ({ businessHeadId, type, outcome, dateFrom, dateTo, page = 1, limit = 20 } = {}) => {
+const getTransactions = async ({ businessHeadId, type, outcome, orderType, dateFrom, dateTo, page = 1, limit = 20 } = {}) => {
   const offset = (page - 1) * limit;
   const conditions = [];
   const values = [];
@@ -19,6 +19,10 @@ const getTransactions = async ({ businessHeadId, type, outcome, dateFrom, dateTo
   if (type) {
     values.push(type);
     conditions.push(`t.transaction_type = $${values.length}`);
+  }
+  if (orderType) {
+    values.push(orderType);
+    conditions.push(`t.order_type = $${values.length}`);
   }
   if (outcome === 'profit') {
     conditions.push(`t.profit_loss > 0`);
