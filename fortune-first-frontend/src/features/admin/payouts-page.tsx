@@ -40,10 +40,10 @@ export function PayoutsPage() {
     );
   }, [investments, search]);
 
-  const handleMarkPaid = async (investmentId: string, returnPct: number) => {
+  const handleMarkPaid = async (customerId: string, returnPct: number) => {
     if (!month || !year) return;
     try {
-      await api.post('/board/payouts', { investmentId, month, year, returnPct });
+      await api.post('/board/payouts', { customerId, month, year, returnPct });
       await fetchPending();
     } catch (error) {
       console.error('Failed to process payout', error);

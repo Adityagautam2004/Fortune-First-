@@ -137,7 +137,7 @@ export function ReportsListPage() {
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Month</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">NAV</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Overall Profit</th>
-                  <th className="whitespace-nowrap px-6 py-3 font-medium">Client Payout</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Total AUM</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Operating Capital</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Actions</th>
                 </tr>
@@ -156,7 +156,7 @@ export function ReportsListPage() {
                       <td className={cn('px-6 py-4 font-semibold', positive ? 'text-emerald-600' : 'text-red-600')}>
                         {positive ? '+' : ''}{formatRupees(report.overall_profit_amount)} ({Number(report.overall_profit_percentage).toFixed(2)}%)
                       </td>
-                      <td className="px-6 py-4 text-foreground">{formatRupees(report.client_payout_amount)}</td>
+                      <td className="px-6 py-4 text-foreground">{formatRupees(report.total_aum_next_month)}</td>
                       <td className="px-6 py-4 text-foreground">{formatRupees(report.operating_capital_total)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
@@ -247,7 +247,7 @@ function ReportCard({
       </div>
       <div className="mt-2 grid grid-cols-2 gap-y-1 text-xs text-muted-foreground">
         <span>NAV: {Number(report.nav_updated).toFixed(2)}</span>
-        <span>Client Payout: {formatRupees(report.client_payout_amount)}</span>
+        <span>Total AUM: {formatRupees(report.total_aum_next_month)}</span>
         <span>Op. Capital: {formatRupees(report.operating_capital_total)}</span>
       </div>
       <div className="mt-3 flex items-center gap-2 border-t border-brand-border pt-2.5">

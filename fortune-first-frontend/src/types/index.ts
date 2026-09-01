@@ -80,11 +80,13 @@ export interface Transaction {
 }
 
 // ── Monthly Return / Payout ─────────────────────────────────
+// One row per calendar month — a client's payout is one aggregate figure
+// across all their active investments, not one row per investment.
 export interface MonthlyReturn {
   id: string;
-  investment_id: string;
   month: number;
   year: number;
+  invested_amount: number;
   return_pct: number;
   payout_amount: number;
   payout_status: PayoutStatus;
@@ -143,11 +145,10 @@ export interface UpdateWithdrawalStatusPayload {
 
 // ── Payout Payloads ─────────────────────────────────────────
 export interface RecordPayoutPayload {
-  investment_id: string;
+  customerId: string;
   month: number;
   year: number;
-  return_pct: number;
-  payout_amount: number;
+  returnPct: number;
 }
 
 export interface UpdatePayoutStatusPayload {

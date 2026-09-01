@@ -22,14 +22,13 @@ const COMBINED_QUERY = `
 
   UNION ALL
 
-  SELECT 'payout' AS type, mr.id, i.customer_id, u.name AS customer_name,
+  SELECT 'payout' AS type, mr.id, mr.customer_id, u.name AS customer_name,
          mr.payout_amount AS amount, mr.payout_status::text AS status,
          COALESCE(mr.payout_date, make_date(mr.year, mr.month, 1)) AS date,
          NULL AS screenshot_url, NULL AS notes,
          COALESCE(mr.payout_date, make_date(mr.year, mr.month, 1))::timestamptz AS created_at
   FROM monthly_returns mr
-  JOIN investments i ON i.id = mr.investment_id
-  JOIN users u ON u.id = i.customer_id
+  JOIN users u ON u.id = mr.customer_id
 `;
 
 /**

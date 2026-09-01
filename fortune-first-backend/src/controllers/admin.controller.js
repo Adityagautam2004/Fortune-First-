@@ -322,9 +322,8 @@ const updateWithdrawalStatusAdmin = async (req, res) => {
 // frontend called)
 const getAdminPayouts = async (req, res) => {
   try {
-    const { investment_id, customer_id, status, page, limit } = req.query;
+    const { customer_id, status, page, limit } = req.query;
     const result = await payoutService.getAllPayouts({
-      investment_id,
       customer_id,
       status,
       page: page ? parseInt(page, 10) : undefined,

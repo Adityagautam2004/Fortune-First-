@@ -70,7 +70,14 @@ export function ReportDetailPage({ reportId }: ReportDetailPageProps) {
 
   const monthLabel = `${MONTH_NAMES[report.month - 1]} ${report.year}`;
   const nextLabel = nextMonthLabel(report.month, report.year);
-  const companyLoss = Number(report.company_result_amount) < 0;
+
+  // Not stored fields of their own — always derived from each investment
+  // head's own clientMoney/payoutAmount, so it can never drift out of sync
+  // with the breakdown table below.
+  const totalClientMoney = report.members.reduce((sum, m) => sum + (Number(m.clientMoney) || 0), 0);
+  const totalClientPayout = report.members.reduce((sum, m) => sum + (Number(m.payoutAmount) || 0), 0);
+  const avgClientPayoutPct = totalClientMoney > 0 ? (totalClientPayout / totalClientMoney) * 100 : 0;
+  const hasClientPayoutData = totalClientMoney > 0 || totalClientPayout > 0;
 
   return (
     <div className="space-y-6">
@@ -134,33 +141,26 @@ export function ReportDetailPage({ reportId }: ReportDetailPageProps) {
             .
           </li>
           <li>NAV = {Number(report.nav_updated).toFixed(2)}.</li>
-          <li>
-            Clients payout percentage for {MONTH_NAMES[report.month - 1]} is {Number(report.client_payout_percentage).toFixed(2)}% and is valued at{' '}
-            {formatRupees(report.client_total_money)} and is = {formatRupees(report.client_payout_amount)}.
-          </li>
-          <li>
-            Company&apos;s {companyLoss ? 'loss' : 'profit'} after Clients payout ={' '}
-            <span className={cn('rounded px-2 py-0.5 font-bold', companyLoss ? 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400')}>
-              {formatRupees(Math.abs(Number(report.company_result_amount)))}
-            </span>
-          </li>
-          <li>
-            {Number(report.profit_saving_percentage).toFixed(2)}% company profit saving = {formatRupees(report.profit_saving_amount)} left- {formatRupees(report.profit_saving_left_amount)}
-          </li>
+          {hasClientPayoutData && (
+            <li>
+              Clients payout percentage for {MONTH_NAMES[report.month - 1]} is {avgClientPayoutPct.toFixed(2)}% and is valued at{' '}
+              {formatRupees(totalClientMoney)} and is = {formatRupees(totalClientPayout)}.
+            </li>
+          )}
         </ul>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Section title={`Payout (1st ${nextLabel.split(' ')[0]})`}>
-          {report.partner_payouts.map((p) => (
-            <li key={p.name}>
-              {p.name} ➡️ {Number(p.percentage).toFixed(2)}% of {MONTH_NAMES[report.month - 1]} = <b>{formatRupees(p.amount)}</b>{' '}
-              <StatusPill status={p.status} />
-            </li>
-          ))}
-          <li>Client payout = {formatRupees(report.client_payout_amount)} <StatusPill status={report.client_payout_status} /></li>
-          <li>Employees = <b>{formatRupees(report.employees_payout_amount)}</b></li>
-        </Section>
+        {report.partner_payouts.length > 0 && (
+          <Section title={`Payout (1st ${nextLabel.split(' ')[0]})`}>
+            {report.partner_payouts.map((p) => (
+              <li key={p.name}>
+                {p.name} ➡️ {Number(p.percentage).toFixed(2)}% of {MONTH_NAMES[report.month - 1]} = <b>{formatRupees(p.amount)}</b>{' '}
+                <StatusPill status={p.status} />
+              </li>
+            ))}
+          </Section>
+        )}
 
         <Section title="Updated Investment Pattern" subtitle={`For ${nextLabel}`}>
           {report.investment_pattern.length === 0 ? (
@@ -170,18 +170,6 @@ export function ReportDetailPage({ reportId }: ReportDetailPageProps) {
               <li key={m.name}>{m.name} = {formatRupees(m.amount)}</li>
             ))
           )}
-        </Section>
-
-        <Section title="Withdrawals" subtitle={nextLabel.split(' ')[0]}>
-          {report.withdrawals.length === 0 ? <EmptyNote text="No withdrawals recorded." /> : report.withdrawals.map((w, i) => (
-            <li key={i}><b>{formatRupees(w.amount)}</b> — {w.description}</li>
-          ))}
-        </Section>
-
-        <Section title="Investments">
-          {report.investments.length === 0 ? <EmptyNote text="No investments recorded." /> : report.investments.map((inv, i) => (
-            <li key={i}><b>{formatRupees(inv.amount)}</b> — {inv.description}</li>
-          ))}
         </Section>
       </div>
 

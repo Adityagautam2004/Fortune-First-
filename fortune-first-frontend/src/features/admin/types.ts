@@ -1,10 +1,11 @@
+// One row per CLIENT — their several active investments are summed into
+// one aggregate figure, anchored on the earliest one's week_of_month.
 export interface PendingPayout {
-  investment_id: string;
-  amount: number | string;
-  week_of_month: number;
-  investment_date: string;
   customer_id: string;
   client_name: string;
+  amount: number | string;
+  week_of_month: number;
+  earliest_investment_date: string;
 }
 
 export interface AdminDashboardStats {
@@ -59,9 +60,10 @@ export interface AdminTransactionRow {
 
 export interface AdminPayoutRow {
   id: string;
-  investment_id: string;
+  customer_id: string;
   month: number;
   year: number;
+  invested_amount: number | string;
   return_pct: number | string;
   payout_amount: number | string;
   payout_status: string;

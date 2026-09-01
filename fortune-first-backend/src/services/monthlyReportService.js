@@ -3,22 +3,13 @@ const ApiError = require('../utils/apiError');
 const { uploadBuffer } = require('../utils/cloudinary');
 const { generateMonthlyReportPdf } = require('../utils/reportPdf');
 
-const JSONB_FIELDS = ['members', 'investmentPattern', 'partnerPayouts', 'withdrawals', 'investments'];
+const JSONB_FIELDS = ['members', 'investmentPattern', 'partnerPayouts'];
 const CAMEL_TO_SNAKE = {
   totalAumNextMonth: 'total_aum_next_month',
   navPrevious: 'nav_previous',
   navUpdated: 'nav_updated',
   overallProfitPercentage: 'overall_profit_percentage',
   overallProfitAmount: 'overall_profit_amount',
-  clientPayoutPercentage: 'client_payout_percentage',
-  clientTotalMoney: 'client_total_money',
-  clientPayoutAmount: 'client_payout_amount',
-  clientPayoutStatus: 'client_payout_status',
-  companyResultAmount: 'company_result_amount',
-  profitSavingPercentage: 'profit_saving_percentage',
-  profitSavingAmount: 'profit_saving_amount',
-  profitSavingLeftAmount: 'profit_saving_left_amount',
-  employeesPayoutAmount: 'employees_payout_amount',
   operatingCapitalTotal: 'operating_capital_total',
   investmentPattern: 'investment_pattern',
   partnerPayouts: 'partner_payouts',
@@ -26,8 +17,6 @@ const CAMEL_TO_SNAKE = {
   month: 'month',
   year: 'year',
   members: 'members',
-  withdrawals: 'withdrawals',
-  investments: 'investments',
 };
 
 /**
@@ -35,12 +24,19 @@ const CAMEL_TO_SNAKE = {
  * validated, camelCase request body — JSONB fields get JSON.stringify'd
  * explicitly (pg's automatic serialization treats a bare JS array as a
  * Postgres ARRAY literal, not JSON, which breaks against a jsonb column).
+ * operating_capital_total is never taken from the request — it's always
+ * SUM(members[].personalAum), so it can't drift out of sync with the
+ * breakdown table that's supposed to explain it.
  */
-const toColumns = (data) =>
-  Object.entries(CAMEL_TO_SNAKE).map(([camel, snake]) => [
+const toColumns = (data) => {
+  const operatingCapitalTotal = (data.members || []).reduce((sum, m) => sum + (Number(m.personalAum) || 0), 0);
+  const withComputedTotal = { ...data, operatingCapitalTotal };
+
+  return Object.entries(CAMEL_TO_SNAKE).map(([camel, snake]) => [
     snake,
-    JSONB_FIELDS.includes(camel) ? JSON.stringify(data[camel] ?? []) : data[camel],
+    JSONB_FIELDS.includes(camel) ? JSON.stringify(withComputedTotal[camel] ?? []) : withComputedTotal[camel],
   ]);
+};
 
 const uniqueViolation = (error) => error.code === '23505';
 
@@ -161,7 +157,7 @@ const getReports = async ({ month, year, page = 1, limit = 12 } = {}) => {
   // a list view — keep the payload light.
   const { rows } = await db.query(
     `SELECT id, month, year, total_aum_next_month, nav_updated, overall_profit_percentage,
-            overall_profit_amount, client_payout_amount, operating_capital_total,
+            overall_profit_amount, operating_capital_total,
             pdf_url, generated_pdf_url, created_by, created_at, updated_at
      FROM monthly_reports
      ${whereClause}

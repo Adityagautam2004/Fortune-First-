@@ -24,11 +24,6 @@ export interface PartnerPayout {
   status: PayoutStatus;
 }
 
-export interface ReportLineItem {
-  description: string;
-  amount: number;
-}
-
 // List view — the backend deliberately omits the heavier JSONB blobs here.
 export interface MonthlyReportSummary {
   id: string;
@@ -38,7 +33,6 @@ export interface MonthlyReportSummary {
   nav_updated: number | string;
   overall_profit_percentage: number | string;
   overall_profit_amount: number | string;
-  client_payout_amount: number | string;
   operating_capital_total: number | string;
   pdf_url: string | null;
   generated_pdf_url: string | null;
@@ -49,19 +43,9 @@ export interface MonthlyReportSummary {
 
 export interface MonthlyReport extends MonthlyReportSummary {
   nav_previous: number | string;
-  client_payout_percentage: number | string;
-  client_total_money: number | string;
-  client_payout_status: PayoutStatus;
-  company_result_amount: number | string;
-  profit_saving_percentage: number | string;
-  profit_saving_amount: number | string;
-  profit_saving_left_amount: number | string;
-  employees_payout_amount: number | string;
   members: ReportMember[];
   investment_pattern: InvestmentPatternItem[];
   partner_payouts: PartnerPayout[];
-  withdrawals: ReportLineItem[];
-  investments: ReportLineItem[];
   notes: string | null;
 }
 

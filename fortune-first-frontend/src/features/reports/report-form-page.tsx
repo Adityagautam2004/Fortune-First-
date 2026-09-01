@@ -2,14 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, UploadCloud } from 'lucide-react';
+import { Check, Pencil, Plus, Trash2, UploadCloud } from 'lucide-react';
 
 import api from '@/lib/api';
 import { cn, getErrorMessage } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
-import type {
-  InvestmentPatternItem, MonthlyReport, PartnerPayout, PayoutStatus, ReportLineItem, ReportMember,
-} from './types';
+import type { InvestmentPatternItem, MonthlyReport, PartnerPayout, PayoutStatus, ReportMember } from './types';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -25,14 +23,16 @@ function n(setter: (v: number) => void) {
   return (e: React.ChangeEvent<HTMLInputElement>) => setter(e.target.value === '' ? 0 : Number(e.target.value));
 }
 
+function formatRupees(value: number) {
+  return `₹${(Number(value) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+}
+
 interface ReportFormPageProps {
   reportId?: string; // present when editing
 }
 
 // Shared create/edit form for /admin/reports/new and /admin/reports/:id/edit
-// — the only place this section's data actually gets written. There's a lot
-// of it (headline numbers + five variable-length lists), so it's laid out
-// as a stack of clearly separated cards rather than one long flat form.
+// — the only place this section's data actually gets written.
 export function ReportFormPage({ reportId }: ReportFormPageProps) {
   const router = useRouter();
   const isEdit = !!reportId;
@@ -51,23 +51,18 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
   const [navUpdated, setNavUpdated] = useState(0);
   const [overallProfitPercentage, setOverallProfitPercentage] = useState(0);
   const [overallProfitAmount, setOverallProfitAmount] = useState(0);
-  const [clientPayoutPercentage, setClientPayoutPercentage] = useState(0);
-  const [clientTotalMoney, setClientTotalMoney] = useState(0);
-  const [clientPayoutAmount, setClientPayoutAmount] = useState(0);
-  const [clientPayoutStatus, setClientPayoutStatus] = useState<PayoutStatus>('pending');
-  const [companyResultAmount, setCompanyResultAmount] = useState(0);
-  const [profitSavingPercentage, setProfitSavingPercentage] = useState(0);
-  const [profitSavingAmount, setProfitSavingAmount] = useState(0);
-  const [profitSavingLeftAmount, setProfitSavingLeftAmount] = useState(0);
-  const [employeesPayoutAmount, setEmployeesPayoutAmount] = useState(0);
-  const [operatingCapitalTotal, setOperatingCapitalTotal] = useState(0);
   const [notes, setNotes] = useState('');
 
   const [members, setMembers] = useState<ReportMember[]>([]);
   const [investmentPattern, setInvestmentPattern] = useState<InvestmentPatternItem[]>([]);
+  const [editingPatternIndex, setEditingPatternIndex] = useState<number | null>(null);
   const [partnerPayouts, setPartnerPayouts] = useState<PartnerPayout[]>([]);
-  const [withdrawals, setWithdrawals] = useState<ReportLineItem[]>([]);
-  const [investments, setInvestments] = useState<ReportLineItem[]>([]);
+
+  // Not entered anywhere — always SUM(members[].personalAum), same formula
+  // the backend applies. Shown live so the admin can see it settle as they
+  // fill in the breakdown below, instead of typing it in twice.
+  const computedOperatingCapital = members.reduce((sum, m) => sum + (Number(m.personalAum) || 0), 0);
+  const suggestedNav = navPrevious * (1 + (overallProfitPercentage || 0) / 100);
 
   useEffect(() => {
     if (isEdit) {
@@ -80,28 +75,17 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
         setNavUpdated(Number(r.nav_updated));
         setOverallProfitPercentage(Number(r.overall_profit_percentage));
         setOverallProfitAmount(Number(r.overall_profit_amount));
-        setClientPayoutPercentage(Number(r.client_payout_percentage));
-        setClientTotalMoney(Number(r.client_total_money));
-        setClientPayoutAmount(Number(r.client_payout_amount));
-        setClientPayoutStatus(r.client_payout_status);
-        setCompanyResultAmount(Number(r.company_result_amount));
-        setProfitSavingPercentage(Number(r.profit_saving_percentage));
-        setProfitSavingAmount(Number(r.profit_saving_amount));
-        setProfitSavingLeftAmount(Number(r.profit_saving_left_amount));
-        setEmployeesPayoutAmount(Number(r.employees_payout_amount));
-        setOperatingCapitalTotal(Number(r.operating_capital_total));
         setNotes(r.notes || '');
         setMembers(r.members);
         setInvestmentPattern(r.investment_pattern);
         setPartnerPayouts(r.partner_payouts);
-        setWithdrawals(r.withdrawals);
-        setInvestments(r.investments);
         setExistingPdfUrl(r.pdf_url);
       }).catch((err) => setError(getErrorMessage(err, 'Failed to load report.')))
         .finally(() => setLoading(false));
     } else {
       // New report — roll forward last month's investment pattern/members
-      // and suggest this month's opening NAV from last month's closing NAV.
+      // (all editable on demand, nothing locked) and suggest this month's
+      // opening NAV from last month's closing NAV.
       api.get('/admin/reports/prefill').then((res) => {
         const p = res.data.data;
         if (p.navPrevious) setNavPrevious(p.navPrevious);
@@ -130,22 +114,10 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
       formData.append('navUpdated', String(navUpdated));
       formData.append('overallProfitPercentage', String(overallProfitPercentage));
       formData.append('overallProfitAmount', String(overallProfitAmount));
-      formData.append('clientPayoutPercentage', String(clientPayoutPercentage));
-      formData.append('clientTotalMoney', String(clientTotalMoney));
-      formData.append('clientPayoutAmount', String(clientPayoutAmount));
-      formData.append('clientPayoutStatus', clientPayoutStatus);
-      formData.append('companyResultAmount', String(companyResultAmount));
-      formData.append('profitSavingPercentage', String(profitSavingPercentage));
-      formData.append('profitSavingAmount', String(profitSavingAmount));
-      formData.append('profitSavingLeftAmount', String(profitSavingLeftAmount));
-      formData.append('employeesPayoutAmount', String(employeesPayoutAmount));
-      formData.append('operatingCapitalTotal', String(operatingCapitalTotal));
       formData.append('notes', notes);
       formData.append('members', JSON.stringify(members.filter((m) => m.name.trim())));
       formData.append('investmentPattern', JSON.stringify(investmentPattern.filter((m) => m.name.trim())));
       formData.append('partnerPayouts', JSON.stringify(partnerPayouts.filter((p) => p.name.trim())));
-      formData.append('withdrawals', JSON.stringify(withdrawals.filter((w) => w.description.trim())));
-      formData.append('investments', JSON.stringify(investments.filter((i) => i.description.trim())));
       if (pdfFile) formData.append('pdf', pdfFile);
 
       if (isEdit) {
@@ -178,13 +150,15 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
             </select>
           </Field>
           <Field label="Year">
-            <input type="number" value={year} onChange={n(setYear)} className={inputClass} />
+            <input type="number" value={year || ''} onChange={n(setYear)} className={inputClass} />
           </Field>
           <Field label="Total AUM (₹)">
-            <input type="number" step="any" value={totalAumNextMonth} onChange={n(setTotalAumNextMonth)} className={inputClass} />
+            <input type="number" step="any" value={totalAumNextMonth || ''} onChange={n(setTotalAumNextMonth)} className={inputClass} />
           </Field>
-          <Field label="Operating Capital Total (₹)">
-            <input type="number" step="any" value={operatingCapitalTotal} onChange={n(setOperatingCapitalTotal)} className={inputClass} />
+          <Field label="Operating Capital (auto)">
+            <div className={cn(inputClass, 'flex items-center bg-muted text-muted-foreground')}>
+              {formatRupees(computedOperatingCapital)}
+            </div>
           </Field>
         </div>
       </Card>
@@ -192,56 +166,16 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
       <Card title="NAV & Overall Profit">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Field label="Previous NAV">
-            <input type="number" step="any" value={navPrevious} onChange={n(setNavPrevious)} className={inputClass} />
+            <input type="number" step="any" value={navPrevious || ''} onChange={n(setNavPrevious)} className={inputClass} />
           </Field>
-          <Field label="Updated NAV">
-            <input type="number" step="any" value={navUpdated} onChange={n(setNavUpdated)} className={inputClass} />
+          <Field label={`Updated NAV${suggestedNav ? ` (suggested ${suggestedNav.toFixed(2)})` : ''}`}>
+            <input type="number" step="any" value={navUpdated || ''} onChange={n(setNavUpdated)} className={inputClass} />
           </Field>
           <Field label="Overall Profit %">
-            <input type="number" step="any" value={overallProfitPercentage} onChange={n(setOverallProfitPercentage)} className={inputClass} />
+            <input type="number" step="any" value={overallProfitPercentage || ''} onChange={n(setOverallProfitPercentage)} className={inputClass} />
           </Field>
           <Field label="Overall Profit Amount (₹)">
-            <input type="number" step="any" value={overallProfitAmount} onChange={n(setOverallProfitAmount)} className={inputClass} />
-          </Field>
-        </div>
-      </Card>
-
-      <Card title="Client Payout">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Field label="Payout %">
-            <input type="number" step="any" value={clientPayoutPercentage} onChange={n(setClientPayoutPercentage)} className={inputClass} />
-          </Field>
-          <Field label="Total Client Money (₹)">
-            <input type="number" step="any" value={clientTotalMoney} onChange={n(setClientTotalMoney)} className={inputClass} />
-          </Field>
-          <Field label="Payout Amount (₹)">
-            <input type="number" step="any" value={clientPayoutAmount} onChange={n(setClientPayoutAmount)} className={inputClass} />
-          </Field>
-          <Field label="Status">
-            <select value={clientPayoutStatus} onChange={(e) => setClientPayoutStatus(e.target.value as PayoutStatus)} className={inputClass}>
-              <option value="pending">Pending</option>
-              <option value="paid">Paid</option>
-            </select>
-          </Field>
-        </div>
-      </Card>
-
-      <Card title="Company Result & Savings">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Field label="Company Result (₹, negative = loss)">
-            <input type="number" step="any" value={companyResultAmount} onChange={n(setCompanyResultAmount)} className={inputClass} />
-          </Field>
-          <Field label="Profit Saving %">
-            <input type="number" step="any" value={profitSavingPercentage} onChange={n(setProfitSavingPercentage)} className={inputClass} />
-          </Field>
-          <Field label="Profit Saving Amount (₹)">
-            <input type="number" step="any" value={profitSavingAmount} onChange={n(setProfitSavingAmount)} className={inputClass} />
-          </Field>
-          <Field label="Profit Saving Left (₹)">
-            <input type="number" step="any" value={profitSavingLeftAmount} onChange={n(setProfitSavingLeftAmount)} className={inputClass} />
-          </Field>
-          <Field label="Employees Payout (₹)">
-            <input type="number" step="any" value={employeesPayoutAmount} onChange={n(setEmployeesPayoutAmount)} className={inputClass} />
+            <input type="number" step="any" value={overallProfitAmount || ''} onChange={n(setOverallProfitAmount)} className={inputClass} />
           </Field>
         </div>
       </Card>
@@ -263,28 +197,28 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
               </div>
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                 <MiniField label="Personal AUM">
-                  <input type="number" step="any" value={m.personalAum} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, personalAum: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
+                  <input type="number" step="any" value={m.personalAum || ''} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, personalAum: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
                 </MiniField>
                 <MiniField label="Profit/Loss">
-                  <input type="number" step="any" value={m.profitLossAmount} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, profitLossAmount: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
+                  <input type="number" step="any" value={m.profitLossAmount || ''} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, profitLossAmount: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
                 </MiniField>
                 <MiniField label="R&D Cost">
-                  <input type="number" step="any" value={m.rdCost} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, rdCost: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
+                  <input type="number" step="any" value={m.rdCost || ''} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, rdCost: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
                 </MiniField>
                 <MiniField label="Investment Recv.">
-                  <input type="number" step="any" value={m.investmentReceived} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, investmentReceived: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
+                  <input type="number" step="any" value={m.investmentReceived || ''} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, investmentReceived: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
                 </MiniField>
                 <MiniField label="Withdrawal">
-                  <input type="number" step="any" value={m.withdrawalAmount} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, withdrawalAmount: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
+                  <input type="number" step="any" value={m.withdrawalAmount || ''} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, withdrawalAmount: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
                 </MiniField>
                 <MiniField label="Client Money">
-                  <input type="number" step="any" value={m.clientMoney} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, clientMoney: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
+                  <input type="number" step="any" value={m.clientMoney || ''} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, clientMoney: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
                 </MiniField>
                 <MiniField label="Payout %">
-                  <input type="number" step="any" value={m.payoutPercentage} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, payoutPercentage: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
+                  <input type="number" step="any" value={m.payoutPercentage || ''} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, payoutPercentage: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
                 </MiniField>
                 <MiniField label="Payout Amount">
-                  <input type="number" step="any" value={m.payoutAmount} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, payoutAmount: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
+                  <input type="number" step="any" value={m.payoutAmount || ''} onChange={(e) => setMembers((prev) => prev.map((x, idx) => idx === i ? { ...x, payoutAmount: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
                 </MiniField>
               </div>
             </div>
@@ -293,16 +227,58 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
         </div>
       </Card>
 
-      <Card title="Updated Investment Pattern" subtitle="Each board member's personal stake in the firm">
-        <div className="space-y-2.5">
-          {investmentPattern.map((item, i) => (
-            <div key={i} className="flex items-center gap-2.5">
-              <input placeholder="Name" value={item.name} onChange={(e) => setInvestmentPattern((prev) => prev.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} className={inputClass} />
-              <input type="number" step="any" placeholder="Amount (₹)" value={item.amount} onChange={(e) => setInvestmentPattern((prev) => prev.map((x, idx) => idx === i ? { ...x, amount: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={inputClass} />
-              <RemoveRowButton onClick={() => setInvestmentPattern((prev) => prev.filter((_, idx) => idx !== i))} />
-            </div>
-          ))}
-          <AddRowButton label="Add Member" onClick={() => setInvestmentPattern((prev) => [...prev, { name: '', amount: 0 }])} />
+      <Card title="Updated Investment Pattern" subtitle="Each board member's personal stake — rolled forward from last month; click a value to change it">
+        <div className="space-y-2">
+          {investmentPattern.map((item, i) => {
+            const editing = editingPatternIndex === i;
+            return (
+              <div key={i} className="flex items-center gap-2.5 rounded-lg border border-brand-border px-3 py-2">
+                {editing ? (
+                  <>
+                    <input
+                      placeholder="Name"
+                      value={item.name}
+                      onChange={(e) => setInvestmentPattern((prev) => prev.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))}
+                      className={cn(inputClass, 'flex-1')}
+                    />
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="Amount (₹)"
+                      value={item.amount || ''}
+                      onChange={(e) => setInvestmentPattern((prev) => prev.map((x, idx) => idx === i ? { ...x, amount: e.target.value === '' ? 0 : Number(e.target.value) } : x))}
+                      className={cn(inputClass, 'w-36')}
+                      autoFocus
+                    />
+                    <button type="button" onClick={() => setEditingPatternIndex(null)} className="shrink-0 rounded-md p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/15">
+                      <Check size={16} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 text-sm font-medium text-foreground">
+                      {item.name || <span className="italic text-muted-foreground">Unnamed</span>}
+                    </span>
+                    <span className="text-sm text-muted-foreground">{formatRupees(item.amount)}</span>
+                    <button type="button" onClick={() => setEditingPatternIndex(i)} className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted">
+                      <Pencil size={14} />
+                    </button>
+                  </>
+                )}
+                <RemoveRowButton onClick={() => {
+                  setInvestmentPattern((prev) => prev.filter((_, idx) => idx !== i));
+                  if (editingPatternIndex === i) setEditingPatternIndex(null);
+                }} />
+              </div>
+            );
+          })}
+          <AddRowButton
+            label="Add Member"
+            onClick={() => {
+              setInvestmentPattern((prev) => [...prev, { name: '', amount: 0 }]);
+              setEditingPatternIndex(investmentPattern.length);
+            }}
+          />
         </div>
       </Card>
 
@@ -311,8 +287,8 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
           {partnerPayouts.map((p, i) => (
             <div key={i} className="flex flex-wrap items-center gap-2.5">
               <input placeholder="Name" value={p.name} onChange={(e) => setPartnerPayouts((prev) => prev.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} className={cn(inputClass, 'flex-1')} />
-              <input type="number" step="any" placeholder="%" value={p.percentage} onChange={(e) => setPartnerPayouts((prev) => prev.map((x, idx) => idx === i ? { ...x, percentage: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={cn(inputClass, 'w-20')} />
-              <input type="number" step="any" placeholder="Amount (₹)" value={p.amount} onChange={(e) => setPartnerPayouts((prev) => prev.map((x, idx) => idx === i ? { ...x, amount: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={cn(inputClass, 'w-32')} />
+              <input type="number" step="any" placeholder="%" value={p.percentage || ''} onChange={(e) => setPartnerPayouts((prev) => prev.map((x, idx) => idx === i ? { ...x, percentage: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={cn(inputClass, 'w-20')} />
+              <input type="number" step="any" placeholder="Amount (₹)" value={p.amount || ''} onChange={(e) => setPartnerPayouts((prev) => prev.map((x, idx) => idx === i ? { ...x, amount: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={cn(inputClass, 'w-32')} />
               <select value={p.status} onChange={(e) => setPartnerPayouts((prev) => prev.map((x, idx) => idx === i ? { ...x, status: e.target.value as PayoutStatus } : x))} className={cn(inputClass, 'w-28')}>
                 <option value="pending">Pending</option>
                 <option value="paid">Paid</option>
@@ -322,14 +298,6 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
           ))}
           <AddRowButton label="Add Payout" onClick={() => setPartnerPayouts((prev) => [...prev, { name: '', percentage: 0, amount: 0, status: 'pending' }])} />
         </div>
-      </Card>
-
-      <Card title="Withdrawals">
-        <LineItemEditor items={withdrawals} setItems={setWithdrawals} />
-      </Card>
-
-      <Card title="Investments">
-        <LineItemEditor items={investments} setItems={setInvestments} />
       </Card>
 
       <Card title="Notes">
@@ -359,7 +327,10 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
   );
 }
 
-const inputClass = 'rounded-lg border border-brand-border px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+// [appearance:textfield] + the two spin-button rules hide the native
+// up/down stepper — every numeric field here should just be a plain,
+// freely-editable box, not a counter.
+const inputClass = 'rounded-lg border border-brand-border px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
@@ -402,20 +373,5 @@ function RemoveRowButton({ onClick }: { onClick: () => void }) {
     <button type="button" onClick={onClick} className="shrink-0 rounded-md p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15">
       <Trash2 size={15} />
     </button>
-  );
-}
-
-function LineItemEditor({ items, setItems }: { items: ReportLineItem[]; setItems: React.Dispatch<React.SetStateAction<ReportLineItem[]>> }) {
-  return (
-    <div className="space-y-2.5">
-      {items.map((item, i) => (
-        <div key={i} className="flex items-center gap-2.5">
-          <input placeholder="Description" value={item.description} onChange={(e) => setItems((prev) => prev.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))} className={cn(inputClass, 'flex-1')} />
-          <input type="number" step="any" placeholder="Amount (₹)" value={item.amount} onChange={(e) => setItems((prev) => prev.map((x, idx) => idx === i ? { ...x, amount: e.target.value === '' ? 0 : Number(e.target.value) } : x))} className={cn(inputClass, 'w-36')} />
-          <RemoveRowButton onClick={() => setItems((prev) => prev.filter((_, idx) => idx !== i))} />
-        </div>
-      ))}
-      <AddRowButton label="Add Line" onClick={() => setItems((prev) => [...prev, { description: '', amount: 0 }])} />
-    </div>
   );
 }

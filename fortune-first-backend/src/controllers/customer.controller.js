@@ -53,19 +53,20 @@ const getInvestmentHistory = async (req, res) => {
   try {
     const customerId = req.user.userId;
     
-    // Raw SQL JOIN to combine investments with their monthly returns
+    // One row per calendar month now — invested_amount is the client's
+    // aggregate active-investment total at payout time, snapshotted
+    // directly on the row (no join to investments needed).
     const historyQuery = await db.query(
-      `SELECT 
-        mr.month, 
-        mr.year, 
-        i.amount AS invested_amount, 
-        mr.return_pct, 
-        mr.payout_amount, 
-        mr.payout_status, 
-        mr.payout_date 
+      `SELECT
+        mr.month,
+        mr.year,
+        mr.invested_amount,
+        mr.return_pct,
+        mr.payout_amount,
+        mr.payout_status,
+        mr.payout_date
        FROM monthly_returns mr
-       JOIN investments i ON mr.investment_id = i.id
-       WHERE i.customer_id = $1
+       WHERE mr.customer_id = $1
        ORDER BY mr.year DESC, mr.month DESC`,
       [customerId]
     );
@@ -171,10 +172,9 @@ const downloadFullReport = async (req, res) => {
     // Fetch profile and history
     const profileRes = await db.query(`SELECT name FROM users WHERE id = $1`, [customerId]);
     const historyRes = await db.query(
-      `SELECT mr.month, mr.year, i.amount AS invested_amount, mr.return_pct, mr.payout_amount 
+      `SELECT mr.month, mr.year, mr.invested_amount, mr.return_pct, mr.payout_amount
        FROM monthly_returns mr
-       JOIN investments i ON mr.investment_id = i.id
-       WHERE i.customer_id = $1 ORDER BY mr.year DESC, mr.month DESC`,
+       WHERE mr.customer_id = $1 ORDER BY mr.year DESC, mr.month DESC`,
       [customerId]
     );
 
@@ -207,10 +207,9 @@ const downloadMonthlyReport = async (req, res) => {
 
     const profileRes = await db.query(`SELECT name FROM users WHERE id = $1`, [customerId]);
     const historyRes = await db.query(
-      `SELECT mr.month, mr.year, i.amount AS invested_amount, mr.return_pct, mr.payout_amount
+      `SELECT mr.month, mr.year, mr.invested_amount, mr.return_pct, mr.payout_amount
        FROM monthly_returns mr
-       JOIN investments i ON mr.investment_id = i.id
-       WHERE i.customer_id = $1 AND mr.month = $2 AND mr.year = $3
+       WHERE mr.customer_id = $1 AND mr.month = $2 AND mr.year = $3
        ORDER BY mr.year DESC, mr.month DESC`,
       [customerId, month, year]
     );

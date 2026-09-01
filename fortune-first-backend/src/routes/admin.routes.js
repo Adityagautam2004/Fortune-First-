@@ -221,11 +221,10 @@ const reportPartnerPayoutSchema = Joi.object({
   amount: Joi.number().default(0),
   status: Joi.string().valid('paid', 'pending').default('pending'),
 });
-const reportLineItemSchema = Joi.object({
-  description: Joi.string().trim().max(255).required(),
-  amount: Joi.number().default(0),
-});
 
+// operatingCapitalTotal is deliberately absent — it's always
+// SUM(members[].personalAum), computed server-side in monthlyReportService,
+// never a value the client sends.
 const monthlyReportSchema = Joi.object({
   month: Joi.number().integer().min(1).max(12).required(),
   year: Joi.number().integer().min(2000).max(2100).required(),
@@ -234,25 +233,13 @@ const monthlyReportSchema = Joi.object({
   navUpdated: Joi.number().default(0),
   overallProfitPercentage: Joi.number().default(0),
   overallProfitAmount: Joi.number().default(0),
-  clientPayoutPercentage: Joi.number().default(0),
-  clientTotalMoney: Joi.number().default(0),
-  clientPayoutAmount: Joi.number().default(0),
-  clientPayoutStatus: Joi.string().valid('paid', 'pending').default('pending'),
-  companyResultAmount: Joi.number().default(0),
-  profitSavingPercentage: Joi.number().default(0),
-  profitSavingAmount: Joi.number().default(0),
-  profitSavingLeftAmount: Joi.number().default(0),
-  employeesPayoutAmount: Joi.number().default(0),
-  operatingCapitalTotal: Joi.number().default(0),
   members: Joi.array().items(reportMemberSchema).default([]),
   investmentPattern: Joi.array().items(reportInvestmentPatternItemSchema).default([]),
   partnerPayouts: Joi.array().items(reportPartnerPayoutSchema).default([]),
-  withdrawals: Joi.array().items(reportLineItemSchema).default([]),
-  investments: Joi.array().items(reportLineItemSchema).default([]),
   notes: Joi.string().max(2000).allow('', null),
 });
 
-const REPORT_JSON_FIELDS = ['members', 'investmentPattern', 'partnerPayouts', 'withdrawals', 'investments'];
+const REPORT_JSON_FIELDS = ['members', 'investmentPattern', 'partnerPayouts'];
 
 router.get('/reports/prefill', getPrefill);
 router.post(

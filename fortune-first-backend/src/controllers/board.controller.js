@@ -231,71 +231,84 @@ const getBoardTransactions = async (req, res) => {
   }
 };
 
+// A client's payout is one aggregate figure — the earliest active
+// investment's week_of_month governs proration for the whole thing, since
+// that's the investment that's been accruing returns the longest.
 const processPayout = async (req, res) => {
   // We must acquire a dedicated client from the pool for a transaction
   const client = await db.pool.connect();
-  
+
   try {
     if (!['investment_head', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ status: 'error', message: 'Forbidden' });
     }
 
-    const { investmentId, month, year, returnPct } = req.body;
+    const { customerId, month, year, returnPct } = req.body;
     const processedBy = req.user.userId;
 
     await client.query('BEGIN'); // Start ACID Transaction
 
-    // 1. Fetch investment details
-    const investRes = await client.query(
-      `SELECT amount, week_of_month, investment_date, customer_id 
-       FROM investments WHERE id = $1 AND status = 'active' FOR UPDATE`,
-      [investmentId]
+    // 1. Aggregate this client's active investments, anchored on the
+    // earliest one for proration purposes.
+    const aggRes = await client.query(
+      `SELECT
+         COALESCE(SUM(amount), 0) AS amount,
+         (SELECT week_of_month FROM investments WHERE customer_id = $1 AND status = 'active' ORDER BY investment_date ASC LIMIT 1) AS week_of_month,
+         (SELECT investment_date FROM investments WHERE customer_id = $1 AND status = 'active' ORDER BY investment_date ASC LIMIT 1) AS earliest_investment_date
+       FROM investments WHERE customer_id = $1 AND status = 'active' FOR UPDATE`,
+      [customerId]
     );
 
-    if (investRes.rows.length === 0) throw new Error('Active investment not found');
-    const investment = investRes.rows[0];
+    const agg = aggRes.rows[0];
+    if (!agg.week_of_month || parseFloat(agg.amount) <= 0) throw new Error('No active investment for this client');
 
     // 2. Determine if this is the first month (for proration logic)
-    const invDate = new Date(investment.investment_date);
-    const isFirstMonth = (invDate.getMonth() + 1 === month && invDate.getFullYear() === year);
+    const earliestDate = new Date(agg.earliest_investment_date);
+    const isFirstMonth = (earliestDate.getMonth() + 1 === month && earliestDate.getFullYear() === year);
 
     // 3. Calculate exact payout using our pure function
+    const investedAmount = parseFloat(agg.amount);
     const payoutAmount = payoutService.calculatePayout(
-      parseFloat(investment.amount), 
-      parseFloat(returnPct), 
-      investment.week_of_month, 
-      null, 
+      investedAmount,
+      parseFloat(returnPct),
+      agg.week_of_month,
+      null,
       isFirstMonth
     );
 
     // 4. Insert the monthly return record
-    // The UNIQUE(investment_id, month, year) constraint will safely block duplicates here
+    // The UNIQUE(customer_id, month, year) constraint will safely block duplicates here
     await client.query(
-      `INSERT INTO monthly_returns (investment_id, month, year, return_pct, payout_amount, payout_status, payout_date, processed_by)
-       VALUES ($1, $2, $3, $4, $5, 'paid', NOW(), $6)`,
-      [investmentId, month, year, returnPct, payoutAmount, processedBy]
+      `INSERT INTO monthly_returns (customer_id, month, year, return_pct, payout_amount, invested_amount, payout_status, payout_date, processed_by)
+       VALUES ($1, $2, $3, $4, $5, $6, 'paid', NOW(), $7)`,
+      [customerId, month, year, returnPct, payoutAmount, investedAmount, processedBy]
     );
 
     // 5. Audit Log
     await client.query(
       `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, new_value, ip)
        VALUES ($1, 'PROCESS_PAYOUT', 'monthly_return', $2, $3, $4)`,
-      [processedBy, investmentId, JSON.stringify({ month, year, payoutAmount }), req.ip]
+      [processedBy, customerId, JSON.stringify({ month, year, payoutAmount }), req.ip]
     );
 
     await client.query('COMMIT'); // Commit the transaction safely
+
+    // customer's name/email weren't fetched above (only investments columns
+    // were) — the old code passed customer_id/undefined here by mistake,
+    // silently emailing nobody.
+    const customerRes = await db.query(`SELECT name, email FROM users WHERE id = $1`, [customerId]);
     const mailer = require('../utils/mailer');
-    await mailer.sendPayoutEmail(investment.customer_id, investment.name, payoutAmount, month, year);
-    
+    await mailer.sendPayoutEmail(customerRes.rows[0].email, customerRes.rows[0].name, payoutAmount, month, year);
+
     // Invalidate customer dashboard cache
     const redis = require('../utils/redis');
-    await redis.del(`dashboard:${investment.customer_id}`);
+    await redis.del(`dashboard:${customerId}`);
 
     return res.status(200).json({ status: 'success', data: { payoutAmount } });
   } catch (error) {
     await client.query('ROLLBACK'); // Abort all changes if anything fails
     console.error('Payout Error:', error.message);
-    
+
     if (error.code === '23505') { // PostgreSQL Unique Violation Error Code
       return res.status(400).json({ status: 'error', message: 'Payout already processed for this month' });
     }
@@ -480,11 +493,10 @@ const getClientDetail = async (req, res) => {
          COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0)
            - COALESCE((SELECT SUM(amount) FROM withdrawals WHERE customer_id = $1 AND status = 'completed'), 0)
            AS total_aum,
-         COUNT(DISTINCT i.id) FILTER (WHERE i.status = 'active') AS active_mandates,
-         COUNT(DISTINCT i.id) AS total_investment_count,
-         COALESCE(SUM(mr.payout_amount) FILTER (WHERE mr.year = $2), 0) AS total_returns_ytd
+         COUNT(i.id) FILTER (WHERE i.status = 'active') AS active_mandates,
+         COUNT(i.id) AS total_investment_count,
+         COALESCE((SELECT SUM(payout_amount) FROM monthly_returns WHERE customer_id = $1 AND year = $2), 0) AS total_returns_ytd
        FROM investments i
-       LEFT JOIN monthly_returns mr ON mr.investment_id = i.id
        WHERE i.customer_id = $1`,
       [id, currentYear]
     );
@@ -522,6 +534,9 @@ const getClientActiveInvestments = async (req, res) => {
   }
 };
 
+// One row per CLIENT (not per investment) — a client's several active
+// investments are summed into one aggregate figure, anchored on the
+// earliest one's week_of_month for proration.
 const getPendingPayouts = async (req, res) => {
   try {
     const boardMemberId = req.user.userId;
@@ -532,14 +547,16 @@ const getPendingPayouts = async (req, res) => {
     const year = parseInt(req.query.year, 10) || now.getFullYear();
 
     let queryStr = `
-      SELECT i.id AS investment_id, i.amount, i.week_of_month, i.investment_date,
-             u.id AS customer_id, u.name AS client_name
+      SELECT u.id AS customer_id, u.name AS client_name,
+             SUM(i.amount) AS amount,
+             (ARRAY_AGG(i.week_of_month ORDER BY i.investment_date ASC))[1] AS week_of_month,
+             (ARRAY_AGG(i.investment_date ORDER BY i.investment_date ASC))[1] AS earliest_investment_date
       FROM investments i
       JOIN users u ON u.id = i.customer_id
       WHERE i.status = 'active'
         AND NOT EXISTS (
           SELECT 1 FROM monthly_returns mr
-          WHERE mr.investment_id = i.id AND mr.month = $1 AND mr.year = $2
+          WHERE mr.customer_id = u.id AND mr.month = $1 AND mr.year = $2
         )
     `;
     const queryParams = [month, year];
@@ -550,7 +567,7 @@ const getPendingPayouts = async (req, res) => {
       queryStr += ` AND u.assigned_to = $3`;
     }
 
-    queryStr += ` ORDER BY u.name ASC`;
+    queryStr += ` GROUP BY u.id, u.name ORDER BY u.name ASC`;
 
     const pending = await db.query(queryStr, queryParams);
 
@@ -575,10 +592,9 @@ const sendClientReport = async (req, res) => {
     const client = clientRes.rows[0];
 
     const historyRes = await db.query(
-      `SELECT mr.month, mr.year, i.amount AS invested_amount, mr.return_pct, mr.payout_amount
+      `SELECT mr.month, mr.year, mr.invested_amount, mr.return_pct, mr.payout_amount
        FROM monthly_returns mr
-       JOIN investments i ON mr.investment_id = i.id
-       WHERE i.customer_id = $1 ORDER BY mr.year DESC, mr.month DESC`,
+       WHERE mr.customer_id = $1 ORDER BY mr.year DESC, mr.month DESC`,
       [id]
     );
 

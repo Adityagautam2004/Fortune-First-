@@ -17,7 +17,7 @@ interface PayoutTableProps {
   investments: PendingPayout[];
   month: number;
   year: number;
-  onMarkPaid: (investmentId: string, returnPct: number) => Promise<void>;
+  onMarkPaid: (customerId: string, returnPct: number) => Promise<void>;
 }
 
 export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTableProps) {
@@ -36,9 +36,9 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
   const getReturnPct = (investmentId: string) => returnPcts[investmentId] ?? DEFAULT_RETURN_PCT;
 
   const handleMarkPaid = async (inv: PendingPayout) => {
-    setSubmittingId(inv.investment_id);
+    setSubmittingId(inv.customer_id);
     try {
-      await onMarkPaid(inv.investment_id, getReturnPct(inv.investment_id));
+      await onMarkPaid(inv.customer_id, getReturnPct(inv.customer_id));
     } finally {
       setSubmittingId(null);
     }
@@ -56,7 +56,7 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
                 <span className="font-normal text-muted-foreground">Client ID</span>
               </th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">
-                Investment Amount <Info size={12} className="ml-1 inline text-muted-foreground" />
+                Total Invested <Info size={12} className="ml-1 inline text-muted-foreground" />
               </th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">Return</th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">
@@ -77,13 +77,13 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
               </tr>
             ) : (
               pageRows.map((inv) => {
-                const returnPct = getReturnPct(inv.investment_id);
-                const invDate = new Date(inv.investment_date);
+                const returnPct = getReturnPct(inv.customer_id);
+                const invDate = new Date(inv.earliest_investment_date);
                 const isFirstMonth = invDate.getMonth() + 1 === month && invDate.getFullYear() === year;
                 const payoutAmount = calculatePayout(Number(inv.amount), returnPct, inv.week_of_month, null, isFirstMonth);
 
                 return (
-                  <tr key={inv.investment_id}>
+                  <tr key={inv.customer_id}>
                     <td className="px-6 py-4">
                       <p className="font-medium text-foreground">{inv.client_name}</p>
                       <p className="text-xs text-muted-foreground">{inv.customer_id.slice(0, 8).toUpperCase()}</p>
@@ -97,7 +97,7 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
                           min={0}
                           value={returnPct}
                           onChange={(e) =>
-                            setReturnPcts((prev) => ({ ...prev, [inv.investment_id]: Number(e.target.value) }))
+                            setReturnPcts((prev) => ({ ...prev, [inv.customer_id]: Number(e.target.value) }))
                           }
                           className="w-full rounded-lg border border-brand-border px-3 py-1.5 pr-6 text-sm text-foreground focus:border-primary focus:outline-none"
                         />
@@ -115,10 +115,10 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
                     <td className="px-6 py-4">
                       <button
                         onClick={() => handleMarkPaid(inv)}
-                        disabled={submittingId === inv.investment_id}
+                        disabled={submittingId === inv.customer_id}
                         className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {submittingId === inv.investment_id ? 'Processing...' : 'Mark Paid'}
+                        {submittingId === inv.customer_id ? 'Processing...' : 'Mark Paid'}
                       </button>
                     </td>
                   </tr>

@@ -20,36 +20,19 @@ const getPayoutSummary = async () => {
 };
 
 /**
- * Get all monthly_returns for a given investment, oldest first.
- * @param {string} investmentId
+ * Flat, paginated payout list across all clients (one row per client per
+ * month — with an optional customerId/status filter), scoped the same way
+ * as the investment/withdrawal lists (assigned_to_id for investment_head).
+ * @param {{ customer_id?: string, status?: string, assigned_to_id?: string, page?: number, limit?: number }} options
  */
-const getPayoutsByInvestment = async (investmentId) => {
-  const { rows } = await db.query(
-    `SELECT * FROM monthly_returns WHERE investment_id = $1 ORDER BY year ASC, month ASC`,
-    [investmentId]
-  );
-  return rows;
-};
-
-/**
- * Flat, paginated payout list across all clients (with an optional
- * investmentId/customerId/status filter) — replaces the old per-investment-only
- * getInvestmentPayoutsAdmin endpoint, and is scoped the same way as the
- * investment/withdrawal lists (assigned_to_id for investment_head).
- * @param {{ investment_id?: string, customer_id?: string, status?: string, assigned_to_id?: string, page?: number, limit?: number }} options
- */
-const getAllPayouts = async ({ investment_id, customer_id, status, assigned_to_id, page = 1, limit = 20 } = {}) => {
+const getAllPayouts = async ({ customer_id, status, assigned_to_id, page = 1, limit = 20 } = {}) => {
   const offset = (page - 1) * limit;
   const conditions = [];
   const values = [];
   let paramIndex = 1;
 
-  if (investment_id) {
-    conditions.push(`mr.investment_id = $${paramIndex++}`);
-    values.push(investment_id);
-  }
   if (customer_id) {
-    conditions.push(`i.customer_id = $${paramIndex++}`);
+    conditions.push(`mr.customer_id = $${paramIndex++}`);
     values.push(customer_id);
   }
   if (status) {
@@ -63,13 +46,12 @@ const getAllPayouts = async ({ investment_id, customer_id, status, assigned_to_i
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const joins = `FROM monthly_returns mr
-     JOIN investments i ON i.id = mr.investment_id
-     JOIN users u ON u.id = i.customer_id`;
+     JOIN users u ON u.id = mr.customer_id`;
 
   const countResult = await db.query(`SELECT COUNT(*) ${joins} ${whereClause}`, values);
 
   const { rows } = await db.query(
-    `SELECT mr.*, i.customer_id, u.name AS customer_name, u.email AS customer_email
+    `SELECT mr.*, u.name AS customer_name, u.email AS customer_email
      ${joins}
      ${whereClause}
      ORDER BY mr.year DESC, mr.month DESC
@@ -141,7 +123,6 @@ const calculatePayout = (amount, returnPct, investmentWeek, exitWeek = null, isF
 module.exports = {
   calculatePayout,
   getPayoutSummary,
-  getPayoutsByInvestment,
   getAllPayouts,
   updatePayoutStatus,
 };

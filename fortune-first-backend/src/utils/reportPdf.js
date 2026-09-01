@@ -50,13 +50,19 @@ const generateMonthlyReportPdf = async (report) => {
   const members = report.members || [];
   const investmentPattern = report.investment_pattern || [];
   const partnerPayouts = report.partner_payouts || [];
-  const withdrawals = report.withdrawals || [];
-  const investments = report.investments || [];
 
   const profitBreakdown = members
     .filter((m) => Number(m.profitLossAmount) !== 0)
     .map((m) => `${esc(m.name)}- <span class="${colorClass(m.profitLossAmount)}">${signedMoney(m.profitLossAmount)}</span>`)
     .join(', ');
+
+  // Not stored fields of their own — the client-payout headline is always
+  // the sum of each investment head's own clientMoney/payoutAmount, so it
+  // can never drift out of sync with the breakdown table below it.
+  const totalClientMoney = members.reduce((sum, m) => sum + (Number(m.clientMoney) || 0), 0);
+  const totalClientPayout = members.reduce((sum, m) => sum + (Number(m.payoutAmount) || 0), 0);
+  const avgClientPayoutPct = totalClientMoney > 0 ? (totalClientPayout / totalClientMoney) * 100 : 0;
+  const hasClientPayoutData = totalClientMoney > 0 || totalClientPayout > 0;
 
   const html = `
 <!DOCTYPE html>
@@ -103,27 +109,15 @@ const generateMonthlyReportPdf = async (report) => {
   <ul class="bullets">
     <li>Overall profit ${pct(report.overall_profit_percentage)} of ${money(report.total_aum_next_month)} = <span class="${colorClass(report.overall_profit_amount)}">${signedMoney(report.overall_profit_amount)}</span>${profitBreakdown ? ` (${profitBreakdown})` : ''}.</li>
     <li>NAV = ${Number(report.nav_updated).toFixed(2)}.</li>
-    <li>Clients payout percentage for ${MONTH_NAMES[report.month - 1]} is ${pct(report.client_payout_percentage)} and is valued at ${money(report.client_total_money)} and is = ${money(report.client_payout_amount)}.</li>
-    <li>Company's ${Number(report.company_result_amount) < 0 ? 'loss' : 'profit'} after Clients payout = <span class="${Number(report.company_result_amount) < 0 ? 'highlight-red' : 'highlight-green'}">${money(Math.abs(report.company_result_amount))}</span></li>
-    <li>${pct(report.profit_saving_percentage)} company profit saving = ${money(report.profit_saving_amount)} left- ${money(report.profit_saving_left_amount)}</li>
+    ${hasClientPayoutData ? `<li>Clients payout percentage for ${MONTH_NAMES[report.month - 1]} is ${pct(avgClientPayoutPct)} and is valued at ${money(totalClientMoney)} and is = ${money(totalClientPayout)}.</li>` : ''}
   </ul>
 
+  ${partnerPayouts.length ? `
   <h2 class="section">Payout (1st ${esc(nextLabel.split(' ')[0])}) :-</h2>
   <ul class="plain">
     ${partnerPayouts.map((p) => `<li>${esc(p.name)} ➡️ ${pct(p.percentage)} of ${MONTH_NAMES[report.month - 1]} = <b>${money(p.amount)}</b>${p.status ? ` (${esc(p.status.toUpperCase())})` : ''}.</li>`).join('')}
-    <li>Client payout = ${money(report.client_payout_amount)} (${esc(report.client_payout_status.toUpperCase())})</li>
-    <li>Employees = <b>${money(report.employees_payout_amount)}</b></li>
   </ul>
-
-  <h2 class="section">Withdrawals (${esc(nextLabel.split(' ')[0])}) :-</h2>
-  ${withdrawals.length
-    ? `<ul class="plain">${withdrawals.map((w) => `<li><b>${money(w.amount)}</b> — ${esc(w.description)}</li>`).join('')}</ul>`
-    : `<p class="empty-note">No withdrawals recorded.</p>`}
-
-  <h2 class="section">Investments :-</h2>
-  ${investments.length
-    ? `<ul class="plain">${investments.map((i) => `<li><b>${money(i.amount)}</b> — ${esc(i.description)}</li>`).join('')}</ul>`
-    : `<p class="empty-note">No investments recorded.</p>`}
+  ` : ''}
 
   <h2 class="section">Updated Investment Pattern For ${esc(nextLabel)} :-</h2>
   <ul class="plain">
