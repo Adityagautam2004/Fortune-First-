@@ -6,9 +6,8 @@ import { usePathname } from 'next/navigation';
 import { Plus, FileText, Download, Pencil, Trash2 } from 'lucide-react';
 
 import api from '@/lib/api';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import type { MonthlyReportSummary, PaginationMeta } from './types';
+import type { MonthlyReport, PaginationMeta } from './types';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -28,7 +27,7 @@ export function ReportsListPage() {
   const pathname = usePathname();
   const basePath = pathname?.startsWith('/admin') ? '/admin/reports' : '/board/reports';
 
-  const [reports, setReports] = useState<MonthlyReportSummary[]>([]);
+  const [reports, setReports] = useState<MonthlyReport[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [page, setPage] = useState(1);
   const [month, setMonth] = useState('');
@@ -74,7 +73,7 @@ export function ReportsListPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-foreground">Reports</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Monthly firm-wide results and records.</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">Monthly firm-wide results.</p>
         </div>
         {canManage && (
           <Link
@@ -135,60 +134,49 @@ export function ReportsListPage() {
               <thead>
                 <tr className="bg-muted text-foreground">
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Month</th>
-                  <th className="whitespace-nowrap px-6 py-3 font-medium">NAV</th>
-                  <th className="whitespace-nowrap px-6 py-3 font-medium">Overall Profit</th>
-                  <th className="whitespace-nowrap px-6 py-3 font-medium">Total AUM</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Operating Capital</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Total Payout</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Total Profit</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {reports.map((report) => {
-                  const positive = Number(report.overall_profit_amount) >= 0;
-                  return (
-                    <tr key={report.id}>
-                      <td className="px-6 py-4">
-                        <Link href={`${basePath}/${report.id}`} className="font-semibold text-foreground hover:text-primary hover:underline">
-                          {MONTH_NAMES[report.month - 1]} {report.year}
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 text-foreground">{Number(report.nav_updated).toFixed(2)}</td>
-                      <td className={cn('px-6 py-4 font-semibold', positive ? 'text-emerald-600' : 'text-red-600')}>
-                        {positive ? '+' : ''}{formatRupees(report.overall_profit_amount)} ({Number(report.overall_profit_percentage).toFixed(2)}%)
-                      </td>
-                      <td className="px-6 py-4 text-foreground">{formatRupees(report.total_aum_next_month)}</td>
-                      <td className="px-6 py-4 text-foreground">{formatRupees(report.operating_capital_total)}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1">
-                          <Link href={`${basePath}/${report.id}`} className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary" title="View">
-                            <FileText size={15} />
-                          </Link>
-                          {report.generated_pdf_url && (
-                            <a href={report.generated_pdf_url} target="_blank" rel="noopener noreferrer" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary" title="Download PDF">
-                              <Download size={15} />
-                            </a>
-                          )}
-                          {canManage && (
-                            <>
-                              <Link href={`${basePath}/${report.id}/edit`} className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary" title="Edit">
-                                <Pencil size={15} />
-                              </Link>
-                              <button
-                                type="button"
-                                disabled={deletingId === report.id}
-                                onClick={() => handleDelete(report.id)}
-                                className="rounded-md p-1.5 text-red-500 transition-colors hover:bg-red-50 disabled:opacity-40 dark:hover:bg-red-500/15"
-                                title="Delete"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {reports.map((report) => (
+                  <tr key={report.id}>
+                    <td className="px-6 py-4 font-semibold text-foreground">
+                      {MONTH_NAMES[report.month - 1]} {report.year}
+                    </td>
+                    <td className="px-6 py-4 text-foreground">{formatRupees(report.operating_capital_total)}</td>
+                    <td className="px-6 py-4 text-foreground">{formatRupees(report.total_payout)}</td>
+                    <td className="px-6 py-4 text-emerald-600 font-semibold">{formatRupees(report.total_profit)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        <a href={report.pdf_url} target="_blank" rel="noopener noreferrer" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary" title="View PDF">
+                          <FileText size={15} />
+                        </a>
+                        <a href={report.pdf_url} target="_blank" rel="noopener noreferrer" download className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary" title="Download PDF">
+                          <Download size={15} />
+                        </a>
+                        {canManage && (
+                          <>
+                            <Link href={`${basePath}/${report.id}/edit`} className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary" title="Edit">
+                              <Pencil size={15} />
+                            </Link>
+                            <button
+                              type="button"
+                              disabled={deletingId === report.id}
+                              onClick={() => handleDelete(report.id)}
+                              className="rounded-md p-1.5 text-red-500 transition-colors hover:bg-red-50 disabled:opacity-40 dark:hover:bg-red-500/15"
+                              title="Delete"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -227,38 +215,26 @@ function ReportCard({
   deleting,
   onDelete,
 }: {
-  report: MonthlyReportSummary;
+  report: MonthlyReport;
   basePath: string;
   canManage: boolean;
   deleting: boolean;
   onDelete: (id: string) => void;
 }) {
-  const positive = Number(report.overall_profit_amount) >= 0;
-
   return (
     <div className="rounded-xl border border-brand-border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
-        <Link href={`${basePath}/${report.id}`} className="font-bold text-foreground hover:text-primary">
-          {MONTH_NAMES[report.month - 1]} {report.year}
-        </Link>
-        <span className={cn('text-sm font-semibold', positive ? 'text-emerald-600' : 'text-red-600')}>
-          {positive ? '+' : ''}{formatRupees(report.overall_profit_amount)}
-        </span>
+        <p className="font-bold text-foreground">{MONTH_NAMES[report.month - 1]} {report.year}</p>
+        <span className="text-sm font-semibold text-emerald-600">{formatRupees(report.total_profit)}</span>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-y-1 text-xs text-muted-foreground">
-        <span>NAV: {Number(report.nav_updated).toFixed(2)}</span>
-        <span>Total AUM: {formatRupees(report.total_aum_next_month)}</span>
         <span>Op. Capital: {formatRupees(report.operating_capital_total)}</span>
+        <span>Payout: {formatRupees(report.total_payout)}</span>
       </div>
       <div className="mt-3 flex items-center gap-2 border-t border-brand-border pt-2.5">
-        <Link href={`${basePath}/${report.id}`} className="flex-1 rounded-lg border border-brand-border py-1.5 text-center text-xs font-semibold text-foreground">
-          View
-        </Link>
-        {report.generated_pdf_url && (
-          <a href={report.generated_pdf_url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-brand-border p-1.5 text-muted-foreground">
-            <Download size={15} />
-          </a>
-        )}
+        <a href={report.pdf_url} target="_blank" rel="noopener noreferrer" className="flex-1 rounded-lg border border-brand-border py-1.5 text-center text-xs font-semibold text-foreground">
+          View PDF
+        </a>
         {canManage && (
           <>
             <Link href={`${basePath}/${report.id}/edit`} className="rounded-lg border border-brand-border p-1.5 text-muted-foreground">

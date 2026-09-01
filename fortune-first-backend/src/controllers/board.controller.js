@@ -248,30 +248,31 @@ const processPayout = async (req, res) => {
 
     await client.query('BEGIN'); // Start ACID Transaction
 
-    // 1. Aggregate this client's active investments, anchored on the
-    // earliest one for proration purposes.
-    const aggRes = await client.query(
-      `SELECT
-         COALESCE(SUM(amount), 0) AS amount,
-         (SELECT week_of_month FROM investments WHERE customer_id = $1 AND status = 'active' ORDER BY investment_date ASC LIMIT 1) AS week_of_month,
-         (SELECT investment_date FROM investments WHERE customer_id = $1 AND status = 'active' ORDER BY investment_date ASC LIMIT 1) AS earliest_investment_date
-       FROM investments WHERE customer_id = $1 AND status = 'active' FOR UPDATE`,
+    // 1. Lock this client's active investment rows — Postgres doesn't allow
+    // FOR UPDATE combined with an aggregate (SUM) in the same query, so the
+    // rows are pulled raw and aggregated here in JS instead.
+    const investRes = await client.query(
+      `SELECT amount, week_of_month, investment_date FROM investments
+       WHERE customer_id = $1 AND status = 'active'
+       ORDER BY investment_date ASC
+       FOR UPDATE`,
       [customerId]
     );
 
-    const agg = aggRes.rows[0];
-    if (!agg.week_of_month || parseFloat(agg.amount) <= 0) throw new Error('No active investment for this client');
+    if (investRes.rows.length === 0) throw new Error('No active investment for this client');
+
+    const investedAmount = investRes.rows.reduce((sum, row) => sum + parseFloat(row.amount), 0);
+    const earliest = investRes.rows[0]; // already ORDER BY investment_date ASC
 
     // 2. Determine if this is the first month (for proration logic)
-    const earliestDate = new Date(agg.earliest_investment_date);
+    const earliestDate = new Date(earliest.investment_date);
     const isFirstMonth = (earliestDate.getMonth() + 1 === month && earliestDate.getFullYear() === year);
 
     // 3. Calculate exact payout using our pure function
-    const investedAmount = parseFloat(agg.amount);
     const payoutAmount = payoutService.calculatePayout(
       investedAmount,
       parseFloat(returnPct),
-      agg.week_of_month,
+      earliest.week_of_month,
       null,
       isFirstMonth
     );
@@ -293,16 +294,24 @@ const processPayout = async (req, res) => {
 
     await client.query('COMMIT'); // Commit the transaction safely
 
-    // customer's name/email weren't fetched above (only investments columns
-    // were) — the old code passed customer_id/undefined here by mistake,
-    // silently emailing nobody.
-    const customerRes = await db.query(`SELECT name, email FROM users WHERE id = $1`, [customerId]);
-    const mailer = require('../utils/mailer');
-    await mailer.sendPayoutEmail(customerRes.rows[0].email, customerRes.rows[0].name, payoutAmount, month, year);
+    // The payout itself is already committed at this point — a failure in
+    // either of these side effects must never turn into an error response
+    // (the transaction can't be rolled back anymore anyway; the earlier
+    // code's catch block would call ROLLBACK on an already-committed
+    // client here, which is itself an error).
+    try {
+      // customer's name/email weren't fetched before (only investments
+      // columns were) — the old code passed customer_id/undefined here by
+      // mistake, silently emailing nobody.
+      const customerRes = await db.query(`SELECT name, email FROM users WHERE id = $1`, [customerId]);
+      const mailer = require('../utils/mailer');
+      await mailer.sendPayoutEmail(customerRes.rows[0].email, customerRes.rows[0].name, payoutAmount, month, year);
 
-    // Invalidate customer dashboard cache
-    const redis = require('../utils/redis');
-    await redis.del(`dashboard:${customerId}`);
+      const redis = require('../utils/redis');
+      await redis.del(`dashboard:${customerId}`);
+    } catch (sideEffectError) {
+      console.error('Payout processed, but a post-commit side effect failed:', sideEffectError.message);
+    }
 
     return res.status(200).json({ status: 'success', data: { payoutAmount } });
   } catch (error) {
@@ -585,7 +594,10 @@ const sendClientReport = async (req, res) => {
     const { generateReportPDF } = require('../utils/pdf');
     const mailer = require('../utils/mailer');
 
-    const clientRes = await db.query(`SELECT name, email FROM users WHERE id = $1 AND role = 'customer'`, [id]);
+    const clientRes = await db.query(
+      `SELECT name, email, phone, profile_picture_url, client_code FROM users WHERE id = $1 AND role = 'customer'`,
+      [id]
+    );
     if (clientRes.rows.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Client not found' });
     }
@@ -598,7 +610,7 @@ const sendClientReport = async (req, res) => {
       [id]
     );
 
-    const pdfBuffer = await generateReportPDF(client.name, historyRes.rows);
+    const pdfBuffer = await generateReportPDF(client, historyRes.rows);
     await mailer.sendReportEmail(client.email, client.name, pdfBuffer);
 
     return res.status(200).json({ status: 'success', message: 'Report sent successfully' });

@@ -1,130 +1,67 @@
 const db = require('../models/db');
 const ApiError = require('../utils/apiError');
 const { uploadBuffer } = require('../utils/cloudinary');
-const { generateMonthlyReportPdf } = require('../utils/reportPdf');
-
-const JSONB_FIELDS = ['members', 'investmentPattern', 'partnerPayouts'];
-const CAMEL_TO_SNAKE = {
-  totalAumNextMonth: 'total_aum_next_month',
-  navPrevious: 'nav_previous',
-  navUpdated: 'nav_updated',
-  overallProfitPercentage: 'overall_profit_percentage',
-  overallProfitAmount: 'overall_profit_amount',
-  operatingCapitalTotal: 'operating_capital_total',
-  investmentPattern: 'investment_pattern',
-  partnerPayouts: 'partner_payouts',
-  notes: 'notes',
-  month: 'month',
-  year: 'year',
-  members: 'members',
-};
-
-/**
- * Builds the ordered [columns[], values[]] pair for an INSERT/UPDATE from a
- * validated, camelCase request body — JSONB fields get JSON.stringify'd
- * explicitly (pg's automatic serialization treats a bare JS array as a
- * Postgres ARRAY literal, not JSON, which breaks against a jsonb column).
- * operating_capital_total is never taken from the request — it's always
- * SUM(members[].personalAum), so it can't drift out of sync with the
- * breakdown table that's supposed to explain it.
- */
-const toColumns = (data) => {
-  const operatingCapitalTotal = (data.members || []).reduce((sum, m) => sum + (Number(m.personalAum) || 0), 0);
-  const withComputedTotal = { ...data, operatingCapitalTotal };
-
-  return Object.entries(CAMEL_TO_SNAKE).map(([camel, snake]) => [
-    snake,
-    JSONB_FIELDS.includes(camel) ? JSON.stringify(withComputedTotal[camel] ?? []) : withComputedTotal[camel],
-  ]);
-};
 
 const uniqueViolation = (error) => error.code === '23505';
 
 /**
- * Create a new monthly report, then immediately render + upload its
- * web-generated PDF. The row is inserted first so the PDF template can be
- * handed the exact same shape it'll be read back as later.
- * @param {object} data - validated, camelCase report fields
+ * Create a new monthly report. The PDF is the actual artifact — required,
+ * uploaded to Cloudinary — everything else is just three headline numbers.
+ * @param {{ month: number, year: number, operatingCapitalTotal: number, totalPayout: number, totalProfit: number }} data
  * @param {string} createdBy - user id
- * @param {{ buffer: Buffer } | null} pdfFile - optional manually-authored PDF
+ * @param {{ buffer: Buffer }} pdfFile
  */
 const createReport = async (data, createdBy, pdfFile) => {
+  if (!pdfFile) throw ApiError.badRequest('A PDF file is required');
+  const uploaded = await uploadBuffer(pdfFile.buffer, 'monthly_reports');
+
+  try {
+    const { rows } = await db.query(
+      `INSERT INTO monthly_reports (month, year, operating_capital_total, total_payout, total_profit, pdf_url, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [data.month, data.year, data.operatingCapitalTotal, data.totalPayout, data.totalProfit, uploaded.secure_url, createdBy]
+    );
+    return rows[0];
+  } catch (error) {
+    if (uniqueViolation(error)) {
+      throw ApiError.conflict(`A report for ${data.month}/${data.year} already exists`);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Update an existing report. A replacement PDF is optional — if omitted,
+ * the existing one stays.
+ * @param {string} id
+ * @param {{ month: number, year: number, operatingCapitalTotal: number, totalPayout: number, totalProfit: number }} data
+ * @param {{ buffer: Buffer } | null} pdfFile
+ */
+const updateReport = async (id, data, pdfFile) => {
   let pdfUrl = null;
   if (pdfFile) {
     const uploaded = await uploadBuffer(pdfFile.buffer, 'monthly_reports');
     pdfUrl = uploaded.secure_url;
   }
 
-  const columns = toColumns(data);
-  const columnNames = ['created_by', 'pdf_url', ...columns.map(([snake]) => snake)];
-  const placeholders = columnNames.map((_, i) => `$${i + 1}`);
-  const values = [createdBy, pdfUrl, ...columns.map(([, value]) => value)];
-
-  let report;
   try {
     const { rows } = await db.query(
-      `INSERT INTO monthly_reports (${columnNames.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`,
-      values
+      `UPDATE monthly_reports
+       SET month = $1, year = $2, operating_capital_total = $3, total_payout = $4, total_profit = $5,
+           pdf_url = COALESCE($6, pdf_url), updated_at = NOW()
+       WHERE id = $7
+       RETURNING *`,
+      [data.month, data.year, data.operatingCapitalTotal, data.totalPayout, data.totalProfit, pdfUrl, id]
     );
-    report = rows[0];
+    if (!rows[0]) throw ApiError.notFound('Report not found');
+    return rows[0];
   } catch (error) {
     if (uniqueViolation(error)) {
       throw ApiError.conflict(`A report for ${data.month}/${data.year} already exists`);
     }
     throw error;
   }
-
-  report = await regenerateAndAttachPdf(report);
-  return report;
-};
-
-/**
- * Update an existing report and regenerate its web PDF to match.
- * @param {string} id
- * @param {object} data - validated, camelCase report fields
- * @param {{ buffer: Buffer } | null} pdfFile - optional replacement manual PDF
- */
-const updateReport = async (id, data, pdfFile) => {
-  const columns = toColumns(data);
-  const setClauses = columns.map(([snake], i) => `${snake} = $${i + 1}`);
-  const values = columns.map(([, value]) => value);
-
-  if (pdfFile) {
-    const uploaded = await uploadBuffer(pdfFile.buffer, 'monthly_reports');
-    setClauses.push(`pdf_url = $${values.length + 1}`);
-    values.push(uploaded.secure_url);
-  }
-
-  setClauses.push(`updated_at = NOW()`);
-  values.push(id);
-
-  let report;
-  try {
-    const { rows } = await db.query(
-      `UPDATE monthly_reports SET ${setClauses.join(', ')} WHERE id = $${values.length} RETURNING *`,
-      values
-    );
-    report = rows[0];
-  } catch (error) {
-    if (uniqueViolation(error)) {
-      throw ApiError.conflict(`A report for ${data.month}/${data.year} already exists`);
-    }
-    throw error;
-  }
-  if (!report) throw ApiError.notFound('Report not found');
-
-  report = await regenerateAndAttachPdf(report);
-  return report;
-};
-
-const regenerateAndAttachPdf = async (report) => {
-  const pdfBuffer = await generateMonthlyReportPdf(report);
-  const uploaded = await uploadBuffer(pdfBuffer, 'monthly_reports_generated');
-  const { rows } = await db.query(
-    `UPDATE monthly_reports SET generated_pdf_url = $1 WHERE id = $2 RETURNING *`,
-    [uploaded.secure_url, report.id]
-  );
-  return rows[0];
 };
 
 const deleteReport = async (id) => {
@@ -153,12 +90,8 @@ const getReports = async ({ month, year, page = 1, limit = 12 } = {}) => {
 
   const countResult = await db.query(`SELECT COUNT(*) FROM monthly_reports ${whereClause}`, values);
 
-  // The full members/investment_pattern/etc. JSONB blobs aren't needed for
-  // a list view — keep the payload light.
   const { rows } = await db.query(
-    `SELECT id, month, year, total_aum_next_month, nav_updated, overall_profit_percentage,
-            overall_profit_amount, operating_capital_total,
-            pdf_url, generated_pdf_url, created_by, created_at, updated_at
+    `SELECT id, month, year, operating_capital_total, total_payout, total_profit, pdf_url, created_by, created_at, updated_at
      FROM monthly_reports
      ${whereClause}
      ORDER BY year DESC, month DESC
@@ -179,26 +112,4 @@ const getReportById = async (id) => {
   return rows[0];
 };
 
-/**
- * Starting point for the "Add Report" form — the most recent report's
- * investment pattern and members list (names + last month's numbers, ready
- * to edit) plus its nav_updated as this new report's suggested nav_previous.
- */
-const getPrefill = async () => {
-  const { rows } = await db.query(
-    `SELECT month, year, nav_updated, investment_pattern, members FROM monthly_reports ORDER BY year DESC, month DESC LIMIT 1`
-  );
-  const latest = rows[0];
-  if (!latest) {
-    return { previousMonth: null, previousYear: null, navPrevious: 0, investmentPattern: [], members: [] };
-  }
-  return {
-    previousMonth: latest.month,
-    previousYear: latest.year,
-    navPrevious: parseFloat(latest.nav_updated),
-    investmentPattern: latest.investment_pattern,
-    members: latest.members,
-  };
-};
-
-module.exports = { createReport, updateReport, deleteReport, getReports, getReportById, getPrefill };
+module.exports = { createReport, updateReport, deleteReport, getReports, getReportById };

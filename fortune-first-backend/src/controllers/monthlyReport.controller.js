@@ -61,16 +61,4 @@ const getReportById = async (req, res) => {
   }
 };
 
-// GET /admin/reports/prefill — super_admin only; seeds the Add Report form
-// with last month's investment pattern/members and nav.
-const getPrefill = async (req, res) => {
-  try {
-    const prefill = await monthlyReportService.getPrefill();
-    return res.status(200).json({ status: 'success', data: prefill });
-  } catch (error) {
-    console.error('Get Report Prefill Error:', error);
-    return res.status(500).json({ status: 'error', message: 'Failed to fetch prefill data' });
-  }
-};
-
-module.exports = { createReport, updateReport, deleteReport, getReports, getReportById, getPrefill };
+module.exports = { createReport, updateReport, deleteReport, getReports, getReportById };

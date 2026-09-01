@@ -311,7 +311,7 @@ export default function AdminUsersPage() {
               <input required placeholder="Full Name" className="w-full border p-2 rounded" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
               <input required type="email" placeholder="Email" className="w-full border p-2 rounded" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} />
               <input type="tel" placeholder="Phone (optional)" className="w-full border p-2 rounded" value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} />
-              <select className="w-full border p-2 rounded" value={editForm.role} onChange={e => setEditForm({...editForm, role: e.target.value})}>
+              <select className="w-full rounded-lg border border-brand-border bg-card p-2 text-foreground focus:border-primary focus:outline-none" value={editForm.role} onChange={e => setEditForm({...editForm, role: e.target.value})}>
                 <option value="customer">Customer</option>
                 <option value="investment_head">Investment Head</option>
                 <option value="business_head">Business Head</option>
@@ -320,7 +320,7 @@ export default function AdminUsersPage() {
               {editForm.role === 'customer' && (
                 <select
                   required
-                  className="w-full border p-2 rounded"
+                  className="w-full rounded-lg border border-brand-border bg-card p-2 text-foreground focus:border-primary focus:outline-none"
                   value={editForm.assignedTo}
                   onChange={e => setEditForm({...editForm, assignedTo: e.target.value})}
                 >
@@ -352,7 +352,7 @@ export default function AdminUsersPage() {
               <input required type="email" placeholder="Email" className="w-full border p-2 rounded" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
               <input required type="password" minLength={8} placeholder="Temporary Password (min 8 characters)" className="w-full border p-2 rounded" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
               <input type="tel" placeholder="Phone (optional)" className="w-full border p-2 rounded" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
-              <select className="w-full border p-2 rounded" value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
+              <select className="w-full rounded-lg border border-brand-border bg-card p-2 text-foreground focus:border-primary focus:outline-none" value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
                 <option value="customer">Customer</option>
                 <option value="investment_head">Investment Head</option>
                 <option value="business_head">Business Head</option>
@@ -361,7 +361,7 @@ export default function AdminUsersPage() {
               {form.role === 'customer' && (
                 <select
                   required
-                  className="w-full border p-2 rounded"
+                  className="w-full rounded-lg border border-brand-border bg-card p-2 text-foreground focus:border-primary focus:outline-none"
                   value={form.assignedTo}
                   onChange={e => setForm({...form, assignedTo: e.target.value})}
                 >

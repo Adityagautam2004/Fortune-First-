@@ -168,9 +168,12 @@ const { generateReportPDF } = require('../utils/pdf');
 const downloadFullReport = async (req, res) => {
   try {
     const customerId = req.user.userId;
-    
+
     // Fetch profile and history
-    const profileRes = await db.query(`SELECT name FROM users WHERE id = $1`, [customerId]);
+    const profileRes = await db.query(
+      `SELECT name, email, phone, profile_picture_url, client_code FROM users WHERE id = $1`,
+      [customerId]
+    );
     const historyRes = await db.query(
       `SELECT mr.month, mr.year, mr.invested_amount, mr.return_pct, mr.payout_amount
        FROM monthly_returns mr
@@ -178,14 +181,14 @@ const downloadFullReport = async (req, res) => {
       [customerId]
     );
 
-    const pdfBuffer = await generateReportPDF(profileRes.rows[0].name, historyRes.rows);
+    const pdfBuffer = await generateReportPDF(profileRes.rows[0], historyRes.rows);
 
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': 'attachment; filename="Fortune_First_Report.pdf"',
+      'Content-Disposition': `attachment; filename="Fortune_First_Report_${profileRes.rows[0].name.replace(/\s+/g, '_')}.pdf"`,
       'Content-Length': pdfBuffer.length
     });
-    
+
     return res.send(pdfBuffer);
   } catch (error) {
     console.error('PDF Generation Error:', error);
@@ -205,7 +208,10 @@ const downloadMonthlyReport = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Valid month (1-12) and year are required' });
     }
 
-    const profileRes = await db.query(`SELECT name FROM users WHERE id = $1`, [customerId]);
+    const profileRes = await db.query(
+      `SELECT name, email, phone, profile_picture_url, client_code FROM users WHERE id = $1`,
+      [customerId]
+    );
     const historyRes = await db.query(
       `SELECT mr.month, mr.year, mr.invested_amount, mr.return_pct, mr.payout_amount
        FROM monthly_returns mr
@@ -218,7 +224,7 @@ const downloadMonthlyReport = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'No records found for that month' });
     }
 
-    const pdfBuffer = await generateReportPDF(profileRes.rows[0].name, historyRes.rows);
+    const pdfBuffer = await generateReportPDF(profileRes.rows[0], historyRes.rows);
 
     res.set({
       'Content-Type': 'application/pdf',

@@ -154,6 +154,12 @@ const sendOnboardingEmail = async (email, name, tempPassword, investmentHead) =>
           <li><strong>Temporary Password:</strong> ${tempPassword}</li>
         </ul>
         <p>For your security, you'll be asked to set a new password the first time you log in.</p>
+        <p style="margin: 24px 0;">
+          <a href="https://fortunefirst.in/login" style="display: inline-block; padding: 10px 24px; background-color: #f97316; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            Log In to Fortune First
+          </a>
+        </p>
+        <p>Or visit <a href="https://fortunefirst.in/login">fortunefirst.in/login</a> directly in your browser.</p>
         <br/>
         <p>Regards,<br/>The Fortune First Team</p>
       `,

@@ -184,7 +184,7 @@ export function TestimonialsManagement() {
             <input
               required
               maxLength={100}
-              className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary"
+              className="w-full border border-brand-border rounded-md bg-card p-2 text-sm text-foreground focus:outline-none focus:border-primary"
               value={form.clientName}
               onChange={(e) => setForm({ ...form, clientName: e.target.value })}
             />
@@ -193,7 +193,7 @@ export function TestimonialsManagement() {
             <label className="mb-1 block text-sm font-medium text-foreground">City (optional)</label>
             <input
               maxLength={100}
-              className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary"
+              className="w-full border border-brand-border rounded-md bg-card p-2 text-sm text-foreground focus:outline-none focus:border-primary"
               value={form.city}
               onChange={(e) => setForm({ ...form, city: e.target.value })}
             />
@@ -203,7 +203,7 @@ export function TestimonialsManagement() {
             <textarea
               required
               rows={3}
-              className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary"
+              className="w-full border border-brand-border rounded-md bg-card p-2 text-sm text-foreground focus:outline-none focus:border-primary"
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
             />
@@ -211,7 +211,7 @@ export function TestimonialsManagement() {
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground">Rating</label>
             <select
-              className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary"
+              className="w-full border border-brand-border rounded-md bg-card p-2 text-sm text-foreground focus:outline-none focus:border-primary"
               value={form.rating}
               onChange={(e) => setForm({ ...form, rating: Number(e.target.value) })}
             >

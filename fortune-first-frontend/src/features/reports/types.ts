@@ -1,60 +1,16 @@
-export interface ReportMember {
-  name: string;
-  personalAum: number;
-  profitLossAmount: number;
-  rdCost: number;
-  investmentReceived: number;
-  withdrawalAmount: number;
-  clientMoney: number;
-  payoutPercentage: number;
-  payoutAmount: number;
-}
-
-export interface InvestmentPatternItem {
-  name: string;
-  amount: number;
-}
-
-export type PayoutStatus = 'paid' | 'pending';
-
-export interface PartnerPayout {
-  name: string;
-  percentage: number;
-  amount: number;
-  status: PayoutStatus;
-}
-
-// List view — the backend deliberately omits the heavier JSONB blobs here.
-export interface MonthlyReportSummary {
+// Deliberately simple: month/year, three headline numbers, and the
+// uploaded PDF as the actual artifact.
+export interface MonthlyReport {
   id: string;
   month: number;
   year: number;
-  total_aum_next_month: number | string;
-  nav_updated: number | string;
-  overall_profit_percentage: number | string;
-  overall_profit_amount: number | string;
   operating_capital_total: number | string;
-  pdf_url: string | null;
-  generated_pdf_url: string | null;
+  total_payout: number | string;
+  total_profit: number | string;
+  pdf_url: string;
   created_by: string;
   created_at: string;
   updated_at: string;
-}
-
-export interface MonthlyReport extends MonthlyReportSummary {
-  nav_previous: number | string;
-  members: ReportMember[];
-  investment_pattern: InvestmentPatternItem[];
-  partner_payouts: PartnerPayout[];
-  notes: string | null;
-}
-
-export interface ReportPrefill {
-  previousMonth: number | null;
-  previousYear: number | null;
-  navPrevious: number;
-  investmentPattern: InvestmentPatternItem[];
-  members: ReportMember[];
 }
 
 export interface PaginationMeta {

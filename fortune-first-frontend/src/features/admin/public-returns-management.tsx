@@ -239,7 +239,7 @@ export function PublicReturnsManagement() {
               <label className="mb-1 block text-sm font-medium text-foreground">Month</label>
               <select
                 disabled={!!editingId}
-                className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary disabled:bg-muted disabled:text-muted-foreground"
+                className="w-full border border-brand-border rounded-md bg-card p-2 text-sm text-foreground focus:outline-none focus:border-primary disabled:bg-muted disabled:text-muted-foreground"
                 value={form.month}
                 onChange={(e) => setForm({ ...form, month: Number(e.target.value) })}
               >
@@ -256,7 +256,7 @@ export function PublicReturnsManagement() {
                 disabled={!!editingId}
                 min={2020}
                 max={2100}
-                className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary disabled:bg-muted disabled:text-muted-foreground"
+                className="w-full border border-brand-border rounded-md bg-card p-2 text-sm text-foreground focus:outline-none focus:border-primary disabled:bg-muted disabled:text-muted-foreground"
                 value={form.year}
                 onChange={(e) => setForm({ ...form, year: Number(e.target.value) })}
               />

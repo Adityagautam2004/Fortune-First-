@@ -19,12 +19,11 @@ const {
 const { getChatHistory, getChatContacts } = require('../controllers/board.controller');
 const { deleteFundsTransaction } = require('../controllers/stockPortfolio.controller');
 const {
-  createReport, updateReport, deleteReport, getPrefill,
+  createReport, updateReport, deleteReport,
 } = require('../controllers/monthlyReport.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const {requireRole}=require('../middleware/role.middleware')
 const { upload, uploadImage } = require('../middleware/upload.middleware');
-const parseJsonFields = require('../middleware/parseJsonFields');
 const { USER_ROLES, INVESTMENT_STATUS, WITHDRAWAL_STATUS, PAYOUT_STATUS } = require('../utils/constants');
 
 router.use(requireAuth)
@@ -197,64 +196,29 @@ router.patch(
 );
 router.delete('/public-returns/:id', deletePublicReturn);
 
-// ── Monthly Reports (FR-REPORTS-01) — the firm-wide report section; every
+// ── Monthly Reports (FR-REPORTS-01) — simple by design: month/year, three
+// headline numbers, and an uploaded PDF as the actual artifact. Every
 // non-client role can view (mounted read-side on /board/reports), only
 // super_admin can create/edit/delete. ─────────────────────────────────────
-const reportMemberSchema = Joi.object({
-  name: Joi.string().trim().max(100).required(),
-  personalAum: Joi.number().default(0),
-  profitLossAmount: Joi.number().default(0),
-  rdCost: Joi.number().default(0),
-  investmentReceived: Joi.number().default(0),
-  withdrawalAmount: Joi.number().default(0),
-  clientMoney: Joi.number().default(0),
-  payoutPercentage: Joi.number().default(0),
-  payoutAmount: Joi.number().default(0),
-});
-const reportInvestmentPatternItemSchema = Joi.object({
-  name: Joi.string().trim().max(100).required(),
-  amount: Joi.number().default(0),
-});
-const reportPartnerPayoutSchema = Joi.object({
-  name: Joi.string().trim().max(100).required(),
-  percentage: Joi.number().default(0),
-  amount: Joi.number().default(0),
-  status: Joi.string().valid('paid', 'pending').default('pending'),
-});
-
-// operatingCapitalTotal is deliberately absent — it's always
-// SUM(members[].personalAum), computed server-side in monthlyReportService,
-// never a value the client sends.
 const monthlyReportSchema = Joi.object({
   month: Joi.number().integer().min(1).max(12).required(),
   year: Joi.number().integer().min(2000).max(2100).required(),
-  totalAumNextMonth: Joi.number().default(0),
-  navPrevious: Joi.number().default(0),
-  navUpdated: Joi.number().default(0),
-  overallProfitPercentage: Joi.number().default(0),
-  overallProfitAmount: Joi.number().default(0),
-  members: Joi.array().items(reportMemberSchema).default([]),
-  investmentPattern: Joi.array().items(reportInvestmentPatternItemSchema).default([]),
-  partnerPayouts: Joi.array().items(reportPartnerPayoutSchema).default([]),
-  notes: Joi.string().max(2000).allow('', null),
+  operatingCapitalTotal: Joi.number().default(0),
+  totalPayout: Joi.number().default(0),
+  totalProfit: Joi.number().default(0),
 });
 
-const REPORT_JSON_FIELDS = ['members', 'investmentPattern', 'partnerPayouts'];
-
-router.get('/reports/prefill', getPrefill);
 router.post(
   '/reports',
-  // multer before parseJsonFields before validate — same ordering rule as
-  // every other multipart route: multer is what populates req.body at all.
+  // multer before validate — same ordering rule as every other multipart
+  // route: multer is what populates req.body at all.
   upload.single('pdf'),
-  parseJsonFields(REPORT_JSON_FIELDS),
   validate(monthlyReportSchema),
   createReport
 );
 router.patch(
   '/reports/:id',
   upload.single('pdf'),
-  parseJsonFields(REPORT_JSON_FIELDS),
   validate(monthlyReportSchema),
   updateReport
 );
