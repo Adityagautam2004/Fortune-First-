@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('puppeteer');
+// Lazy-required inside generateMonthlyReportPdf (not here at module scope):
+// this file is pulled in transitively by board.routes.js just to register
+// routes, so a top-level `require('puppeteer')` would load — and, under
+// Jest, fail to parse — puppeteer on every test run that merely imports the
+// app, never on module load itself. Same reasoning as the inline
+// require('../utils/cloudinary') calls in admin.controller.js.
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -163,6 +168,7 @@ const generateMonthlyReportPdf = async (report) => {
 </body>
 </html>`;
 
+  const puppeteer = require('puppeteer');
   const browser = await puppeteer.launch({
     headless: 'new',
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
