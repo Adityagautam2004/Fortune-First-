@@ -110,22 +110,6 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
                     <span className="font-medium text-foreground">{formatRupees(Number(inv.amount))}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Instrument / Scheme</span>
-                    <span className="text-muted-foreground">—</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Asset Class</span>
-                    <span className="text-muted-foreground">—</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Current Value</span>
-                    <span className="text-muted-foreground">—</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Gain / Loss</span>
-                    <span className="text-muted-foreground">—</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
                     <span className="text-muted-foreground">Proof</span>
                     {inv.payment_screenshot_url ? (
                       <a
@@ -151,11 +135,7 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
               <thead>
                 <tr className="bg-muted text-foreground">
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Date</th>
-                  <th className="whitespace-nowrap px-6 py-3 font-medium">Instrument / Scheme</th>
-                  <th className="whitespace-nowrap px-6 py-3 font-medium">Asset Class</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Invested Amount</th>
-                  <th className="whitespace-nowrap px-6 py-3 font-medium">Current Value</th>
-                  <th className="whitespace-nowrap px-6 py-3 font-medium">Gain / Loss</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Status</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Proof</th>
                 </tr>
@@ -164,11 +144,7 @@ export function InvestmentHistoryTable({ investments }: InvestmentHistoryTablePr
                 {pageRows.map((inv) => (
                   <tr key={inv.id}>
                     <td className="px-6 py-4 text-foreground">{formatDate(inv.investment_date)}</td>
-                    <td className="px-6 py-4 text-muted-foreground">—</td>
-                    <td className="px-6 py-4 text-muted-foreground">—</td>
                     <td className="px-6 py-4 font-medium text-foreground">{formatRupees(Number(inv.amount))}</td>
-                    <td className="px-6 py-4 text-muted-foreground">—</td>
-                    <td className="px-6 py-4 text-muted-foreground">—</td>
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${

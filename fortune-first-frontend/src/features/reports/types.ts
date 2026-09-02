@@ -19,3 +19,12 @@ export interface PaginationMeta {
   limit: number;
   totalPages: number;
 }
+
+// Aggregated across every report matching the current filters, not just the
+// current page.
+export interface ReportsSummary {
+  count: number;
+  latestOperatingCapital: number;
+  totalPayout: number;
+  totalProfit: number;
+}

@@ -1,7 +1,28 @@
 const db = require('../models/db');
 const ApiError = require('../utils/apiError');
+const redis = require('../utils/redis');
+const { cacheTtlSeconds } = require('../utils/marketHours');
 const { STOCK_TRANSACTION_TYPE } = require('../utils/constants');
 const stockPriceService = require('./stockPriceService');
+
+const PORTFOLIO_CACHE_PREFIX = 'portfolio_dashboard';
+const LIVE_CACHE_TTL = 20; // seconds — matches stockPriceService's own live-quote TTL
+
+const portfolioCacheKey = (addedBy, orderType) => `${PORTFOLIO_CACHE_PREFIX}:${addedBy || 'all'}:${orderType || 'all'}`;
+
+// Every filtered view of the dashboard (by business head / order type) is
+// its own cache entry — there's no cheap way to know in advance which of
+// them are cached, so a mutation just clears all of them. The key space is
+// small (one entry per business-head/order-type combination actually
+// viewed), so this stays cheap even as a full KEYS scan.
+const invalidatePortfolioCache = async () => {
+  try {
+    const keys = await redis.keys(`${PORTFOLIO_CACHE_PREFIX}:*`);
+    if (keys.length) await redis.del(...keys);
+  } catch (error) {
+    console.error('Failed to invalidate portfolio dashboard cache:', error.message);
+  }
+};
 
 /**
  * Create a brand-new position. The initial buy is itself logged as a
@@ -107,9 +128,20 @@ const sellPosition = async (positionId, { quantity, price, businessHeadId }, dbC
  * and a portfolio-wide summary. Every viewer role
  * (admin/investment_head/business_head) gets the exact same shape — only
  * the frontend's write controls differ by role.
+ *
+ * Cached as a whole (positions + quotes + summary) so repeat dashboard loads
+ * skip both the DB query and the price lookups entirely. During market
+ * hours the cache is short-lived so prices stay live; outside market hours
+ * it lives until the next open — invalidatePortfolioCache() clears it
+ * immediately whenever a position is added, bought into, or sold, so a
+ * change during closed hours still shows up right away.
  * @param {{ addedBy?: string, orderType?: 'regular'|'mtf' }} options
  */
 const getPositions = async ({ addedBy, orderType } = {}) => {
+  const cacheKey = portfolioCacheKey(addedBy, orderType);
+  const cached = await redis.get(cacheKey).catch(() => null);
+  if (cached) return JSON.parse(cached);
+
   const conditions = ['p.is_active = TRUE'];
   const values = [];
   if (addedBy) {
@@ -156,7 +188,7 @@ const getPositions = async ({ addedBy, orderType } = {}) => {
     };
   });
 
-  return {
+  const result = {
     positions,
     summary: {
       total_invested: parseFloat(totalInvested.toFixed(2)),
@@ -165,6 +197,9 @@ const getPositions = async ({ addedBy, orderType } = {}) => {
       position_count: positions.length,
     },
   };
+
+  await redis.set(cacheKey, JSON.stringify(result), 'EX', cacheTtlSeconds(new Date(), LIVE_CACHE_TTL)).catch(() => {});
+  return result;
 };
 
 /**
@@ -182,4 +217,11 @@ const getBusinessHeadsWithActivity = async () => {
   return rows;
 };
 
-module.exports = { addPosition, buyMore, sellPosition, getPositions, getBusinessHeadsWithActivity };
+module.exports = {
+  addPosition,
+  buyMore,
+  sellPosition,
+  getPositions,
+  getBusinessHeadsWithActivity,
+  invalidatePortfolioCache,
+};

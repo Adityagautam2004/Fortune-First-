@@ -15,7 +15,9 @@ const MONTH_NAMES = [
 ];
 
 function formatRupees(value: number | string) {
-  return `₹${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  const num = Number(value);
+  const sign = num < 0 ? '-' : '';
+  return `${sign}₹${Math.abs(num).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 }
 
 interface ReportDetailPageProps {
@@ -92,7 +94,7 @@ export function ReportDetailPage({ reportId }: ReportDetailPageProps) {
         </div>
         <div className="rounded-2xl border border-brand-border bg-card p-5">
           <p className="text-xs font-medium text-muted-foreground">Total Profit</p>
-          <p className="mt-1 text-2xl font-extrabold text-emerald-600">{formatRupees(report.total_profit)}</p>
+          <p className={`mt-1 text-2xl font-extrabold ${Number(report.total_profit) < 0 ? 'text-red-600' : 'text-emerald-600'}`}>{formatRupees(report.total_profit)}</p>
         </div>
       </div>
 

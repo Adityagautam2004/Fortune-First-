@@ -24,11 +24,10 @@ interface ClientDetailPageProps {
 
 export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
   const { user } = useAuth();
-  // Quick Actions (Add Investment/Withdrawal) is for investment_head and
-  // super_admin — business_head's domain is the stock portfolio, not client
-  // investments, so it's hidden for them (matches the server-side gate on
-  // POST /board/investments and /board/withdrawals).
-  const canManageClient = user?.role === 'investment_head' || user?.role === 'super_admin';
+  // Quick Actions (Add Investment/Withdrawal) is investment_head-only — this
+  // page is shared with /admin/client-details, and admins should only view
+  // client data there, not act on it.
+  const canManageClient = user?.role === 'investment_head';
 
   const [detail, setDetail] = useState<ClientDetail | null>(null);
   const [loading, setLoading] = useState(true);

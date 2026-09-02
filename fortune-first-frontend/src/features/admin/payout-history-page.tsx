@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ImageIcon } from 'lucide-react';
 
 import api from '@/lib/api';
 import type { AdminPayoutRow, PaginationMeta } from './types';
@@ -82,6 +83,16 @@ export function PayoutHistoryPage({ endpoint = '/admin/payouts' }: PayoutHistory
                     <span className="text-muted-foreground">Payout Amount</span>
                     <span className="font-medium text-foreground">{formatRupees(Number(p.payout_amount))}</span>
                   </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Proof</span>
+                    {p.payment_screenshot_url ? (
+                      <a href={p.payment_screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                        <ImageIcon size={14} /> View
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -97,6 +108,7 @@ export function PayoutHistoryPage({ endpoint = '/admin/payouts' }: PayoutHistory
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Return %</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Payout Amount</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Status</th>
+                  <th className="whitespace-nowrap px-6 py-3 font-medium">Proof</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -113,6 +125,15 @@ export function PayoutHistoryPage({ endpoint = '/admin/payouts' }: PayoutHistory
                       <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[p.payout_status] || 'bg-muted text-muted-foreground'}`}>
                         {p.payout_status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {p.payment_screenshot_url ? (
+                        <a href={p.payment_screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                          <ImageIcon size={14} /> View
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -7,6 +7,7 @@ import { UploadCloud } from 'lucide-react';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import type { MonthlyReport } from './types';
 
 const MONTH_NAMES = [
@@ -108,13 +109,13 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
             <input type="number" value={year || ''} onChange={n(setYear)} className={inputClass} />
           </Field>
           <Field label="Total Operating Capital for Next Month (₹)">
-            <input type="number" step="any" value={operatingCapitalTotal || ''} onChange={n(setOperatingCapitalTotal)} className={inputClass} />
+            <CurrencyInput value={operatingCapitalTotal || ''} onChange={(v) => setOperatingCapitalTotal(v === '' ? 0 : v)} className={inputClass} />
           </Field>
           <Field label="Total Payout (₹)">
-            <input type="number" step="any" value={totalPayout || ''} onChange={n(setTotalPayout)} className={inputClass} />
+            <CurrencyInput value={totalPayout || ''} onChange={(v) => setTotalPayout(v === '' ? 0 : v)} className={inputClass} />
           </Field>
-          <Field label="Total Profit (₹)">
-            <input type="number" step="any" value={totalProfit || ''} onChange={n(setTotalProfit)} className={inputClass} />
+          <Field label="Total Profit (₹, enter a negative number for a loss)">
+            <CurrencyInput allowNegative value={totalProfit || ''} onChange={(v) => setTotalProfit(v === '' ? 0 : v)} className={inputClass} />
           </Field>
         </div>
       </div>
@@ -143,7 +144,7 @@ export function ReportFormPage({ reportId }: ReportFormPageProps) {
   );
 }
 
-const inputClass = 'rounded-lg border border-brand-border px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+const inputClass = 'rounded-lg border border-brand-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

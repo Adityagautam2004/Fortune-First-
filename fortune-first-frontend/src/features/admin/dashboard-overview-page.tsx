@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Users, IndianRupee, TrendingUp, Headphones, LineChart, BarChart3, Download } from 'lucide-react';
+import { Users, IndianRupee, TrendingUp, Headphones, Download } from 'lucide-react';
 
 import api from '@/lib/api';
 import { downloadCsv } from '@/lib/csv';
 import { AdminStatCard } from './components/admin-stat-card';
-import { AdminChartPlaceholder } from './components/admin-chart-placeholder';
+import { OperatingCapitalChart } from './components/operating-capital-chart';
+import { ProfitOverTimeChart } from './components/profit-over-time-chart';
 import { RecentTransactionsTable } from './components/recent-transactions-table';
-import { TopFundsPlaceholder } from './components/top-funds-placeholder';
 import { QuickActions } from './components/quick-actions';
-import type { AdminDashboardStats, AdminSupportTicket, AdminInvestmentRow } from './types';
+import type { AdminDashboardStats, AdminSupportTicket, AdminInvestmentRow, AdminTransactionRow } from './types';
+import type { MonthlyReport } from '@/features/reports/types';
 
 function formatLakh(value: number) {
   if (value >= 1e5) return `₹${(value / 1e5).toFixed(2)} L`;
@@ -21,6 +22,8 @@ export function DashboardOverviewPage() {
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [tickets, setTickets] = useState<AdminSupportTicket[]>([]);
   const [investments, setInvestments] = useState<AdminInvestmentRow[]>([]);
+  const [reports, setReports] = useState<MonthlyReport[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<AdminTransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,12 +33,16 @@ export function DashboardOverviewPage() {
       api.get('/admin/dashboard'),
       api.get('/admin/support'),
       api.get('/admin/financials'),
+      api.get('/board/reports', { params: { limit: 60 } }),
+      api.get('/admin/transactions', { params: { limit: 5 } }),
     ])
-      .then(([dashboardRes, supportRes, financialsRes]) => {
+      .then(([dashboardRes, supportRes, financialsRes, reportsRes, transactionsRes]) => {
         if (cancelled) return;
         setStats(dashboardRes.data.data);
         setTickets(supportRes.data.data || []);
         setInvestments(financialsRes.data.data?.investments || []);
+        setReports(reportsRes.data.data?.reports || []);
+        setRecentTransactions(transactionsRes.data.data?.transactions || []);
       })
       .catch((error) => console.error('Failed to load admin dashboard data', error))
       .finally(() => {
@@ -105,28 +112,11 @@ export function DashboardOverviewPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
-        <AdminChartPlaceholder
-          icon={LineChart}
-          title="AUM Over Time"
-          legend="AUM (₹ Lakh)"
-          message="Historical AUM snapshots aren't tracked in the system yet."
-        />
-        <AdminChartPlaceholder
-          icon={BarChart3}
-          title="Returns Over Time (YTD)"
-          legend="Returns (₹ Lakh)"
-          message="Aggregate monthly returns history isn't tracked yet."
-        />
+        <OperatingCapitalChart reports={reports} />
+        <ProfitOverTimeChart reports={reports} />
       </div>
 
-      <div className="grid grid-cols-1 items-stretch gap-2.5 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <RecentTransactionsTable rows={investments} />
-        </div>
-        <div className="lg:col-span-1">
-          <TopFundsPlaceholder />
-        </div>
-      </div>
+      <RecentTransactionsTable rows={recentTransactions} />
 
       <QuickActions onExportData={handleExportData} />
     </div>

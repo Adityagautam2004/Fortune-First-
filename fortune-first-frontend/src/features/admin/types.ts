@@ -68,6 +68,7 @@ export interface AdminPayoutRow {
   payout_amount: number | string;
   payout_status: string;
   payout_date: string | null;
+  payment_screenshot_url?: string | null;
   customer_name: string;
   customer_email: string;
 }

@@ -97,10 +97,6 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
                     <span className="font-medium text-primary">{formatLakh(Number(client.total_invested))}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Active Mandate</span>
-                    <span className="text-foreground">{client.active_mandates}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
                     <span className="text-muted-foreground">Client Status</span>
                     <span
                       className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -123,9 +119,7 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Client Name</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Client ID</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Relationship Manager</th>
-                  <th className="whitespace-nowrap px-6 py-3 font-medium">Segment</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">AUM (₹)</th>
-                  <th className="whitespace-nowrap px-6 py-3 font-medium">Active Mandate</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Client Status</th>
                   <th className="whitespace-nowrap px-6 py-3 font-medium">Action</th>
                 </tr>
@@ -143,9 +137,7 @@ export function ClientSummaryTable({ clients }: ClientSummaryTableProps) {
                       {client.client_code || client.id.slice(0, 8).toUpperCase()}
                     </td>
                     <td className="px-6 py-4 text-foreground">{client.relationship_manager || '—'}</td>
-                    <td className="px-6 py-4 text-muted-foreground">—</td>
                     <td className="px-6 py-4 font-medium text-primary">{formatLakh(Number(client.total_invested))}</td>
-                    <td className="px-6 py-4 text-foreground">{client.active_mandates}</td>
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${

@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import { cn, getErrorMessage } from '@/lib/utils';
 import api from '@/lib/api';
 import type { StockPosition } from '../types';
@@ -141,16 +142,12 @@ export function PositionActionModal({ position, onClose, onSuccess }: PositionAc
             <label className="mb-1 block text-sm font-semibold text-foreground">
               {mode === 'sell' ? 'Sell price' : 'Buy price'} (₹)
             </label>
-            <input
-              type="number"
-              min={0.01}
-              step="any"
+            <CurrencyInput
               required
               placeholder="e.g. 250.50"
               value={price}
-              onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
-              onWheel={(e) => e.currentTarget.blur()}
-              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              onChange={setPrice}
+              className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
         </div>

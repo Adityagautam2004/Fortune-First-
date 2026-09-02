@@ -86,7 +86,7 @@ router.get('/withdrawals', getBoardWithdrawals);
 // ── Payouts ────────────────────────────────────────────────────────────────
 router.get('/payouts/pending', getPendingPayouts);
 router.get('/payouts', getBoardPayouts);
-router.post('/payouts', processPayout);
+router.post('/payouts', uploadImage.single('screenshot'), processPayout);
 router.patch('/payouts/:returnId/void', voidPayout);
 
 // ── Unified transactions (FR-TXN-01) ────────────────────────────────────────

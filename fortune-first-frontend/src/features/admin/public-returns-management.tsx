@@ -273,7 +273,7 @@ export function PublicReturnsManagement() {
               step={0.01}
               min={1.5}
               max={2}
-              className="w-full border border-brand-border rounded-md p-2 text-sm focus:outline-none focus:border-primary"
+              className="w-full border border-brand-border rounded-md bg-card p-2 text-sm text-foreground focus:outline-none focus:border-primary"
               value={form.returnPct}
               onChange={(e) => setForm({ ...form, returnPct: Number(e.target.value) })}
             />

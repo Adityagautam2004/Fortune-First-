@@ -25,7 +25,7 @@ const COMBINED_QUERY = `
   SELECT 'payout' AS type, mr.id, mr.customer_id, u.name AS customer_name,
          mr.payout_amount AS amount, mr.payout_status::text AS status,
          COALESCE(mr.payout_date, make_date(mr.year, mr.month, 1)) AS date,
-         NULL AS screenshot_url, NULL AS notes,
+         mr.payment_screenshot_url AS screenshot_url, NULL AS notes,
          COALESCE(mr.payout_date, make_date(mr.year, mr.month, 1))::timestamptz AS created_at
   FROM monthly_returns mr
   JOIN users u ON u.id = mr.customer_id

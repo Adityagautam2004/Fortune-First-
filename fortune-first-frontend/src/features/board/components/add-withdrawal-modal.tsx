@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import api from '@/lib/api';
 
 interface AddWithdrawalModalProps {
@@ -30,6 +31,10 @@ export function AddWithdrawalModal({ isOpen, onClose, customerId, onSuccess }: A
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!amount || amount < 5000) {
+      setError('Amount must be at least ₹5,000.');
+      return;
+    }
     setSubmitting(true);
     try {
       await api.post('/board/withdrawals', {
@@ -60,13 +65,11 @@ export function AddWithdrawalModal({ isOpen, onClose, customerId, onSuccess }: A
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-semibold text-foreground">Amount (₹, multiple of 5,000)</label>
-          <input
-            type="number"
-            min={5000}
-            step={5000}
+          <CurrencyInput
+            allowDecimals={false}
             required
             value={amount}
-            onChange={(e) => setAmount(Number(e.target.value))}
+            onChange={(v) => setAmount(v === '' ? 0 : v)}
             className="w-full rounded-lg border border-brand-border px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>

@@ -246,6 +246,13 @@ const processPayout = async (req, res) => {
     const { customerId, month, year, returnPct } = req.body;
     const processedBy = req.user.userId;
 
+    // Optional proof-of-payout screenshot — never required to mark a payout paid.
+    let paymentScreenshotUrl = null;
+    if (req.file) {
+      const uploaded = await uploadBuffer(req.file.buffer, 'payment_screenshots');
+      paymentScreenshotUrl = uploaded.secure_url;
+    }
+
     await client.query('BEGIN'); // Start ACID Transaction
 
     // 1. Lock this client's active investment rows — Postgres doesn't allow
@@ -280,9 +287,9 @@ const processPayout = async (req, res) => {
     // 4. Insert the monthly return record
     // The UNIQUE(customer_id, month, year) constraint will safely block duplicates here
     await client.query(
-      `INSERT INTO monthly_returns (customer_id, month, year, return_pct, payout_amount, invested_amount, payout_status, payout_date, processed_by)
-       VALUES ($1, $2, $3, $4, $5, $6, 'paid', NOW(), $7)`,
-      [customerId, month, year, returnPct, payoutAmount, investedAmount, processedBy]
+      `INSERT INTO monthly_returns (customer_id, month, year, return_pct, payout_amount, invested_amount, payout_status, payout_date, processed_by, payment_screenshot_url)
+       VALUES ($1, $2, $3, $4, $5, $6, 'paid', NOW(), $7, $8)`,
+      [customerId, month, year, returnPct, payoutAmount, investedAmount, processedBy, paymentScreenshotUrl]
     );
 
     // 5. Audit Log
@@ -385,10 +392,12 @@ const getBoardDashboardStats = async (req, res) => {
     // $1/$2 (the date range) are always referenced in the query text; the board-member
     // id is only appended (as $3) when the investment_head branch actually uses it —
     // Postgres can't infer a placeholder's type if it's passed but never referenced.
-    // The withdrawal subquery is a fully independent scalar (its own WHERE, matching
-    // the same client scope) rather than a join, so it isn't affected by however many
-    // investment/payout rows the outer join produces per customer.
-    const withdrawalScope = userRole === 'investment_head'
+    // The withdrawal and monthly_returns subqueries are both fully independent scalars
+    // (their own WHERE, matching the same client scope) rather than joins — monthly_returns
+    // rows are keyed by customer_id, not investment_id (aggregated once per client per
+    // month, not per individual investment), so joining it onto investments directly
+    // would both reference a nonexistent column and fan out the investment SUM below.
+    const clientScope = userRole === 'investment_head'
       ? `cu.role = 'customer' AND cu.assigned_to = $3`
       : `cu.role = 'customer'`;
     let queryStr = `
@@ -397,15 +406,17 @@ const getBoardDashboardStats = async (req, res) => {
         COALESCE(SUM(i.amount) FILTER (WHERE i.status = 'active'), 0)
           - COALESCE((
               SELECT SUM(w.amount) FROM withdrawals w JOIN users cu ON cu.id = w.customer_id
-              WHERE w.status = 'completed' AND ${withdrawalScope}
+              WHERE w.status = 'completed' AND ${clientScope}
             ), 0)
           AS total_aum,
         COUNT(DISTINCT i.id) FILTER (WHERE i.status = 'active') AS active_mandates,
         COUNT(DISTINCT u.id) FILTER (WHERE u.created_at BETWEEN $1 AND $2::date + 1) AS new_clients,
-        COUNT(mr.id) FILTER (WHERE mr.payout_date BETWEEN $1 AND $2) AS transactions
+        (
+          SELECT COUNT(mr.id) FROM monthly_returns mr JOIN users cu ON cu.id = mr.customer_id
+          WHERE mr.payout_date BETWEEN $1 AND $2 AND ${clientScope}
+        ) AS transactions
       FROM users u
       LEFT JOIN investments i ON u.id = i.customer_id
-      LEFT JOIN monthly_returns mr ON mr.investment_id = i.id
     `;
     const queryParams = [startDate, endDate];
 

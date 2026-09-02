@@ -7,7 +7,7 @@ import { Plus, FileText, Download, Pencil, Trash2 } from 'lucide-react';
 
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
-import type { MonthlyReport, PaginationMeta } from './types';
+import type { MonthlyReport, PaginationMeta, ReportsSummary } from './types';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -15,7 +15,9 @@ const MONTH_NAMES = [
 ];
 
 function formatRupees(value: number | string) {
-  return `₹${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  const num = Number(value);
+  const sign = num < 0 ? '-' : '';
+  return `${sign}₹${Math.abs(num).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 }
 
 // Shared by /board/reports (investment_head, business_head — view only) and
@@ -29,6 +31,7 @@ export function ReportsListPage() {
 
   const [reports, setReports] = useState<MonthlyReport[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+  const [summary, setSummary] = useState<ReportsSummary | null>(null);
   const [page, setPage] = useState(1);
   const [month, setMonth] = useState('');
   const [year, setYear] = useState('');
@@ -44,6 +47,7 @@ export function ReportsListPage() {
       .then((res) => {
         setReports(res.data.data.reports || []);
         setPagination(res.data.data.pagination);
+        setSummary(res.data.data.summary || null);
       })
       .catch((error) => console.error('Failed to load reports', error))
       .finally(() => setLoading(false));
@@ -84,6 +88,29 @@ export function ReportsListPage() {
           </Link>
         )}
       </div>
+
+      {summary && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-2xl border border-brand-border bg-card p-4">
+            <p className="text-xs font-medium text-muted-foreground">Reports {month || year ? '(filtered)' : ''}</p>
+            <p className="mt-1 text-xl font-extrabold text-foreground">{summary.count}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-card p-4">
+            <p className="text-xs font-medium text-muted-foreground">Operating Capital (latest month)</p>
+            <p className="mt-1 text-xl font-extrabold text-foreground">{formatRupees(summary.latestOperatingCapital)}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-card p-4">
+            <p className="text-xs font-medium text-muted-foreground">Total Payout</p>
+            <p className="mt-1 text-xl font-extrabold text-foreground">{formatRupees(summary.totalPayout)}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-card p-4">
+            <p className="text-xs font-medium text-muted-foreground">Total Profit</p>
+            <p className={`mt-1 text-xl font-extrabold ${summary.totalProfit < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+              {formatRupees(summary.totalProfit)}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <select
@@ -148,7 +175,7 @@ export function ReportsListPage() {
                     </td>
                     <td className="px-6 py-4 text-foreground">{formatRupees(report.operating_capital_total)}</td>
                     <td className="px-6 py-4 text-foreground">{formatRupees(report.total_payout)}</td>
-                    <td className="px-6 py-4 text-emerald-600 font-semibold">{formatRupees(report.total_profit)}</td>
+                    <td className={`px-6 py-4 font-semibold ${Number(report.total_profit) < 0 ? 'text-red-600' : 'text-emerald-600'}`}>{formatRupees(report.total_profit)}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1">
                         <a href={report.pdf_url} target="_blank" rel="noopener noreferrer" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary" title="View PDF">
@@ -225,7 +252,7 @@ function ReportCard({
     <div className="rounded-xl border border-brand-border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <p className="font-bold text-foreground">{MONTH_NAMES[report.month - 1]} {report.year}</p>
-        <span className="text-sm font-semibold text-emerald-600">{formatRupees(report.total_profit)}</span>
+        <span className={`text-sm font-semibold ${Number(report.total_profit) < 0 ? 'text-red-600' : 'text-emerald-600'}`}>{formatRupees(report.total_profit)}</span>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-y-1 text-xs text-muted-foreground">
         <span>Op. Capital: {formatRupees(report.operating_capital_total)}</span>

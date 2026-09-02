@@ -147,6 +147,14 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* Native <input type="date"> chrome (the calendar icon and its popup) is
+   browser-drawn and ignores every text/background color class — without
+   this it stays light-themed (near-invisible icon, stark white popup) even
+   when the rest of the page is dark. */
+.dark input[type='date'] {
+  color-scheme: dark;
+}
+
 html {
   scroll-behavior: smooth;
 }

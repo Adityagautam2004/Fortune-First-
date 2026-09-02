@@ -60,6 +60,7 @@ const addStock = async (req, res) => {
       [addedBy, 'CREATE', 'stock_position', position.id, JSON.stringify(req.body), req.ip]
     );
     await client.query('COMMIT');
+    await stockPortfolioService.invalidatePortfolioCache();
 
     return res.status(201).json({ status: 'success', message: 'Stock added to portfolio', data: position });
   } catch (error) {
@@ -87,6 +88,7 @@ const buyMoreStock = async (req, res) => {
       [businessHeadId, 'BUY', 'stock_position', position.id, JSON.stringify(req.body), req.ip]
     );
     await client.query('COMMIT');
+    await stockPortfolioService.invalidatePortfolioCache();
 
     return res.status(200).json({ status: 'success', message: 'Position increased', data: position });
   } catch (error) {
@@ -114,6 +116,7 @@ const sellStock = async (req, res) => {
       [businessHeadId, 'SELL', 'stock_position', position.id, JSON.stringify(req.body), req.ip]
     );
     await client.query('COMMIT');
+    await stockPortfolioService.invalidatePortfolioCache();
 
     return res.status(200).json({ status: 'success', message: 'Position sold', data: position });
   } catch (error) {

@@ -1,6 +1,7 @@
 const axios = require('axios');
 const redis = require('../utils/redis');
 const ApiError = require('../utils/apiError');
+const { cacheTtlSeconds } = require('../utils/marketHours');
 
 // Yahoo Finance's public, unofficial JSON endpoints — no API key required.
 // There's no SLA on these; if that becomes a problem, swap the two calls
@@ -11,7 +12,7 @@ const CHART_URL = (symbol) => `https://query1.finance.yahoo.com/v8/finance/chart
 const HEADERS = { 'User-Agent': 'Mozilla/5.0' };
 
 const SEARCH_CACHE_TTL = 3600; // symbol/name pairs barely change — cache an hour
-const QUOTE_CACHE_TTL = 20; // short TTL keeps prices "live" while sparing the free API
+const LIVE_QUOTE_CACHE_TTL = 20; // short TTL keeps prices "live" while the market's open
 
 /**
  * Autocomplete-style symbol search for the "Add Stock" flow.
@@ -66,7 +67,10 @@ const getQuote = async (symbol) => {
     currency: meta.currency || null,
   };
 
-  await redis.set(cacheKey, JSON.stringify(quote), 'EX', QUOTE_CACHE_TTL).catch(() => {});
+  // Outside market hours the price genuinely can't have moved, so the cache
+  // is left to live all the way until the next open instead of re-hitting
+  // Yahoo Finance every 20 seconds for no reason.
+  await redis.set(cacheKey, JSON.stringify(quote), 'EX', cacheTtlSeconds(new Date(), LIVE_QUOTE_CACHE_TTL)).catch(() => {});
   return quote;
 };
 

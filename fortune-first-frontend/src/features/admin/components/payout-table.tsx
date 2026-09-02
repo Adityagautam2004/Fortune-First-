@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { Info } from 'lucide-react';
 
 import { calculatePayout } from '../lib/calculate-payout';
+import { MarkPaidModal } from './mark-paid-modal';
 import type { PendingPayout } from '../types';
 
 const PAGE_SIZE = 6;
@@ -17,13 +18,14 @@ interface PayoutTableProps {
   investments: PendingPayout[];
   month: number;
   year: number;
-  onMarkPaid: (customerId: string, returnPct: number) => Promise<void>;
+  onMarkPaid: (customerId: string, returnPct: number, screenshot: File | null) => Promise<void>;
 }
 
 export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTableProps) {
   const [page, setPage] = useState(1);
   const [returnPcts, setReturnPcts] = useState<Record<string, number>>({});
-  const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<PendingPayout | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(investments.length / PAGE_SIZE));
   const pageRows = useMemo(
@@ -35,12 +37,22 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
 
   const getReturnPct = (investmentId: string) => returnPcts[investmentId] ?? DEFAULT_RETURN_PCT;
 
-  const handleMarkPaid = async (inv: PendingPayout) => {
-    setSubmittingId(inv.customer_id);
+  const confirmingPayoutAmount = useMemo(() => {
+    if (!confirming) return 0;
+    const invDate = new Date(confirming.earliest_investment_date);
+    const isFirstMonth = invDate.getMonth() + 1 === month && invDate.getFullYear() === year;
+    return calculatePayout(Number(confirming.amount), getReturnPct(confirming.customer_id), confirming.week_of_month, null, isFirstMonth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirming, month, year]);
+
+  const handleConfirm = async (screenshot: File | null) => {
+    if (!confirming) return;
+    setSubmitting(true);
     try {
-      await onMarkPaid(inv.customer_id, getReturnPct(inv.customer_id));
+      await onMarkPaid(confirming.customer_id, getReturnPct(confirming.customer_id), screenshot);
+      setConfirming(null);
     } finally {
-      setSubmittingId(null);
+      setSubmitting(false);
     }
   };
 
@@ -114,11 +126,10 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => handleMarkPaid(inv)}
-                        disabled={submittingId === inv.customer_id}
+                        onClick={() => setConfirming(inv)}
                         className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {submittingId === inv.customer_id ? 'Processing...' : 'Mark Paid'}
+                        Mark Paid
                       </button>
                     </td>
                   </tr>
@@ -168,6 +179,15 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
         <Info size={16} className="mt-0.5 shrink-0 text-primary" />
         <p>Enter the return percentage (%) for each client. Click &quot;Mark Paid&quot; to process the payout.</p>
       </div>
+
+      <MarkPaidModal
+        isOpen={!!confirming}
+        clientName={confirming?.client_name ?? ''}
+        payoutAmount={confirmingPayoutAmount}
+        submitting={submitting}
+        onClose={() => setConfirming(null)}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 }

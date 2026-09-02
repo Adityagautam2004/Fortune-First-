@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Landmark, IndianRupee, Activity, ArrowLeftRight, Download } from 'lucide-react';
+import { Landmark, IndianRupee, Wallet, ArrowLeftRight, Download } from 'lucide-react';
 
 import api from '@/lib/api';
 import { downloadCsv } from '@/lib/csv';
@@ -35,6 +35,7 @@ function firstOfMonthIso() {
 export function BoardOverviewPage() {
   const [stats, setStats] = useState<BoardStats | null>(null);
   const [clients, setClients] = useState<BoardClient[]>([]);
+  const [latestOperatingCapital, setLatestOperatingCapital] = useState(0);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(firstOfMonthIso());
   const [endDate, setEndDate] = useState(todayIso());
@@ -68,6 +69,21 @@ export function BoardOverviewPage() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Latest month's operating capital from the reports section — a
+  // forward-looking snapshot, not tied to the date-range filter above.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get('/board/reports', { params: { limit: 1 } })
+      .then((res) => {
+        if (!cancelled) setLatestOperatingCapital(res.data.data?.summary?.latestOperatingCapital ?? 0);
+      })
+      .catch((error) => console.error('Failed to load latest operating capital', error));
     return () => {
       cancelled = true;
     };
@@ -153,7 +169,7 @@ export function BoardOverviewPage() {
       <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
         <BoardStatTile icon={Landmark} label="Total Clients" value={Number(stats?.total_clients ?? 0).toLocaleString('en-IN')} />
         <BoardStatTile icon={IndianRupee} label="AUM" value={formatLakh(totalAum)} />
-        <BoardStatTile icon={Activity} label="Active Mandates" value={activeMandates.toLocaleString('en-IN')} />
+        <BoardStatTile icon={Wallet} label="Total Operating Capital" value={formatLakh(latestOperatingCapital)} />
         <BoardStatTile icon={ArrowLeftRight} label="Transactions" value={Number(stats?.transactions ?? 0).toLocaleString('en-IN')} />
       </div>
 
