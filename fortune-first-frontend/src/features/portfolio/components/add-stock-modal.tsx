@@ -9,15 +9,13 @@ import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import api from '@/lib/api';
 import { cn, getErrorMessage } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
-import type { StockSearchResult } from '../types';
+import type { OrderType, StockSearchResult } from '../types';
 
 interface AddStockModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
-
-type OrderType = 'regular' | 'mtf';
 
 export function AddStockModal({ isOpen, onClose, onSuccess }: AddStockModalProps) {
   const [query, setQuery] = useState('');
@@ -92,6 +90,7 @@ export function AddStockModal({ isOpen, onClose, onSuccess }: AddStockModalProps
         companyName: selected.name,
         quantity,
         price,
+        orderType,
       });
       onSuccess();
       onClose();
