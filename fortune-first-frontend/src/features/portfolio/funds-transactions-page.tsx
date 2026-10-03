@@ -111,12 +111,32 @@ export function FundsTransactionsPage() {
         <p className="mt-0.5 text-sm text-muted-foreground">Every stock buy and sell recorded by business heads.</p>
       </div>
 
+      {/* Overall P&L — the headline number, Groww-style: big colored figure up
+          top with the profit/loss breakdown as small pills underneath. */}
+      <div className="rounded-2xl border border-brand-border bg-card p-5">
+        <p className="text-xs font-medium text-muted-foreground">Overall P&amp;L</p>
+        <p
+          className={cn(
+            'mt-1 text-3xl font-extrabold',
+            !summary ? 'text-foreground' : summary.net_realized_pnl >= 0 ? 'text-emerald-600' : 'text-red-600'
+          )}
+        >
+          {summary ? `${summary.net_realized_pnl >= 0 ? '+' : ''}${formatRupees(summary.net_realized_pnl)}` : '—'}
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
+            Profit {summary ? formatRupees(summary.total_profit) : '—'}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700 dark:bg-red-500/15 dark:text-red-400">
+            Loss {summary ? formatRupees(Math.abs(summary.total_loss)) : '—'}
+          </span>
+        </div>
+      </div>
+
       {/* Compact summary — a single row of numbers, no icon tiles */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5">
         <SummaryStat label="Buys" value={summary ? `${summary.buy_count} · ${formatRupees(summary.total_buy_value)}` : '—'} />
         <SummaryStat label="Sells" value={summary ? `${summary.sell_count} · ${formatRupees(summary.total_sell_value)}` : '—'} />
-        <SummaryStat label="Profit" value={summary ? formatRupees(summary.total_profit) : '—'} tone="positive" />
-        <SummaryStat label="Loss" value={summary ? formatRupees(Math.abs(summary.total_loss)) : '—'} tone="negative" />
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
