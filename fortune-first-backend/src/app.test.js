@@ -1,7 +1,7 @@
 // puppeteer ships an ESM-only entry point that Jest's default CJS transform
 // can't parse; these tests never touch PDF generation, so mock it out rather
 // than dragging a real headless-browser dependency into an unrelated test.
-jest.mock('./utils/pdf', () => ({ generateReportPDF: jest.fn() }));
+jest.mock('./utils/pdf', () => ({ htmlToPdf: jest.fn() }));
 
 const request = require('supertest');
 const { app } = require('./app');

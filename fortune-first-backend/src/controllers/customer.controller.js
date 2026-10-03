@@ -182,56 +182,63 @@ const getSupportTickets = async (req, res) => {
   }
 };
 
+// Statements are cached per customer and period — rendering a PDF launches a headless browser.
+const sendStatement = (res, report, filenamePart) => {
+  const safeName = String(report.profile.name || 'Client').replace(/[^\w]+/g, '_');
+  res.set({
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': `attachment; filename="Fortune_First_Statement_${filenamePart}_${safeName}.pdf"`,
+    'Content-Length': report.pdf.length,
+  });
+  return res.send(report.pdf);
+};
+
+const handleStatementError = (res, error, label) => {
+  if (error.statusCode && error.statusCode < 500) {
+    return res.status(error.statusCode).json({ status: 'error', message: error.message });
+  }
+  console.error(`${label} PDF Generation Error:`, error);
+  return res.status(500).json({ status: 'error', message: 'Failed to generate report' });
+};
+
+// GET /customer/report/full — consolidated statement since inception
 const downloadFullReport = async (req, res) => {
   try {
-    // Cached per customer — rendering a PDF launches a headless browser.
     const report = await reportPdfService.getFullReport(req.user.userId);
     if (!report) {
       return res.status(404).json({ status: 'error', message: 'Customer not found' });
     }
-    const pdfBuffer = report.pdf;
-
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="Fortune_First_Report_${report.profile.name.replace(/\s+/g, '_')}.pdf"`,
-      'Content-Length': pdfBuffer.length
-    });
-
-    return res.send(pdfBuffer);
+    return sendStatement(res, report, 'Consolidated');
   } catch (error) {
-    console.error('PDF Generation Error:', error);
-    return res.status(500).json({ status: 'error', message: 'Failed to generate report' });
+    return handleStatementError(res, error, 'Full');
   }
 };
 
-
-// GET /customer/report/monthly?month=&year= — FR-CUST-09: single-month PDF report
+// GET /customer/report/monthly?month=&year= — FR-CUST-09: monthly statement
 const downloadMonthlyReport = async (req, res) => {
   try {
-    const customerId = req.user.userId;
-    const month = parseInt(req.query.month, 10);
-    const year = parseInt(req.query.year, 10);
-
-    if (!month || !year || month < 1 || month > 12) {
-      return res.status(400).json({ status: 'error', message: 'Valid month (1-12) and year are required' });
-    }
-
-    const report = await reportPdfService.getMonthlyReport(customerId, month, year);
+    const { month, year } = req.query;
+    const report = await reportPdfService.getStatement(req.user.userId, { type: 'monthly', month, year });
     if (!report) {
-      return res.status(404).json({ status: 'error', message: 'No records found for that month' });
+      return res.status(404).json({ status: 'error', message: 'Customer not found' });
     }
-    const pdfBuffer = report.pdf;
-
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="Fortune_First_Report_${month}_${year}.pdf"`,
-      'Content-Length': pdfBuffer.length
-    });
-
-    return res.send(pdfBuffer);
+    return sendStatement(res, report, `${year}_${String(month).padStart(2, '0')}`);
   } catch (error) {
-    console.error('Monthly PDF Generation Error:', error);
-    return res.status(500).json({ status: 'error', message: 'Failed to generate report' });
+    return handleStatementError(res, error, 'Monthly');
+  }
+};
+
+// GET /customer/report/annual?fy= — financial-year statement (FY 2025 = Apr 2025 – Mar 2026)
+const downloadAnnualReport = async (req, res) => {
+  try {
+    const { fy } = req.query;
+    const report = await reportPdfService.getStatement(req.user.userId, { type: 'annual', fy });
+    if (!report) {
+      return res.status(404).json({ status: 'error', message: 'Customer not found' });
+    }
+    return sendStatement(res, report, `FY${fy}-${String(fy + 1).slice(-2)}`);
+  } catch (error) {
+    return handleStatementError(res, error, 'Annual');
   }
 };
 
@@ -286,6 +293,6 @@ const uploadKYCDocument = async (req, res) => {
 
 module.exports = {
   getDashboardStats, getInvestmentHistory, getCustomerTransactions, getProfile,
-  createSupportTicket, getSupportTickets, downloadFullReport, downloadMonthlyReport,
+  createSupportTicket, getSupportTickets, downloadFullReport, downloadMonthlyReport, downloadAnnualReport,
   submitKYC, uploadKYCDocument,
 };

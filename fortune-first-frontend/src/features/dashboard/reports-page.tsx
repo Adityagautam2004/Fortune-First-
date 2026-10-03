@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { IndianRupee, Undo2, CalendarCheck, Percent, LayoutPanelLeft, Layers } from 'lucide-react';
 
 import api from '@/lib/api';
@@ -13,17 +14,53 @@ interface DashboardStats {
   totalInvested: number;
 }
 
+type ReportType = 'monthly' | 'annual';
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
 function formatRupees(value: number) {
   return `₹${Math.round(value || 0).toLocaleString('en-IN')}`;
 }
 
+// Indian financial year by its starting year: FY 2025 = April 2025 – March 2026.
+function financialYearOf(year: number, month: number) {
+  return month >= 4 ? year : year - 1;
+}
+
+function fyLabel(fy: number) {
+  return `FY ${fy}–${String(fy + 1).slice(-2)}`;
+}
+
+function toMonthValue(year: number, month: number) {
+  return `${year}-${String(month).padStart(2, '0')}`;
+}
+
+// The report endpoints answer with a PDF blob, so an error body arrives as a Blob too.
+async function downloadErrorMessage(error: unknown) {
+  if (isAxiosError(error) && error.response?.data instanceof Blob) {
+    try {
+      const body = JSON.parse(await error.response.data.text());
+      if (body?.message) return String(body.message);
+    } catch {
+      /* not JSON */
+    }
+  }
+  return 'We could not generate your report right now. Please try again in a moment.';
+}
+
 export function ReportsPage() {
+  const now = new Date();
+  const currentMonthValue = toMonthValue(now.getFullYear(), now.getMonth() + 1);
+  const currentFy = financialYearOf(now.getFullYear(), now.getMonth() + 1);
+
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [history, setHistory] = useState<MonthlyReturn[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reportType, setReportType] = useState<ReportType>('monthly');
+  const [monthValue, setMonthValue] = useState(currentMonthValue);
+  const [fy, setFy] = useState(currentFy);
   const [downloading, setDownloading] = useState(false);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [downloadError, setDownloadError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -31,7 +68,11 @@ export function ReportsPage() {
       .then(([dashboardRes, historyRes]) => {
         if (cancelled) return;
         setStats(dashboardRes.data.data);
-        setHistory(historyRes.data.data || []);
+        const rows: MonthlyReturn[] = historyRes.data.data || [];
+        setHistory(rows);
+        // Default the monthly picker to the latest month that has a payout.
+        const latestPaid = rows.find((r) => r.payout_status === 'paid');
+        if (latestPaid) setMonthValue(toMonthValue(latestPaid.year, latestPaid.month));
       })
       .catch((error) => console.error('Failed to load report data', error))
       .finally(() => {
@@ -42,37 +83,63 @@ export function ReportsPage() {
     };
   }, []);
 
-  // Only payouts actually paid count as returns (voided/skipped never reached
-  // the customer), filtered to the selected payout-date range.
-  const paidInRange = useMemo(() => {
-    return history.filter((record) => {
-      if (record.payout_status !== 'paid') return false;
-      if (!record.payout_date) return !startDate && !endDate;
-      const recordDate = record.payout_date.slice(0, 10);
-      if (startDate && recordDate < startDate) return false;
-      if (endDate && recordDate > endDate) return false;
-      return true;
+  // Financial years from the client's first payout up to the current one, newest first.
+  const fyOptions = useMemo(() => {
+    const earliest = history.reduce(
+      (min, r) => Math.min(min, financialYearOf(Number(r.year), Number(r.month))),
+      currentFy
+    );
+    const options: number[] = [];
+    for (let y = currentFy; y >= Math.min(earliest, currentFy - 1); y--) options.push(y);
+    return options;
+  }, [history, currentFy]);
+
+  const [selYear, selMonth] = monthValue.split('-').map(Number);
+  const periodLabel =
+    reportType === 'monthly'
+      ? `${MONTH_NAMES[selMonth - 1]} ${selYear}`
+      : `${fyLabel(fy)}${fy === currentFy ? ' (to date)' : ''}`;
+
+  // Summary for the selected period — same rules as the PDF: paid payouts
+  // only, grouped by the month they relate to.
+  const periodSummary = useMemo(() => {
+    const inPeriod = history.filter((r) => {
+      if (r.payout_status !== 'paid') return false;
+      const year = Number(r.year);
+      const month = Number(r.month);
+      return reportType === 'monthly' ? year === selYear && month === selMonth : financialYearOf(year, month) === fy;
     });
-  }, [history, startDate, endDate]);
-
-  const totalReturns = paidInRange.reduce((sum, record) => sum + Number(record.payout_amount || 0), 0);
-
-  const overallRoi = stats?.totalInvested ? (totalReturns / stats.totalInvested) * 100 : 0;
+    const totalReturns = inPeriod.reduce((sum, r) => sum + Number(r.payout_amount || 0), 0);
+    const totalBase = inPeriod.reduce((sum, r) => sum + Number(r.invested_amount || 0), 0);
+    return {
+      totalReturns,
+      payoutCount: inPeriod.length,
+      avgMonthlyReturn: totalBase > 0 ? (totalReturns / totalBase) * 100 : 0,
+    };
+  }, [history, reportType, selYear, selMonth, fy]);
 
   const handleDownloadPdf = async () => {
     setDownloading(true);
+    setDownloadError('');
     try {
-      const response = await api.get('/customer/report/full', { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const response =
+        reportType === 'monthly'
+          ? await api.get('/customer/report/monthly', { params: { month: selMonth, year: selYear }, responseType: 'blob' })
+          : await api.get('/customer/report/annual', { params: { fy }, responseType: 'blob' });
+      const filename =
+        reportType === 'monthly'
+          ? `Fortune_First_Statement_${MONTH_NAMES[selMonth - 1]}_${selYear}.pdf`
+          : `Fortune_First_Statement_FY${fy}-${String(fy + 1).slice(-2)}.pdf`;
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'Fortune_First_Report.pdf');
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to download report', error);
+      setDownloadError(await downloadErrorMessage(error));
     } finally {
       setDownloading(false);
     }
@@ -82,58 +149,76 @@ export function ReportsPage() {
     return <div className="p-6 text-sm text-muted-foreground">Loading your reports...</div>;
   }
 
+  const selectClass =
+    'w-full rounded-lg border border-brand-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none';
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-brand-border bg-card p-6">
         <h1 className="text-2xl font-extrabold text-foreground">Reports</h1>
-        <p className="mt-1 text-sm text-muted-foreground">View and download your investment reports.</p>
-      </div>
-
-      <div className="rounded-2xl border border-primary/15 bg-muted p-5">
-        <label className="mb-1.5 block text-sm font-semibold text-foreground">Date Range</label>
-        <div className="flex max-w-md items-center gap-2">
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full rounded-lg border border-brand-border bg-card px-2.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-          />
-          <span className="text-muted-foreground">-</span>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full rounded-lg border border-brand-border bg-card px-2.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-          />
-        </div>
+        <p className="mt-1 text-sm text-muted-foreground">Choose a statement type and period, then download your official report.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <ReportTypeCard
           icon={LayoutPanelLeft}
           title="Monthly Report"
-          description="Get a detailed summary of your investments for the selected month."
-          onClick={handleDownloadPdf}
+          description="Your statement for a single month — payout, capital and account summary."
+          selected={reportType === 'monthly'}
+          onClick={() => setReportType('monthly')}
         />
         <ReportTypeCard
           icon={Layers}
           title="Annual Report"
-          description="Get a detailed summary of your investments for the selected year."
-          onClick={handleDownloadPdf}
+          description="Your statement for a financial year (April – March), month by month."
+          selected={reportType === 'annual'}
+          onClick={() => setReportType('annual')}
         />
       </div>
 
+      <div className="rounded-2xl border border-primary/15 bg-muted p-5">
+        {reportType === 'monthly' ? (
+          <div className="max-w-xs">
+            <label htmlFor="report-month" className="mb-1.5 block text-sm font-semibold text-foreground">
+              Statement month
+            </label>
+            <input
+              id="report-month"
+              type="month"
+              value={monthValue}
+              max={currentMonthValue}
+              onChange={(e) => e.target.value && setMonthValue(e.target.value)}
+              className={selectClass}
+            />
+          </div>
+        ) : (
+          <div className="max-w-xs">
+            <label htmlFor="report-fy" className="mb-1.5 block text-sm font-semibold text-foreground">
+              Financial year
+            </label>
+            <select id="report-fy" value={fy} onChange={(e) => setFy(Number(e.target.value))} className={selectClass}>
+              {fyOptions.map((y) => (
+                <option key={y} value={y}>
+                  {fyLabel(y)} (Apr {y} – Mar {y + 1}){y === currentFy ? ' · to date' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
       <div className="rounded-2xl border border-brand-border bg-card p-6">
-        <h3 className="mb-4 text-lg font-bold text-foreground">Report Summary</h3>
+        <h3 className="text-lg font-bold text-foreground">Report Summary</h3>
+        <p className="mb-4 mt-0.5 text-sm text-muted-foreground">{periodLabel}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <ReportSummaryTile icon={IndianRupee} label="Total Investment" value={formatRupees(stats?.totalInvested ?? 0)} />
-          <ReportSummaryTile icon={Undo2} label="Total Returns" value={formatRupees(totalReturns)} />
-          <ReportSummaryTile icon={CalendarCheck} label="Payouts Received" value={String(paidInRange.length)} />
-          <ReportSummaryTile icon={Percent} label="Overall ROI" value={`${overallRoi.toFixed(2)}%`} />
+          <ReportSummaryTile icon={IndianRupee} label="Active Investment (today)" value={formatRupees(stats?.totalInvested ?? 0)} />
+          <ReportSummaryTile icon={Undo2} label="Returns in Period" value={formatRupees(periodSummary.totalReturns)} />
+          <ReportSummaryTile icon={CalendarCheck} label="Payouts Received" value={String(periodSummary.payoutCount)} />
+          <ReportSummaryTile icon={Percent} label="Avg Monthly Return" value={`${periodSummary.avgMonthlyReturn.toFixed(2)}%`} />
         </div>
       </div>
 
-      <DownloadReportCard onDownloadPdf={handleDownloadPdf} downloading={downloading} />
+      <DownloadReportCard periodLabel={periodLabel} onDownloadPdf={handleDownloadPdf} downloading={downloading} error={downloadError} />
     </div>
   );
 }

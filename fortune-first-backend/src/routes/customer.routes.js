@@ -5,7 +5,7 @@ const { getDashboardStats, getInvestmentHistory, getCustomerTransactions } = req
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireRole } = require('../middleware/role.middleware');
 const { getProfile, createSupportTicket, getSupportTickets } = require('../controllers/customer.controller');
-const {downloadFullReport, downloadMonthlyReport} = require('../controllers/customer.controller');
+const { downloadFullReport, downloadMonthlyReport, downloadAnnualReport } = require('../controllers/customer.controller');
 const { submitKYC, uploadKYCDocument } = require('../controllers/customer.controller');
 const { upload } = require('../middleware/upload.middleware');
 const validate = require('../middleware/validate');
@@ -35,7 +35,20 @@ router.get('/profile', getProfile);
 router.post('/support', createSupportTicket);
 router.get('/support', getSupportTickets);
 router.get('/report/full', downloadFullReport);
-router.get('/report/monthly', downloadMonthlyReport);
+router.get(
+  '/report/monthly',
+  validate(Joi.object({
+    month: Joi.number().integer().min(1).max(12).required(),
+    year: Joi.number().integer().min(2000).max(2100).required(),
+  }), 'query'),
+  downloadMonthlyReport
+);
+router.get(
+  '/report/annual',
+  // Financial year by its starting year: fy=2025 → 1 Apr 2025 – 31 Mar 2026.
+  validate(Joi.object({ fy: Joi.number().integer().min(2000).max(2100).required() }), 'query'),
+  downloadAnnualReport
+);
 router.post('/kyc', validate(kycSchema), submitKYC);
 router.post('/kyc/document', upload.single('document'), uploadKYCDocument);
 
