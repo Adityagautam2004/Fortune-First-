@@ -2,35 +2,87 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
 
-export default function ChangePasswordPage() {
-  const [newPassword, setNewPassword] = useState('');
+import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthGuard } from '@/components/auth/auth-guard';
+import { USER_ROLES } from '@/lib/auth-routes';
+import { AuthShell } from '@/features/auth/components/auth-shell';
+import { AuthAlert, AuthHeading, AuthPasswordField, AuthSubmitButton } from '@/features/auth/components/auth-form-elements';
+
+const MIN_LENGTH = 8;
+
+function ChangePasswordForm() {
   const router = useRouter();
+  const { signOut } = useAuth();
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    if (newPassword.length < MIN_LENGTH) {
+      setError(`Password must be at least ${MIN_LENGTH} characters.`);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    setSubmitting(true);
     try {
       await api.post('/auth/change-password', { newPassword });
-      alert('Password updated. Please log in again.');
-      router.push('/login');
-    } catch {
-      alert('Failed to update password.');
+      // End this session so the user signs in fresh with the new password —
+      // this also clears the cached "must change password" flag.
+      await signOut();
+      router.replace('/login');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to update password. Please try again.'));
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-surface">
-      <form onSubmit={handleSubmit} className="bg-card p-8 rounded-xl shadow-md w-full max-w-sm mx-4 sm:max-w-md">
-        <h2 className="text-xl font-bold text-foreground mb-4">Update Security Credentials</h2>
-        <p className="text-sm text-foreground mb-4">You must change your temporary admin-assigned password to continue.</p>
-        <input 
-          type="password" required placeholder="New Password" 
-          value={newPassword} onChange={e => setNewPassword(e.target.value)}
-          className="w-full border p-2 rounded mb-4 focus:border-brand-orange" 
+    <AuthShell backHref="/">
+      <AuthHeading
+        title="Set a New Password"
+        subtitle="For your security, replace your temporary password. You'll sign in again with the new one."
+      />
+      {error && <AuthAlert tone="error">{error}</AuthAlert>}
+      <form className="space-y-3.5" onSubmit={handleSubmit}>
+        <AuthPasswordField
+          id="new-password"
+          label="New Password"
+          required
+          minLength={MIN_LENGTH}
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          placeholder="Enter a new password"
+          hint={`At least ${MIN_LENGTH} characters.`}
         />
-        <button type="submit" className="w-full bg-brand-navy text-white py-2 rounded">Secure Account</button>
+        <AuthPasswordField
+          id="confirm-password"
+          label="Confirm Password"
+          required
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="Re-enter the new password"
+        />
+        <AuthSubmitButton isLoading={submitting}>Update Password</AuthSubmitButton>
       </form>
-    </div>
+    </AuthShell>
+  );
+}
+
+export default function ChangePasswordPage() {
+  return (
+    <AuthGuard allowedRoles={USER_ROLES} allowPendingPasswordChange>
+      <ChangePasswordForm />
+    </AuthGuard>
   );
 }

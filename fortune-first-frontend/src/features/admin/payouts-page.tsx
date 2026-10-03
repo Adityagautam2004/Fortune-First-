@@ -40,21 +40,26 @@ export function PayoutsPage() {
     );
   }, [investments, search]);
 
-  const handleMarkPaid = async (customerId: string, returnPct: number, screenshot: File | null) => {
+  // Errors propagate to PayoutTable, which shows them in the confirm modal.
+  const handleMarkPaid = async (
+    customerId: string,
+    returnPct: number,
+    screenshot: File | null,
+    payoutDate: string,
+    sendEmail: boolean
+  ) => {
     if (!month || !year) return;
-    try {
-      const formData = new FormData();
-      formData.append('customerId', customerId);
-      formData.append('month', String(month));
-      formData.append('year', String(year));
-      formData.append('returnPct', String(returnPct));
-      if (screenshot) formData.append('screenshot', screenshot);
+    const formData = new FormData();
+    formData.append('customerId', customerId);
+    formData.append('month', String(month));
+    formData.append('year', String(year));
+    formData.append('returnPct', String(returnPct));
+    formData.append('payoutDate', payoutDate);
+    formData.append('sendEmail', String(sendEmail));
+    if (screenshot) formData.append('screenshot', screenshot);
 
-      await api.post('/board/payouts', formData);
-      await fetchPending();
-    } catch (error) {
-      console.error('Failed to process payout', error);
-    }
+    await api.post('/board/payouts', formData);
+    await fetchPending();
   };
 
   if (loading) {

@@ -3,6 +3,9 @@ const investmentService = require('../services/investmentService');
 const withdrawalService = require('../services/withdrawalService');
 const transactionService = require('../services/transactionService');
 const payoutService = require('../services/payout.service');
+const notificationService = require('../services/customerNotificationService');
+const reportPdfService = require('../services/reportPdfService');
+const cache = require('../utils/cache');
 const { uploadBuffer } = require('../utils/cloudinary');
 
 // investment_head is scoped to their own assigned clients; business_head/super_admin see everyone.
@@ -55,7 +58,7 @@ const addInvestment = async (req, res) => {
   // acquire a dedicated client for the transaction, same pattern as processPayout/voidPayout.
   const client = await db.pool.connect();
   try {
-    const { customerId, amount, investmentDate, weekOfMonth, notes } = req.body;
+    const { customerId, amount, investmentDate, weekOfMonth, notes, sendEmail } = req.body;
     const recordedBy = req.user.userId;
 
     // Application-level validation before hitting Postgres
@@ -83,6 +86,7 @@ const addInvestment = async (req, res) => {
         week_of_month: weekOfMonth,
         notes,
         payment_screenshot_url: paymentScreenshotUrl,
+        send_email_confirmation: sendEmail,
       },
       client
     );
@@ -97,8 +101,10 @@ const addInvestment = async (req, res) => {
     await client.query('COMMIT');
 
     // Invalidate the customer's dashboard cache in Redis so they see the update immediately
-    const redis = require('../utils/redis');
-    await redis.del(`dashboard:${customerId}`);
+    await cache.invalidateCustomerCaches(customerId);
+
+    // Opt-in confirmation; the approval/rejection email follows from the admin side.
+    if (sendEmail) void notificationService.notifyInvestmentReceived(newInvestment);
 
     return res.status(201).json({ status: 'success', message: 'Investment submitted for admin approval', data: newInvestment });
   } catch (error) {
@@ -133,7 +139,7 @@ const getBoardInvestments = async (req, res) => {
 const addWithdrawal = async (req, res) => {
   const client = await db.pool.connect();
   try {
-    const { customerId, amount, withdrawalDate, weekOfMonth, notes } = req.body;
+    const { customerId, amount, withdrawalDate, weekOfMonth, notes, sendEmail } = req.body;
     const recordedBy = req.user.userId;
 
     if (amount < 5000 || amount % 5000 !== 0) {
@@ -153,6 +159,7 @@ const addWithdrawal = async (req, res) => {
         withdrawal_date: withdrawalDate,
         week_of_month: weekOfMonth,
         notes,
+        send_email_confirmation: sendEmail,
       },
       client
     );
@@ -165,8 +172,9 @@ const addWithdrawal = async (req, res) => {
 
     await client.query('COMMIT');
 
-    const redis = require('../utils/redis');
-    await redis.del(`dashboard:${customerId}`);
+    await cache.invalidateCustomerCaches(customerId);
+
+    if (sendEmail) void notificationService.notifyWithdrawalRequested(newWithdrawal);
 
     return res.status(201).json({ status: 'success', message: 'Withdrawal submitted for admin review', data: newWithdrawal });
   } catch (error) {
@@ -231,20 +239,66 @@ const getBoardTransactions = async (req, res) => {
   }
 };
 
+// YYYY-MM-DD from local date components (not toISOString(), which is UTC).
+const toLocalIsoDate = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 // A client's payout is one aggregate figure — the earliest active
 // investment's week_of_month governs proration for the whole thing, since
 // that's the investment that's been accruing returns the longest.
+// month/year is the payout period; payoutDate is when it was actually paid
+// (defaults to today, may be back-dated to record a past payout).
 const processPayout = async (req, res) => {
   // We must acquire a dedicated client from the pool for a transaction
   const client = await db.pool.connect();
 
   try {
-    if (!['investment_head', 'super_admin'].includes(req.user.role)) {
-      return res.status(403).json({ status: 'error', message: 'Forbidden' });
+    const { customerId, month, year, returnPct, sendEmail } = req.body;
+    const processedBy = req.user.userId;
+
+    // One day of slack on "today" so a user a few hours ahead of the server's
+    // timezone (IST browser vs UTC server) isn't rejected around midnight.
+    const latestAllowed = new Date();
+    latestAllowed.setDate(latestAllowed.getDate() + 1);
+    const latestAllowedIso = toLocalIsoDate(latestAllowed);
+    const payoutDate = req.body.payoutDate ? String(req.body.payoutDate).slice(0, 10) : toLocalIsoDate(new Date());
+    const periodStartIso = `${year}-${String(month).padStart(2, '0')}-01`;
+
+    if (periodStartIso > latestAllowedIso) {
+      return res.status(400).json({ status: 'error', message: 'Cannot process a payout for a future month' });
+    }
+    if (payoutDate > latestAllowedIso) {
+      return res.status(400).json({ status: 'error', message: 'Payout date cannot be in the future' });
+    }
+    if (payoutDate < periodStartIso) {
+      return res.status(400).json({ status: 'error', message: 'Payout date cannot be before the start of the payout month' });
     }
 
-    const { customerId, month, year, returnPct } = req.body;
-    const processedBy = req.user.userId;
+    const customerRes = await db.query(
+      `SELECT assigned_to FROM users WHERE id = $1 AND role = 'customer'`,
+      [customerId]
+    );
+    if (customerRes.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Client not found' });
+    }
+    // investment_head may only pay out their own assigned clients
+    if (req.user.role === 'investment_head' && customerRes.rows[0].assigned_to !== processedBy) {
+      return res.status(403).json({ status: 'error', message: 'This client is not assigned to you' });
+    }
+
+    // Checked up front so a duplicate doesn't upload a screenshot first; the
+    // UNIQUE(customer_id, month, year) constraint below remains the real guard.
+    const existingRes = await db.query(
+      `SELECT 1 FROM monthly_returns WHERE customer_id = $1 AND month = $2 AND year = $3`,
+      [customerId, month, year]
+    );
+    if (existingRes.rows.length > 0) {
+      return res.status(400).json({ status: 'error', message: 'Payout already processed for this month' });
+    }
 
     // Optional proof-of-payout screenshot — never required to mark a payout paid.
     let paymentScreenshotUrl = null;
@@ -257,18 +311,45 @@ const processPayout = async (req, res) => {
 
     // 1. Lock this client's active investment rows — Postgres doesn't allow
     // FOR UPDATE combined with an aggregate (SUM) in the same query, so the
-    // rows are pulled raw and aggregated here in JS instead.
+    // rows are pulled raw and aggregated here in JS instead. Only investments
+    // made on or before the last day of the payout month count, so a
+    // back-dated payout isn't inflated by investments made after that month.
     const investRes = await client.query(
       `SELECT amount, week_of_month, investment_date FROM investments
        WHERE customer_id = $1 AND status = 'active'
+         AND investment_date < make_date($2::int, $3::int, 1) + INTERVAL '1 month'
        ORDER BY investment_date ASC
        FOR UPDATE`,
-      [customerId]
+      [customerId, year, month]
     );
 
-    if (investRes.rows.length === 0) throw new Error('No active investment for this client');
+    if (investRes.rows.length === 0) {
+      const noInvestmentError = new Error('No active investment for this client in the selected month');
+      noInvestmentError.statusCode = 400;
+      throw noInvestmentError;
+    }
 
-    const investedAmount = investRes.rows.reduce((sum, row) => sum + parseFloat(row.amount), 0);
+    // The payout base is the client's ACTIVE investment: everything invested
+    // minus everything already withdrawn (completed withdrawals) — the same
+    // "Total Investment" figure shown on their dashboard. Both sides are taken
+    // as of the end of the payout month, so a back-dated payout isn't reduced
+    // by a withdrawal made after that month.
+    const withdrawnRes = await client.query(
+      `SELECT COALESCE(SUM(amount), 0) AS total_withdrawn FROM withdrawals
+       WHERE customer_id = $1 AND status = 'completed'
+         AND withdrawal_date < make_date($2::int, $3::int, 1) + INTERVAL '1 month'`,
+      [customerId, year, month]
+    );
+    const totalInvested = investRes.rows.reduce((sum, row) => sum + parseFloat(row.amount), 0);
+    const totalWithdrawn = parseFloat(withdrawnRes.rows[0].total_withdrawn);
+    const investedAmount = parseFloat((totalInvested - totalWithdrawn).toFixed(2));
+
+    if (investedAmount <= 0) {
+      const noCapitalError = new Error('This client has no active investment left after withdrawals for the selected month');
+      noCapitalError.statusCode = 400;
+      throw noCapitalError;
+    }
+
     const earliest = investRes.rows[0]; // already ORDER BY investment_date ASC
 
     // 2. Determine if this is the first month (for proration logic)
@@ -288,15 +369,15 @@ const processPayout = async (req, res) => {
     // The UNIQUE(customer_id, month, year) constraint will safely block duplicates here
     await client.query(
       `INSERT INTO monthly_returns (customer_id, month, year, return_pct, payout_amount, invested_amount, payout_status, payout_date, processed_by, payment_screenshot_url)
-       VALUES ($1, $2, $3, $4, $5, $6, 'paid', NOW(), $7, $8)`,
-      [customerId, month, year, returnPct, payoutAmount, investedAmount, processedBy, paymentScreenshotUrl]
+       VALUES ($1, $2, $3, $4, $5, $6, 'paid', $7, $8, $9)`,
+      [customerId, month, year, returnPct, payoutAmount, investedAmount, payoutDate, processedBy, paymentScreenshotUrl]
     );
 
     // 5. Audit Log
     await client.query(
       `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, new_value, ip)
        VALUES ($1, 'PROCESS_PAYOUT', 'monthly_return', $2, $3, $4)`,
-      [processedBy, customerId, JSON.stringify({ month, year, payoutAmount }), req.ip]
+      [processedBy, customerId, JSON.stringify({ month, year, payoutAmount, payoutDate }), req.ip]
     );
 
     await client.query('COMMIT'); // Commit the transaction safely
@@ -306,18 +387,15 @@ const processPayout = async (req, res) => {
     // (the transaction can't be rolled back anymore anyway; the earlier
     // code's catch block would call ROLLBACK on an already-committed
     // client here, which is itself an error).
-    try {
-      // customer's name/email weren't fetched before (only investments
-      // columns were) — the old code passed customer_id/undefined here by
-      // mistake, silently emailing nobody.
-      const customerRes = await db.query(`SELECT name, email FROM users WHERE id = $1`, [customerId]);
-      const mailer = require('../utils/mailer');
-      await mailer.sendPayoutEmail(customerRes.rows[0].email, customerRes.rows[0].name, payoutAmount, month, year);
+    // Dashboard figures and PDF reports now include this payout. Fails open.
+    await cache.invalidateCustomerCaches(customerId);
 
-      const redis = require('../utils/redis');
-      await redis.del(`dashboard:${customerId}`);
-    } catch (sideEffectError) {
-      console.error('Payout processed, but a post-commit side effect failed:', sideEffectError.message);
+    // Only when "Send email confirmation" was ticked — lets back-dated payouts
+    // be recorded without emailing the customer about old months.
+    if (sendEmail) {
+      void notificationService.notifyPayoutProcessed(customerId, {
+        payoutAmount, month, year, payoutDate, investedAmount, returnPct,
+      });
     }
 
     return res.status(200).json({ status: 'success', data: { payoutAmount } });
@@ -327,6 +405,9 @@ const processPayout = async (req, res) => {
 
     if (error.code === '23505') { // PostgreSQL Unique Violation Error Code
       return res.status(400).json({ status: 'error', message: 'Payout already processed for this month' });
+    }
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ status: 'error', message: error.message });
     }
     return res.status(500).json({ status: 'error', message: 'Failed to process payout' });
   } finally {
@@ -446,7 +527,7 @@ const voidPayout = async (req, res) => {
     const { returnId } = req.params;
     await client.query('BEGIN');
 
-    const previous = await client.query(`SELECT payout_status FROM monthly_returns WHERE id = $1 FOR UPDATE`, [returnId]);
+    const previous = await client.query(`SELECT payout_status, customer_id FROM monthly_returns WHERE id = $1 FOR UPDATE`, [returnId]);
 
     // Mark as voided instead of deleting to maintain historical integrity
     await client.query(`UPDATE monthly_returns SET payout_status = 'voided' WHERE id = $1`, [returnId]);
@@ -465,6 +546,9 @@ const voidPayout = async (req, res) => {
     );
 
     await client.query('COMMIT');
+
+    // Dashboard figures and PDF reports only count paid payouts. Fails open.
+    await cache.invalidateCustomerCaches(previous.rows[0]?.customer_id);
     return res.status(200).json({ status: 'success', message: 'Payout voided successfully' });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -507,6 +591,16 @@ const getClientDetail = async (req, res) => {
       [id]
     );
 
+    const payoutsRes = await db.query(
+      `SELECT id, month, year, invested_amount, return_pct, payout_amount, payout_status, payout_date, payment_screenshot_url
+       FROM monthly_returns
+       WHERE customer_id = $1
+       ORDER BY year DESC, month DESC`,
+      [id]
+    );
+
+    // Total Returns (YTD) counts only payouts actually paid for this year's
+    // periods — voided/skipped rows never reached the client.
     const currentYear = new Date().getFullYear();
     const summaryRes = await db.query(
       `SELECT
@@ -515,7 +609,10 @@ const getClientDetail = async (req, res) => {
            AS total_aum,
          COUNT(i.id) FILTER (WHERE i.status = 'active') AS active_mandates,
          COUNT(i.id) AS total_investment_count,
-         COALESCE((SELECT SUM(payout_amount) FROM monthly_returns WHERE customer_id = $1 AND year = $2), 0) AS total_returns_ytd
+         COALESCE((
+           SELECT SUM(payout_amount) FROM monthly_returns
+           WHERE customer_id = $1 AND year = $2 AND payout_status = 'paid'
+         ), 0) AS total_returns_ytd
        FROM investments i
        WHERE i.customer_id = $1`,
       [id, currentYear]
@@ -527,6 +624,7 @@ const getClientDetail = async (req, res) => {
         profile: profileRes.rows[0],
         investments: investmentsRes.rows,
         withdrawals: withdrawalsRes.rows,
+        payouts: payoutsRes.rows,
         summary: summaryRes.rows[0],
       },
     });
@@ -568,12 +666,19 @@ const getPendingPayouts = async (req, res) => {
 
     let queryStr = `
       SELECT u.id AS customer_id, u.name AS client_name,
-             SUM(i.amount) AS amount,
+             -- Active investment = invested - completed withdrawals, both as of the
+             -- end of the payout month (same base processPayout pays on).
+             SUM(i.amount) - COALESCE((
+               SELECT SUM(w.amount) FROM withdrawals w
+               WHERE w.customer_id = u.id AND w.status = 'completed'
+                 AND w.withdrawal_date < make_date($2::int, $1::int, 1) + INTERVAL '1 month'
+             ), 0) AS amount,
              (ARRAY_AGG(i.week_of_month ORDER BY i.investment_date ASC))[1] AS week_of_month,
              (ARRAY_AGG(i.investment_date ORDER BY i.investment_date ASC))[1] AS earliest_investment_date
       FROM investments i
       JOIN users u ON u.id = i.customer_id
       WHERE i.status = 'active'
+        AND i.investment_date < make_date($2::int, $1::int, 1) + INTERVAL '1 month'
         AND NOT EXISTS (
           SELECT 1 FROM monthly_returns mr
           WHERE mr.customer_id = u.id AND mr.month = $1 AND mr.year = $2
@@ -587,7 +692,14 @@ const getPendingPayouts = async (req, res) => {
       queryStr += ` AND u.assigned_to = $3`;
     }
 
-    queryStr += ` GROUP BY u.id, u.name ORDER BY u.name ASC`;
+    // Fully withdrawn clients have nothing to pay out on.
+    queryStr += ` GROUP BY u.id, u.name
+      HAVING SUM(i.amount) - COALESCE((
+        SELECT SUM(w.amount) FROM withdrawals w
+        WHERE w.customer_id = u.id AND w.status = 'completed'
+          AND w.withdrawal_date < make_date($2::int, $1::int, 1) + INTERVAL '1 month'
+      ), 0) > 0
+      ORDER BY u.name ASC`;
 
     const pending = await db.query(queryStr, queryParams);
 
@@ -602,27 +714,14 @@ const getPendingPayouts = async (req, res) => {
 const sendClientReport = async (req, res) => {
   try {
     const { id } = req.params;
-    const { generateReportPDF } = require('../utils/pdf');
     const mailer = require('../utils/mailer');
 
-    const clientRes = await db.query(
-      `SELECT name, email, phone, profile_picture_url, client_code FROM users WHERE id = $1 AND role = 'customer'`,
-      [id]
-    );
-    if (clientRes.rows.length === 0) {
+    // Same cached PDF the customer downloads from their own dashboard.
+    const report = await reportPdfService.getFullReport(id);
+    if (!report) {
       return res.status(404).json({ status: 'error', message: 'Client not found' });
     }
-    const client = clientRes.rows[0];
-
-    const historyRes = await db.query(
-      `SELECT mr.month, mr.year, mr.invested_amount, mr.return_pct, mr.payout_amount
-       FROM monthly_returns mr
-       WHERE mr.customer_id = $1 ORDER BY mr.year DESC, mr.month DESC`,
-      [id]
-    );
-
-    const pdfBuffer = await generateReportPDF(client, historyRes.rows);
-    await mailer.sendReportEmail(client.email, client.name, pdfBuffer);
+    await mailer.sendReportEmail(report.profile.email, report.profile.name, report.pdf);
 
     return res.status(200).json({ status: 'success', message: 'Report sent successfully' });
   } catch (error) {

@@ -1,5 +1,5 @@
 const db = require('../models/db');
-const redis = require('../utils/redis');
+const cache = require('../utils/cache');
 const { hashPassword } = require('../utils/auth.utils');
 const {
   sendJoinRequestApprovedEmail,
@@ -12,6 +12,12 @@ const investmentService = require('../services/investmentService');
 const withdrawalService = require('../services/withdrawalService');
 const transactionService = require('../services/transactionService');
 const payoutService = require('../services/payout.service');
+const notificationService = require('../services/customerNotificationService');
+
+// Status changes move the customer's dashboard figures (invested, withdrawn,
+// returns) and PDF reports — drop their cached copies. Fails open: the change
+// is already saved.
+const invalidateCustomerDashboard = (customerId) => cache.invalidateCustomerCaches(customerId);
 
 const getUsers = async (req, res) => {
   try {
@@ -48,6 +54,10 @@ const getUserByIdAdmin = async (req, res) => {
 const updateUserAdmin = async (req, res) => {
   try {
     const data = { ...req.body };
+    // Same normalisation as createUser, so an edited email can still log in.
+    if (typeof data.email === 'string') {
+      data.email = data.email.trim().toLowerCase();
+    }
     // userService.updateUser's allowed-fields list is snake_case
     // (assigned_to), but the request body arrives camelCase (assignedTo) —
     // same convention as createUser's own assignedTo-to-assigned_to mapping.
@@ -61,8 +71,13 @@ const updateUserAdmin = async (req, res) => {
       data.profile_picture_url = uploaded.secure_url;
     }
     const user = await userService.updateUser(req.params.id, data);
+    // Name/client details appear on the customer's cached PDF reports.
+    if (user.role === 'customer') await cache.invalidateCustomerCaches(user.id);
     return res.status(200).json({ status: 'success', message: 'User updated successfully', data: user });
   } catch (error) {
+    if (error.code === '23505') {
+      return res.status(409).json({ status: 'error', message: 'Email already exists' });
+    }
     return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to update user' });
   }
 };
@@ -273,6 +288,9 @@ const updateInvestmentStatusAdmin = async (req, res) => {
       ...req.body,
       reviewed_by: req.user.userId,
     });
+    await invalidateCustomerDashboard(investment.customer_id);
+    // Approval/rejection email, only if the investment head opted in when recording it.
+    void notificationService.notifyInvestmentDecision(investment);
     return res.status(200).json({ status: 'success', message: 'Investment status updated successfully', data: investment });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to update investment status' });
@@ -311,6 +329,8 @@ const updateWithdrawalStatusAdmin = async (req, res) => {
       payment_screenshot_url: paymentScreenshotUrl,
       reviewed_by: req.user.userId,
     });
+    await invalidateCustomerDashboard(withdrawal.customer_id);
+    void notificationService.notifyWithdrawalDecision(withdrawal);
     return res.status(200).json({ status: 'success', message: 'Withdrawal status updated successfully', data: withdrawal });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to update withdrawal status' });
@@ -356,6 +376,7 @@ const updatePayoutStatusAdmin = async (req, res) => {
   try {
     const data = { ...req.body, processed_by: req.user.userId };
     const payout = await payoutService.updatePayoutStatus(req.params.id, data);
+    await invalidateCustomerDashboard(payout.customer_id);
     return res.status(200).json({ status: 'success', message: 'Payout status updated successfully', data: payout });
   } catch (error) {
     return res.status(error.statusCode || 500).json({ status: 'error', message: error.message || 'Failed to update payout status' });
@@ -524,7 +545,7 @@ const createBlogPost = async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [title, slug, content, req.user.userId, published, published ? new Date() : null]
     );
-    await redis.del('public:blog:list');
+    await cache.del('public:blog:list');
     return res.status(201).json({ status: 'success', message: 'Blog post created', data: result.rows[0] });
   } catch (error) {
     if (error.code === '23505') {
@@ -551,7 +572,7 @@ const updateBlogPost = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Blog post not found' });
     }
-    await redis.del('public:blog:list', `public:blog:post:${result.rows[0].slug}`);
+    await cache.del('public:blog:list', `public:blog:post:${result.rows[0].slug}`);
     return res.status(200).json({ status: 'success', message: 'Blog post updated', data: result.rows[0] });
   } catch (error) {
     console.error('Update Blog Error:', error);
@@ -563,7 +584,7 @@ const deleteBlogPost = async (req, res) => {
   try {
     const result = await db.query(`DELETE FROM blog_posts WHERE id = $1 RETURNING slug`, [req.params.id]);
     if (result.rows.length > 0) {
-      await redis.del('public:blog:list', `public:blog:post:${result.rows[0].slug}`);
+      await cache.del('public:blog:list', `public:blog:post:${result.rows[0].slug}`);
     }
     return res.status(200).json({ status: 'success', message: 'Blog post deleted' });
   } catch (error) {
@@ -606,7 +627,7 @@ const createTestimonial = async (req, res) => {
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [clientName, city || null, content, rating || 5, isVisible !== false]
     );
-    await redis.del('public:testimonials', 'public:dashboard');
+    await cache.del('public:dashboard');
     return res.status(201).json({ status: 'success', message: 'Testimonial created', data: result.rows[0] });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to create testimonial' });
@@ -628,7 +649,7 @@ const updateTestimonial = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Testimonial not found' });
     }
-    await redis.del('public:testimonials', 'public:dashboard');
+    await cache.del('public:dashboard');
     return res.status(200).json({ status: 'success', message: 'Testimonial updated', data: result.rows[0] });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to update testimonial' });
@@ -641,7 +662,7 @@ const deleteTestimonial = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Testimonial not found' });
     }
-    await redis.del('public:testimonials', 'public:dashboard');
+    await cache.del('public:dashboard');
     return res.status(200).json({ status: 'success', message: 'Testimonial deleted' });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to delete testimonial' });
@@ -749,7 +770,7 @@ const createPublicReturn = async (req, res) => {
       `INSERT INTO public_returns (month, year, return_pct, notes) VALUES ($1, $2, $3, $4) RETURNING *`,
       [month, year, returnPct, notes || null]
     );
-    await redis.del('public:returns', 'public:dashboard');
+    await cache.del('public:dashboard');
     return res.status(201).json({ status: 'success', message: 'Public return created', data: result.rows[0] });
   } catch (error) {
     if (error.code === '23505') {
@@ -774,7 +795,7 @@ const updatePublicReturn = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Public return entry not found' });
     }
-    await redis.del('public:returns', 'public:dashboard');
+    await cache.del('public:dashboard');
     return res.status(200).json({ status: 'success', message: 'Public return updated', data: result.rows[0] });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to update public return' });
@@ -788,7 +809,7 @@ const deletePublicReturn = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Public return entry not found' });
     }
-    await redis.del('public:returns', 'public:dashboard');
+    await cache.del('public:dashboard');
     return res.status(200).json({ status: 'success', message: 'Public return deleted' });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to delete public return' });

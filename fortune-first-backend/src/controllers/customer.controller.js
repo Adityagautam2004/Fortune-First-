@@ -1,5 +1,6 @@
 const db = require('../models/db');
-const redis = require('../utils/redis');
+const cache = require('../utils/cache');
+const reportPdfService = require('../services/reportPdfService');
 const { encrypt, decrypt, maskPan, maskAccountNumber } = require('../utils/crypto');
 const { uploadBuffer } = require('../utils/cloudinary');
 const transactionService = require('../services/transactionService');
@@ -7,40 +8,57 @@ const transactionService = require('../services/transactionService');
 const getDashboardStats = async (req, res) => {
   try {
     const customerId = req.user.userId;
-    const cacheKey = `dashboard:${customerId}`; // Write-through invalidation pattern
+    // Invalidated by cache.invalidateCustomerCaches() on every investment,
+    // withdrawal and payout change for this customer.
+    const cacheKey = cache.customerDashboardKey(customerId);
 
-    // 1. Check Redis Cache First
-    const cachedStats = await redis.get(cacheKey);
+    // 1. Check Redis Cache First (fails open to the database)
+    const cachedStats = await cache.getJSON(cacheKey);
     if (cachedStats) {
-      return res.status(200).json({ status: 'success', source: 'cache', data: JSON.parse(cachedStats) });
+      return res.status(200).json({ status: 'success', source: 'cache', data: cachedStats });
     }
 
     // 2. Cache Miss - Query PostgreSQL
-    // total_invested is the client's current position — active investments
-    // minus whatever's already been paid out as a completed withdrawal, not
-    // a running total of every deposit ever made.
-    const activeInvestments = await db.query(
+    // totalInvested is the client's current position — active investments
+    // minus completed withdrawals, not a running total of every deposit.
+    // Returns only count payouts actually paid (voided/skipped never reached
+    // the client).
+    const totalsRes = await db.query(
       `SELECT
-         COALESCE(SUM(amount), 0)
-           - COALESCE((SELECT SUM(amount) FROM withdrawals WHERE customer_id = $1 AND status = 'completed'), 0)
-           AS total_invested,
-         COUNT(*) AS active_plans
-       FROM investments
-       WHERE customer_id = $1 AND status = 'active'`,
+         COALESCE((SELECT SUM(amount) FROM investments WHERE customer_id = $1 AND status = 'active'), 0) AS active_invested,
+         COALESCE((SELECT SUM(amount) FROM withdrawals WHERE customer_id = $1 AND status = 'completed'), 0) AS total_withdrawn,
+         COALESCE((SELECT SUM(payout_amount) FROM monthly_returns WHERE customer_id = $1 AND payout_status = 'paid'), 0) AS total_returns,
+         (SELECT COUNT(*) FROM monthly_returns WHERE customer_id = $1 AND payout_status = 'paid') AS payout_count`,
+      [customerId]
+    );
+    const lastPayoutRes = await db.query(
+      `SELECT payout_amount, month, year, payout_date
+       FROM monthly_returns
+       WHERE customer_id = $1 AND payout_status = 'paid'
+       ORDER BY year DESC, month DESC
+       LIMIT 1`,
       [customerId]
     );
 
-    // Placeholder math for initial structure - exact payout logic will be integrated later
+    const totals = totalsRes.rows[0];
+    const lastPayout = lastPayoutRes.rows[0];
     const statsData = {
-      totalInvested: parseFloat(activeInvestments.rows[0].total_invested),
-      currentValue: parseFloat(activeInvestments.rows[0].total_invested),
-      cagr: 0.0,
-      thisMonthReturn: 0.0,
-      activePlans: parseInt(activeInvestments.rows[0].active_plans, 10)
+      totalInvested: parseFloat(totals.active_invested) - parseFloat(totals.total_withdrawn),
+      totalWithdrawn: parseFloat(totals.total_withdrawn),
+      totalReturns: parseFloat(totals.total_returns),
+      payoutCount: parseInt(totals.payout_count, 10),
+      lastPayout: lastPayout
+        ? {
+            amount: parseFloat(lastPayout.payout_amount),
+            month: lastPayout.month,
+            year: lastPayout.year,
+            payoutDate: lastPayout.payout_date,
+          }
+        : null,
     };
 
     // 3. Store in Redis with 5-minute TTL
-    await redis.set(cacheKey, JSON.stringify(statsData), 'EX', 300);
+    await cache.setJSON(cacheKey, statsData, 300);
 
     return res.status(200).json({ status: 'success', source: 'database', data: statsData });
   } catch (error) {
@@ -163,29 +181,19 @@ const getSupportTickets = async (req, res) => {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch tickets' });
   }
 };
-const { generateReportPDF } = require('../utils/pdf');
 
 const downloadFullReport = async (req, res) => {
   try {
-    const customerId = req.user.userId;
-
-    // Fetch profile and history
-    const profileRes = await db.query(
-      `SELECT name, email, phone, profile_picture_url, client_code FROM users WHERE id = $1`,
-      [customerId]
-    );
-    const historyRes = await db.query(
-      `SELECT mr.month, mr.year, mr.invested_amount, mr.return_pct, mr.payout_amount
-       FROM monthly_returns mr
-       WHERE mr.customer_id = $1 ORDER BY mr.year DESC, mr.month DESC`,
-      [customerId]
-    );
-
-    const pdfBuffer = await generateReportPDF(profileRes.rows[0], historyRes.rows);
+    // Cached per customer — rendering a PDF launches a headless browser.
+    const report = await reportPdfService.getFullReport(req.user.userId);
+    if (!report) {
+      return res.status(404).json({ status: 'error', message: 'Customer not found' });
+    }
+    const pdfBuffer = report.pdf;
 
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="Fortune_First_Report_${profileRes.rows[0].name.replace(/\s+/g, '_')}.pdf"`,
+      'Content-Disposition': `attachment; filename="Fortune_First_Report_${report.profile.name.replace(/\s+/g, '_')}.pdf"`,
       'Content-Length': pdfBuffer.length
     });
 
@@ -208,23 +216,11 @@ const downloadMonthlyReport = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Valid month (1-12) and year are required' });
     }
 
-    const profileRes = await db.query(
-      `SELECT name, email, phone, profile_picture_url, client_code FROM users WHERE id = $1`,
-      [customerId]
-    );
-    const historyRes = await db.query(
-      `SELECT mr.month, mr.year, mr.invested_amount, mr.return_pct, mr.payout_amount
-       FROM monthly_returns mr
-       WHERE mr.customer_id = $1 AND mr.month = $2 AND mr.year = $3
-       ORDER BY mr.year DESC, mr.month DESC`,
-      [customerId, month, year]
-    );
-
-    if (historyRes.rows.length === 0) {
+    const report = await reportPdfService.getMonthlyReport(customerId, month, year);
+    if (!report) {
       return res.status(404).json({ status: 'error', message: 'No records found for that month' });
     }
-
-    const pdfBuffer = await generateReportPDF(profileRes.rows[0], historyRes.rows);
+    const pdfBuffer = report.pdf;
 
     res.set({
       'Content-Type': 'application/pdf',

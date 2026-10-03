@@ -6,6 +6,7 @@ import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import api from '@/lib/api';
+import { EmailConfirmationCheckbox } from '@/components/shared/email-confirmation-checkbox';
 
 interface AddWithdrawalModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export function AddWithdrawalModal({ isOpen, onClose, customerId, onSuccess }: A
   const [withdrawalDate, setWithdrawalDate] = useState(new Date().toISOString().slice(0, 10));
   const [weekOfMonth, setWeekOfMonth] = useState(1);
   const [notes, setNotes] = useState('');
+  const [sendEmail, setSendEmail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -43,11 +45,13 @@ export function AddWithdrawalModal({ isOpen, onClose, customerId, onSuccess }: A
         withdrawalDate,
         weekOfMonth,
         notes,
+        sendEmail,
       });
       onSuccess();
       onClose();
       setAmount(5000);
       setNotes('');
+      setSendEmail(false);
     } catch (err) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || 'Failed to record withdrawal.');
@@ -115,6 +119,12 @@ export function AddWithdrawalModal({ isOpen, onClose, customerId, onSuccess }: A
             {notes.length}/{NOTES_MAX}
           </p>
         </div>
+
+        <EmailConfirmationCheckbox
+          checked={sendEmail}
+          onChange={setSendEmail}
+          description="Emails the customer that the withdrawal request was raised, and again when the admin completes or rejects it."
+        />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 

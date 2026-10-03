@@ -1,5 +1,5 @@
 const axios = require('axios');
-const redis = require('../utils/redis');
+const cache = require('../utils/cache');
 const ApiError = require('../utils/apiError');
 const { cacheTtlSeconds } = require('../utils/marketHours');
 
@@ -24,8 +24,8 @@ const searchSymbols = async (query) => {
   if (!q) return [];
 
   const cacheKey = `stock_search:${q.toLowerCase()}`;
-  const cached = await redis.get(cacheKey).catch(() => null);
-  if (cached) return JSON.parse(cached);
+  const cached = await cache.getJSON(cacheKey);
+  if (cached) return cached;
 
   const { data } = await axios.get(SEARCH_URL, {
     params: { q, quotesCount: 8, newsCount: 0 },
@@ -41,7 +41,7 @@ const searchSymbols = async (query) => {
       exchange: item.exchange || item.exchDisp || '',
     }));
 
-  await redis.set(cacheKey, JSON.stringify(results), 'EX', SEARCH_CACHE_TTL).catch(() => {});
+  await cache.setJSON(cacheKey, results, SEARCH_CACHE_TTL);
   return results;
 };
 
@@ -52,8 +52,8 @@ const searchSymbols = async (query) => {
  */
 const getQuote = async (symbol) => {
   const cacheKey = `stock_quote:${symbol}`;
-  const cached = await redis.get(cacheKey).catch(() => null);
-  if (cached) return JSON.parse(cached);
+  const cached = await cache.getJSON(cacheKey);
+  if (cached) return cached;
 
   const { data } = await axios.get(CHART_URL(symbol), { headers: HEADERS, timeout: 5000 });
   const meta = data?.chart?.result?.[0]?.meta;
@@ -70,7 +70,7 @@ const getQuote = async (symbol) => {
   // Outside market hours the price genuinely can't have moved, so the cache
   // is left to live all the way until the next open instead of re-hitting
   // Yahoo Finance every 20 seconds for no reason.
-  await redis.set(cacheKey, JSON.stringify(quote), 'EX', cacheTtlSeconds(new Date(), LIVE_QUOTE_CACHE_TTL)).catch(() => {});
+  await cache.setJSON(cacheKey, quote, cacheTtlSeconds(new Date(), LIVE_QUOTE_CACHE_TTL));
   return quote;
 };
 

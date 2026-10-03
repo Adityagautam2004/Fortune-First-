@@ -9,9 +9,11 @@ import { ClientInfoCard } from './components/client-info-card';
 import { ClientStatTile } from './components/client-stat-tile';
 import { InvestmentHistoryTable } from './components/investment-history-table';
 import { WithdrawalHistoryTable } from './components/withdrawal-history-table';
+import { PayoutHistoryTable } from './components/payout-history-table';
 import { QuickActionsCard } from './components/quick-actions-card';
 import { AddInvestmentModal } from './components/add-investment-modal';
 import { AddWithdrawalModal } from './components/add-withdrawal-modal';
+import { RecordPayoutModal } from './components/record-payout-modal';
 import type { ClientDetail } from './types';
 
 function formatLakh(value: number) {
@@ -24,7 +26,7 @@ interface ClientDetailPageProps {
 
 export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
   const { user } = useAuth();
-  // Quick Actions (Add Investment/Withdrawal) is investment_head-only — this
+  // Quick Actions (Add Investment/Withdrawal/Make Payout) is investment_head-only — this
   // page is shared with /admin/client-details, and admins should only view
   // client data there, not act on it.
   const canManageClient = user?.role === 'investment_head';
@@ -33,6 +35,7 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [withdrawalModalOpen, setWithdrawalModalOpen] = useState(false);
+  const [payoutModalOpen, setPayoutModalOpen] = useState(false);
 
   const fetchDetail = useCallback(() => {
     return api
@@ -76,11 +79,13 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
         <div className="space-y-6">
           <InvestmentHistoryTable investments={detail.investments} />
           <WithdrawalHistoryTable withdrawals={detail.withdrawals} />
+          <PayoutHistoryTable payouts={detail.payouts ?? []} />
         </div>
         {canManageClient && (
           <QuickActionsCard
             onAddInvestment={() => setModalOpen(true)}
             onAddWithdrawal={() => setWithdrawalModalOpen(true)}
+            onMakePayout={() => setPayoutModalOpen(true)}
           />
         )}
       </div>
@@ -99,6 +104,18 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
             customerId={clientId}
             onSuccess={fetchDetail}
           />
+          {/* Mounted only while open so each payout starts from a fresh form. */}
+          {payoutModalOpen && (
+            <RecordPayoutModal
+              isOpen
+              onClose={() => setPayoutModalOpen(false)}
+              customerId={clientId}
+              investments={detail.investments}
+              withdrawals={detail.withdrawals}
+              payouts={detail.payouts ?? []}
+              onSuccess={fetchDetail}
+            />
+          )}
         </>
       )}
     </div>

@@ -10,6 +10,7 @@ const {
 } = require('../utils/auth.utils');
 const { sendPasswordResetEmail } = require('../utils/mailer');
 const { uploadBuffer } = require('../utils/cloudinary');
+const cache = require('../utils/cache');
 
 const login = async (req, res) => {
   try {
@@ -19,10 +20,11 @@ const login = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Email and password are required' });
     }
 
-    // Raw SQL lookup
+    // Case-insensitive lookup — emails are stored lowercase (020 migration +
+    // normalised writes), and LOWER() also covers any legacy mixed-case row.
     const userResult = await db.query(
-      'SELECT id, name, email, password_hash, role, is_active, must_change_password, profile_picture_url FROM users WHERE email = $1',
-      [email.toLowerCase().trim()]
+      'SELECT id, name, email, password_hash, role, is_active, must_change_password, profile_picture_url FROM users WHERE LOWER(email) = $1',
+      [String(email).toLowerCase().trim()]
     );
 
     if (userResult.rows.length === 0) {
@@ -153,6 +155,8 @@ const updateMyProfilePicture = async (req, res) => {
       `UPDATE users SET profile_picture_url = $1, updated_at = NOW() WHERE id = $2`,
       [uploaded.secure_url, req.user.userId]
     );
+    // The profile picture is printed on the customer's cached PDF reports.
+    if (req.user.role === 'customer') await cache.invalidateCustomerCaches(req.user.userId);
 
     return res.status(200).json({
       status: 'success',
@@ -203,10 +207,13 @@ const changeInitialPassword = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = String(req.body.email || '').toLowerCase().trim();
+    if (!email) {
+      return res.status(400).json({ status: 'error', message: 'Email is required' });
+    }
 
-    // 1. Verify user exists
-    const userRes = await db.query(`SELECT id FROM users WHERE email = $1`, [email]);
+    // 1. Verify user exists (case-insensitive, same as login)
+    const userRes = await db.query(`SELECT id, email FROM users WHERE LOWER(email) = $1`, [email]);
     if (userRes.rows.length === 0) {
       // Security best practice: Do not reveal if the email exists to prevent enumeration attacks
       return res.status(200).json({ status: 'success', message: 'If that email exists, a reset link has been sent.' });
@@ -218,12 +225,12 @@ const forgotPassword = async (req, res) => {
 
     // 3. Save token to database
     await db.query(
-      `UPDATE users SET reset_token = $1, reset_token_expiry = $2 WHERE email = $3`,
-      [resetToken, expiryTime, email]
+      `UPDATE users SET reset_token = $1, reset_token_expiry = $2 WHERE id = $3`,
+      [resetToken, expiryTime, userRes.rows[0].id]
     );
 
     // 4. Dispatch Email
-    await sendPasswordResetEmail(email, resetToken);
+    await sendPasswordResetEmail(userRes.rows[0].email, resetToken);
 
     return res.status(200).json({ status: 'success', message: 'If that email exists, a reset link has been sent.' });
   } catch (error) {

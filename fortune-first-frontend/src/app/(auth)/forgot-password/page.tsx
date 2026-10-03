@@ -2,64 +2,84 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { ArrowLeft, MailCheck } from 'lucide-react';
+
 import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/utils';
+import { AuthShell } from '@/features/auth/components/auth-shell';
+import {
+  AUTH_LINK_CLASS,
+  AuthAlert,
+  AuthField,
+  AuthHeading,
+  AuthStatus,
+  AuthSubmitButton,
+} from '@/features/auth/components/auth-form-elements';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState('');
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setStatus('');
+    setError('');
     try {
-      const res = await api.post('/auth/forgot-password', { email });
-      setStatus(res.data.message);
-      setEmail('');
-    } catch {
-      setStatus('An error occurred. Please try again later.');
+      await api.post('/auth/forgot-password', { email: email.trim() });
+      setSentTo(email.trim());
+    } catch (err) {
+      setError(getErrorMessage(err, 'Something went wrong. Please try again in a moment.'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-surface p-4">
-      <div className="w-full max-w-md rounded-xl border border-brand-border bg-card p-8 shadow-md">
-        <h1 className="text-2xl font-bold text-foreground mb-2 text-center">Reset Password</h1>
-        <p className="text-sm text-foreground mb-6 text-center">Enter your email address and we will send you a link to reset your password.</p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground">Email Address</label>
-            <input
-              type="email" required
-              value={email} onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-md border border-brand-border p-2 focus:border-brand-orange focus:outline-none"
-              placeholder="name@example.com"
+    <AuthShell backHref="/login">
+      {sentTo ? (
+        <>
+          <AuthStatus icon={MailCheck} tone="success" title="Check your inbox">
+            If an account exists for <span className="font-semibold text-foreground">{sentTo}</span>, we&apos;ve sent a
+            link to reset your password. The link expires in 15 minutes.
+          </AuthStatus>
+          <p className="mt-5 text-center text-xs text-muted-foreground">
+            Didn&apos;t get it? Check your spam folder or{' '}
+            <button type="button" onClick={() => setSentTo(null)} className={AUTH_LINK_CLASS}>
+              try again
+            </button>
+            .
+          </p>
+        </>
+      ) : (
+        <>
+          <AuthHeading
+            title="Forgot Password?"
+            subtitle="Enter the email linked to your account and we'll send you a link to reset your password."
+          />
+          {error && <AuthAlert tone="error">{error}</AuthAlert>}
+          <form className="space-y-3.5" onSubmit={handleSubmit}>
+            <AuthField
+              id="forgot-email"
+              label="Email ID"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email id"
             />
-          </div>
-          <button
-            type="submit" disabled={loading}
-            className="w-full rounded-md bg-brand-navy py-2.5 font-medium text-white hover:bg-opacity-90 disabled:opacity-50"
-          >
-            {loading ? 'Sending...' : 'Send Reset Link'}
-          </button>
-        </form>
+            <AuthSubmitButton isLoading={loading}>Send Reset Link</AuthSubmitButton>
+          </form>
+        </>
+      )}
 
-        {status && (
-          <div className="mt-4 p-3 bg-blue-50 text-blue-800 text-sm rounded-md border border-blue-200 dark:bg-blue-500/15 dark:text-blue-400">
-            {status}
-          </div>
-        )}
-
-        <div className="mt-6 text-center">
-          <Link href="/login" className="text-sm font-medium text-brand-orange hover:underline">
-            Back to Login
-          </Link>
-        </div>
+      <div className="mt-5 text-center text-xs">
+        <Link href="/login" className={`inline-flex items-center gap-1 ${AUTH_LINK_CLASS}`}>
+          <ArrowLeft size={13} aria-hidden="true" /> Back to Login
+        </Link>
       </div>
-    </div>
+    </AuthShell>
   );
 }

@@ -7,6 +7,7 @@ import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { CurrencyInput } from '@/components/ui/CurrencyInput';
 import api from '@/lib/api';
+import { EmailConfirmationCheckbox } from '@/components/shared/email-confirmation-checkbox';
 
 interface AddInvestmentModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export function AddInvestmentModal({ isOpen, onClose, customerId, onSuccess }: A
   const [weekOfMonth, setWeekOfMonth] = useState(1);
   const [notes, setNotes] = useState('');
   const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [sendEmail, setSendEmail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,6 +34,7 @@ export function AddInvestmentModal({ isOpen, onClose, customerId, onSuccess }: A
     setAmount(5000);
     setNotes('');
     setScreenshot(null);
+    setSendEmail(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -50,6 +53,7 @@ export function AddInvestmentModal({ isOpen, onClose, customerId, onSuccess }: A
       formData.append('investmentDate', investmentDate);
       formData.append('weekOfMonth', String(weekOfMonth));
       formData.append('notes', notes);
+      formData.append('sendEmail', String(sendEmail));
       if (screenshot) formData.append('screenshot', screenshot);
 
       await api.post('/board/investments', formData);
@@ -142,6 +146,12 @@ export function AddInvestmentModal({ isOpen, onClose, customerId, onSuccess }: A
             {screenshot ? screenshot.name : 'Attach a screenshot as proof of payment'}
           </label>
         </div>
+
+        <EmailConfirmationCheckbox
+          checked={sendEmail}
+          onChange={setSendEmail}
+          description="Emails the customer that their investment was received, and again when the admin approves or rejects it."
+        />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 

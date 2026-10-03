@@ -23,6 +23,8 @@ const investmentSchema = Joi.object({
   investmentDate: Joi.date().iso().required(),
   weekOfMonth: Joi.number().integer().min(1).max(4).required(),
   notes: Joi.string().max(500).allow('', null),
+  // "Send email confirmation" — emails the customer now and again when the admin decides it.
+  sendEmail: Joi.boolean().default(false),
 });
 
 const withdrawalSchema = Joi.object({
@@ -31,6 +33,23 @@ const withdrawalSchema = Joi.object({
   withdrawalDate: Joi.date().iso().required(),
   weekOfMonth: Joi.number().integer().min(1).max(4).allow(null),
   notes: Joi.string().max(500).allow('', null),
+  sendEmail: Joi.boolean().default(false),
+});
+
+// Sent as multipart/form-data (optional screenshot), so every field arrives
+// as a string — Joi's conversion turns month/year/returnPct back into numbers.
+// payoutDate is the date the payout was actually made (may be in the past);
+// .raw() keeps the original YYYY-MM-DD string so the DATE column is never
+// shifted by a timezone conversion. Range checks against "today" live in the
+// controller.
+const payoutSchema = Joi.object({
+  customerId: Joi.string().uuid().required(),
+  month: Joi.number().integer().min(1).max(12).required(),
+  year: Joi.number().integer().min(2000).max(2100).required(),
+  returnPct: Joi.number().min(0).max(100).required(),
+  payoutDate: Joi.date().iso().raw(),
+  // Customer is emailed only when this is ticked (e.g. off for back-dated payouts).
+  sendEmail: Joi.boolean().default(false),
 });
 
 const addStockSchema = Joi.object({
@@ -86,7 +105,13 @@ router.get('/withdrawals', getBoardWithdrawals);
 // ── Payouts ────────────────────────────────────────────────────────────────
 router.get('/payouts/pending', getPendingPayouts);
 router.get('/payouts', getBoardPayouts);
-router.post('/payouts', uploadImage.single('screenshot'), processPayout);
+router.post(
+  '/payouts',
+  requireRole('investment_head', 'super_admin'),
+  uploadImage.single('screenshot'),
+  validate(payoutSchema),
+  processPayout
+);
 router.patch('/payouts/:returnId/void', voidPayout);
 
 // ── Unified transactions (FR-TXN-01) ────────────────────────────────────────

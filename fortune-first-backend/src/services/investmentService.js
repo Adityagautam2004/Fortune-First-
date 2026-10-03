@@ -5,20 +5,20 @@ const { INVESTMENT_STATUS } = require('../utils/constants');
 /**
  * Create a new investment record — always starts 'pending' admin approval
  * (FR-INV-APPROVAL), regardless of what the DB column default says.
- * @param {{ customer_id: string, recorded_by: string, amount: number, investment_date: string, week_of_month: number, tenure_months?: number, notes?: string, payment_screenshot_url?: string }} data
+ * @param {{ customer_id: string, recorded_by: string, amount: number, investment_date: string, week_of_month: number, tenure_months?: number, notes?: string, payment_screenshot_url?: string, send_email_confirmation?: boolean }} data
  * @returns {Promise<object>}
  */
 const createInvestment = async (data, dbClient = db) => {
   const {
     customer_id, recorded_by, amount, investment_date,
-    week_of_month, tenure_months, notes, payment_screenshot_url,
+    week_of_month, tenure_months, notes, payment_screenshot_url, send_email_confirmation,
   } = data;
 
   const { rows } = await dbClient.query(
-    `INSERT INTO investments (customer_id, recorded_by, amount, investment_date, week_of_month, tenure_months, notes, payment_screenshot_url, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `INSERT INTO investments (customer_id, recorded_by, amount, investment_date, week_of_month, tenure_months, notes, payment_screenshot_url, status, send_email_confirmation)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING *`,
-    [customer_id, recorded_by, amount, investment_date, week_of_month, tenure_months || 3, notes || null, payment_screenshot_url || null, INVESTMENT_STATUS.PENDING]
+    [customer_id, recorded_by, amount, investment_date, week_of_month, tenure_months || 3, notes || null, payment_screenshot_url || null, INVESTMENT_STATUS.PENDING, Boolean(send_email_confirmation)]
   );
 
   return rows[0];

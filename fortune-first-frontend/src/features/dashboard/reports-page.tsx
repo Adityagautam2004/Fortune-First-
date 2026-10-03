@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { IndianRupee, Undo2, FileText, Percent, LayoutPanelLeft, Layers } from 'lucide-react';
+import { IndianRupee, Undo2, CalendarCheck, Percent, LayoutPanelLeft, Layers } from 'lucide-react';
 
 import api from '@/lib/api';
-import { useAuth } from '@/hooks/useAuth';
 import type { MonthlyReturn } from '@/types';
 import { ReportSummaryTile } from './components/report-summary-tile';
 import { ReportTypeCard } from './components/report-type-card';
@@ -12,9 +11,6 @@ import { DownloadReportCard } from './components/download-report-card';
 
 interface DashboardStats {
   totalInvested: number;
-  currentValue: number;
-  cagr: number;
-  thisMonthReturn: number;
 }
 
 function formatRupees(value: number) {
@@ -22,10 +18,8 @@ function formatRupees(value: number) {
 }
 
 export function ReportsPage() {
-  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [history, setHistory] = useState<MonthlyReturn[]>([]);
-  const [activePlans, setActivePlans] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [startDate, setStartDate] = useState('');
@@ -48,31 +42,20 @@ export function ReportsPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
-    api
-      .get('/investments', { params: { customer_id: user.id, status: 'active', limit: 1 } })
-      .then((res) => {
-        if (!cancelled) setActivePlans(res.data.data.pagination.total);
-      })
-      .catch((error) => console.error('Failed to load active plans count', error));
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
-
-  const totalReturns = useMemo(() => {
-    return history
-      .filter((record) => {
-        if (!record.payout_date) return true;
-        const recordDate = record.payout_date.slice(0, 10);
-        if (startDate && recordDate < startDate) return false;
-        if (endDate && recordDate > endDate) return false;
-        return true;
-      })
-      .reduce((sum, record) => sum + Number(record.payout_amount || 0), 0);
+  // Only payouts actually paid count as returns (voided/skipped never reached
+  // the customer), filtered to the selected payout-date range.
+  const paidInRange = useMemo(() => {
+    return history.filter((record) => {
+      if (record.payout_status !== 'paid') return false;
+      if (!record.payout_date) return !startDate && !endDate;
+      const recordDate = record.payout_date.slice(0, 10);
+      if (startDate && recordDate < startDate) return false;
+      if (endDate && recordDate > endDate) return false;
+      return true;
+    });
   }, [history, startDate, endDate]);
+
+  const totalReturns = paidInRange.reduce((sum, record) => sum + Number(record.payout_amount || 0), 0);
 
   const overallRoi = stats?.totalInvested ? (totalReturns / stats.totalInvested) * 100 : 0;
 
@@ -145,7 +128,7 @@ export function ReportsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <ReportSummaryTile icon={IndianRupee} label="Total Investment" value={formatRupees(stats?.totalInvested ?? 0)} />
           <ReportSummaryTile icon={Undo2} label="Total Returns" value={formatRupees(totalReturns)} />
-          <ReportSummaryTile icon={FileText} label="Active Plans" value={activePlans === null ? '—' : String(activePlans)} />
+          <ReportSummaryTile icon={CalendarCheck} label="Payouts Received" value={String(paidInRange.length)} />
           <ReportSummaryTile icon={Percent} label="Overall ROI" value={`${overallRoi.toFixed(2)}%`} />
         </div>
       </div>

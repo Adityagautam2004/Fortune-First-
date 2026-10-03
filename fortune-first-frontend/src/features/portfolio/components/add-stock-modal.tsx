@@ -92,6 +92,7 @@ export function AddStockModal({ isOpen, onClose, onSuccess }: AddStockModalProps
         companyName: selected.name,
         quantity,
         price,
+        orderType,
       });
       onSuccess();
       onClose();

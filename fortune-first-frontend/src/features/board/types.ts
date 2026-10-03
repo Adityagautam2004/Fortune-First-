@@ -43,6 +43,19 @@ export interface ClientWithdrawal {
   payment_screenshot_url?: string | null;
 }
 
+// One row per client per payout month (monthly_returns).
+export interface ClientPayout {
+  id: string;
+  month: number;
+  year: number;
+  invested_amount: number | string;
+  return_pct: number | string;
+  payout_amount: number | string;
+  payout_status: 'pending' | 'paid' | 'skipped' | 'voided';
+  payout_date: string | null;
+  payment_screenshot_url?: string | null;
+}
+
 export interface ClientSummary {
   total_aum: number | string;
   active_mandates: number | string;
@@ -54,6 +67,7 @@ export interface ClientDetail {
   profile: ClientProfile;
   investments: ClientInvestment[];
   withdrawals: ClientWithdrawal[];
+  payouts: ClientPayout[];
   summary: ClientSummary;
 }
 

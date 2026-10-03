@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+import { clearSessionHint } from './session-hint';
+
 let accessToken: string | null = null;
 
 export const setAccessToken = (token: string | null) => {
@@ -62,6 +64,9 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         setAccessToken(null);
+        // Session is gone — drop the routing hint too, or the middleware would
+        // bounce /login straight back into the portal.
+        clearSessionHint();
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
           window.location.href = '/login';
         }

@@ -1,7 +1,7 @@
 const db = require('../models/db');
 const ApiError = require('../utils/apiError');
 const { uploadBuffer } = require('../utils/cloudinary');
-const redis = require('../utils/redis');
+const cache = require('../utils/cache');
 
 const uniqueViolation = (error) => error.code === '23505';
 
@@ -19,12 +19,8 @@ const reportsCacheKey = ({ month, year, page = 1, limit = 12 }) =>
 // so any write just clears all of them. The key space stays small (however
 // many month/year/page combinations have actually been viewed).
 const invalidateReportsCache = async () => {
-  try {
-    const keys = await redis.keys(`${REPORTS_CACHE_PREFIX}:*`);
-    if (keys.length) await redis.del(...keys);
-  } catch (error) {
-    console.error('Failed to invalidate monthly reports cache:', error.message);
-  }
+  // SCAN-based (never blocks Redis like KEYS would) and fails open.
+  await cache.delByPattern(`${REPORTS_CACHE_PREFIX}:*`);
 };
 
 /**
@@ -100,8 +96,8 @@ const deleteReport = async (id) => {
  */
 const getReports = async ({ month, year, page = 1, limit = 12 } = {}) => {
   const cacheKey = reportsCacheKey({ month, year, page, limit });
-  const cached = await redis.get(cacheKey).catch(() => null);
-  if (cached) return JSON.parse(cached);
+  const cached = await cache.getJSON(cacheKey);
+  if (cached) return cached;
 
   const offset = (page - 1) * limit;
   const conditions = [];
@@ -160,7 +156,7 @@ const getReports = async ({ month, year, page = 1, limit = 12 } = {}) => {
     },
   };
 
-  await redis.set(cacheKey, JSON.stringify(result), 'EX', REPORTS_CACHE_TTL).catch(() => {});
+  await cache.setJSON(cacheKey, result, REPORTS_CACHE_TTL);
   return result;
 };
 

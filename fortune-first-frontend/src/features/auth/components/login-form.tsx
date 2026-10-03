@@ -8,6 +8,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
 import { loginUser } from '@/store/authSlice';
+import { CHANGE_PASSWORD_PATH, postLoginPath } from '@/lib/auth-routes';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -25,13 +26,12 @@ export function LoginForm() {
     if (loginUser.fulfilled.match(result)) {
       const { role, mustChangePassword } = result.payload.user;
       if (mustChangePassword) {
-        router.push('/change-password');
-      } else if (role === 'customer') {
-        router.push('/dashboard');
-      } else if (role === 'investment_head' || role === 'business_head') {
-        router.push('/board');
-      } else if (role === 'super_admin') {
-        router.push('/admin');
+        router.replace(CHANGE_PASSWORD_PATH);
+      } else {
+        // Back to the page that sent them to login (set by the middleware /
+        // AuthGuard), if their role may open it; otherwise their portal home.
+        const next = new URLSearchParams(window.location.search).get('next');
+        router.replace(postLoginPath(role, next));
       }
     }
   };

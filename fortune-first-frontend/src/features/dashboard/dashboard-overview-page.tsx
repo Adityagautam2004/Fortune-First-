@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DollarSign, TrendingUp, Mail, Users } from 'lucide-react';
+import { IndianRupee, TrendingUp, Wallet, ArrowDownLeft } from 'lucide-react';
 
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,14 +12,20 @@ import { RecentActivityTable } from './components/recent-activity-table';
 
 interface DashboardStats {
   totalInvested: number;
-  currentValue: number;
-  cagr: number;
-  thisMonthReturn: number;
-  activePlans: number;
+  totalWithdrawn: number;
+  totalReturns: number;
+  payoutCount: number;
+  lastPayout: { amount: number; month: number; year: number; payoutDate: string | null } | null;
 }
+
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function formatRupees(value: number) {
   return `₹${Math.round(value || 0).toLocaleString('en-IN')}`;
+}
+
+function formatShortDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export function DashboardOverviewPage() {
@@ -61,6 +67,12 @@ export function DashboardOverviewPage() {
     return <div className="p-6 text-sm text-muted-foreground">Loading your portfolio...</div>;
   }
 
+  const payoutCount = stats?.payoutCount ?? 0;
+  const lastPayout = stats?.lastPayout ?? null;
+  const lastPayoutFootnote = lastPayout
+    ? `For ${MONTH_LABELS[lastPayout.month - 1]} ${lastPayout.year}${lastPayout.payoutDate ? ` · paid ${formatShortDate(lastPayout.payoutDate)}` : ''}`
+    : 'No payouts yet';
+
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center justify-between rounded-2xl border border-brand-border bg-card p-3.5">
@@ -73,29 +85,28 @@ export function DashboardOverviewPage() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          icon={DollarSign}
+          icon={IndianRupee}
           label="Total Investment"
           value={formatRupees(stats?.totalInvested ?? 0)}
-          footnote="vs last month"
+          footnote="Active capital, net of withdrawals"
         />
         <StatCard
           icon={TrendingUp}
-          label="Current Value"
-          value={formatRupees(stats?.currentValue ?? 0)}
-          delta={stats?.cagr ? `+${stats.cagr}%` : undefined}
-          footnote="vs last month"
+          label="Total Returns"
+          value={formatRupees(stats?.totalReturns ?? 0)}
+          footnote={payoutCount === 0 ? 'No payouts yet' : `Across ${payoutCount} payout${payoutCount === 1 ? '' : 's'}`}
         />
         <StatCard
-          icon={Mail}
-          label="Monthly Return"
-          value={formatRupees(stats?.thisMonthReturn ?? 0)}
-          footnote="vs last month"
+          icon={Wallet}
+          label="Last Payout"
+          value={lastPayout ? formatRupees(lastPayout.amount) : '—'}
+          footnote={lastPayoutFootnote}
         />
         <StatCard
-          icon={Users}
-          label="Active Plans"
-          value={stats === null ? '—' : String(stats.activePlans)}
-          footnote="Total Active Plans"
+          icon={ArrowDownLeft}
+          label="Total Withdrawn"
+          value={formatRupees(stats?.totalWithdrawn ?? 0)}
+          footnote="Completed withdrawals"
         />
       </div>
 

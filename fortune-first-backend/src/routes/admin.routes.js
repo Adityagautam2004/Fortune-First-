@@ -40,7 +40,8 @@ router.post(
   uploadImage.single('picture'),
   validate(Joi.object({
     name: Joi.string().max(100).required(),
-    email: Joi.string().email().required(),
+    // Stored lowercase so login (which lowercases what the user types) always matches.
+    email: Joi.string().trim().lowercase().email().required(),
     password: Joi.string().min(8).required(),
     role: Joi.string().valid(...Object.values(USER_ROLES)).required(),
     phone: Joi.string().max(15).allow('', null),

@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Info } from 'lucide-react';
 
+import { getErrorMessage } from '@/lib/utils';
 import { calculatePayout } from '../lib/calculate-payout';
 import { MarkPaidModal } from './mark-paid-modal';
 import type { PendingPayout } from '../types';
@@ -18,7 +19,7 @@ interface PayoutTableProps {
   investments: PendingPayout[];
   month: number;
   year: number;
-  onMarkPaid: (customerId: string, returnPct: number, screenshot: File | null) => Promise<void>;
+  onMarkPaid: (customerId: string, returnPct: number, screenshot: File | null, payoutDate: string, sendEmail: boolean) => Promise<void>;
 }
 
 export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTableProps) {
@@ -26,6 +27,7 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
   const [returnPcts, setReturnPcts] = useState<Record<string, number>>({});
   const [confirming, setConfirming] = useState<PendingPayout | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmError, setConfirmError] = useState('');
 
   const totalPages = Math.max(1, Math.ceil(investments.length / PAGE_SIZE));
   const pageRows = useMemo(
@@ -45,12 +47,21 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirming, month, year]);
 
-  const handleConfirm = async (screenshot: File | null) => {
+  const closeConfirm = () => {
+    setConfirming(null);
+    setConfirmError('');
+  };
+
+  const handleConfirm = async (screenshot: File | null, payoutDate: string, sendEmail: boolean) => {
     if (!confirming) return;
     setSubmitting(true);
+    setConfirmError('');
     try {
-      await onMarkPaid(confirming.customer_id, getReturnPct(confirming.customer_id), screenshot);
+      await onMarkPaid(confirming.customer_id, getReturnPct(confirming.customer_id), screenshot, payoutDate, sendEmail);
       setConfirming(null);
+    } catch (err) {
+      // Keep the modal open so the user sees why it failed and can retry.
+      setConfirmError(getErrorMessage(err, 'Failed to process payout.'));
     } finally {
       setSubmitting(false);
     }
@@ -67,8 +78,8 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
                 <br />
                 <span className="font-normal text-muted-foreground">Client ID</span>
               </th>
-              <th className="whitespace-nowrap px-6 py-3 font-medium">
-                Total Invested <Info size={12} className="ml-1 inline text-muted-foreground" />
+              <th className="whitespace-nowrap px-6 py-3 font-medium" title="Total invested minus total withdrawn — the amount the payout is calculated on">
+                Active Investment <Info size={12} className="ml-1 inline text-muted-foreground" />
               </th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">Return</th>
               <th className="whitespace-nowrap px-6 py-3 font-medium">
@@ -126,7 +137,10 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => setConfirming(inv)}
+                        onClick={() => {
+                          setConfirmError('');
+                          setConfirming(inv);
+                        }}
                         className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Mark Paid
@@ -180,12 +194,17 @@ export function PayoutTable({ investments, month, year, onMarkPaid }: PayoutTabl
         <p>Enter the return percentage (%) for each client. Click &quot;Mark Paid&quot; to process the payout.</p>
       </div>
 
+      {/* Keyed per client so the date/screenshot fields start fresh for each payout. */}
       <MarkPaidModal
+        key={confirming?.customer_id ?? 'none'}
         isOpen={!!confirming}
         clientName={confirming?.client_name ?? ''}
         payoutAmount={confirmingPayoutAmount}
+        month={month}
+        year={year}
         submitting={submitting}
-        onClose={() => setConfirming(null)}
+        error={confirmError}
+        onClose={closeConfirm}
         onConfirm={handleConfirm}
       />
     </div>

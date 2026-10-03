@@ -24,11 +24,11 @@ const getAvailableBalance = async (customerId) => {
 /**
  * Create a withdrawal request — always starts 'pending' admin review, and is
  * rejected up front if it would take the client below zero invested.
- * @param {{ customer_id: string, recorded_by: string, amount: number, withdrawal_date: string, week_of_month?: number, notes?: string }} data
+ * @param {{ customer_id: string, recorded_by: string, amount: number, withdrawal_date: string, week_of_month?: number, notes?: string, send_email_confirmation?: boolean }} data
  * @returns {Promise<object>}
  */
 const createWithdrawal = async (data, dbClient = db) => {
-  const { customer_id, recorded_by, amount, withdrawal_date, week_of_month, notes } = data;
+  const { customer_id, recorded_by, amount, withdrawal_date, week_of_month, notes, send_email_confirmation } = data;
 
   const availableBalance = await getAvailableBalance(customer_id);
   if (amount > availableBalance) {
@@ -38,10 +38,10 @@ const createWithdrawal = async (data, dbClient = db) => {
   }
 
   const { rows } = await dbClient.query(
-    `INSERT INTO withdrawals (customer_id, recorded_by, amount, withdrawal_date, week_of_month, notes, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO withdrawals (customer_id, recorded_by, amount, withdrawal_date, week_of_month, notes, status, send_email_confirmation)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
-    [customer_id, recorded_by, amount, withdrawal_date, week_of_month || null, notes || null, WITHDRAWAL_STATUS.PENDING]
+    [customer_id, recorded_by, amount, withdrawal_date, week_of_month || null, notes || null, WITHDRAWAL_STATUS.PENDING, Boolean(send_email_confirmation)]
   );
 
   return rows[0];

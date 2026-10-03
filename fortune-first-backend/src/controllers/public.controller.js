@@ -1,5 +1,5 @@
 const db = require('../models/db');
-const redis = require('../utils/redis');
+const cache = require('../utils/cache');
 const { sendJoinRequestReceivedEmail } = require('../utils/mailer');
 
 // These four are the highest-traffic, most shareable routes in the app —
@@ -37,9 +37,9 @@ const submitJoinRequest = async (req, res) => {
 const getPublicDashboard = async (req, res) => {
   try {
     const cacheKey = 'public:dashboard';
-    const cached = await redis.get(cacheKey);
+    const cached = await cache.getJSON(cacheKey);
     if (cached) {
-      return res.status(200).json({ status: 'success', source: 'cache', data: JSON.parse(cached) });
+      return res.status(200).json({ status: 'success', source: 'cache', data: cached });
     }
 
     const [returnsRes, testimonialsRes] = await Promise.all([
@@ -55,7 +55,7 @@ const getPublicDashboard = async (req, res) => {
     ]);
 
     const data = { returns: returnsRes.rows, testimonials: testimonialsRes.rows };
-    await redis.set(cacheKey, JSON.stringify(data), 'EX', PUBLIC_CACHE_TTL_SECONDS);
+    await cache.setJSON(cacheKey, data, PUBLIC_CACHE_TTL_SECONDS);
     return res.status(200).json({ status: 'success', source: 'database', data });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch dashboard data' });
@@ -66,9 +66,9 @@ const getPublicDashboard = async (req, res) => {
 const getPublishedBlogPosts = async (req, res) => {
   try {
     const cacheKey = 'public:blog:list';
-    const cached = await redis.get(cacheKey);
+    const cached = await cache.getJSON(cacheKey);
     if (cached) {
-      return res.status(200).json({ status: 'success', source: 'cache', data: JSON.parse(cached) });
+      return res.status(200).json({ status: 'success', source: 'cache', data: cached });
     }
 
     const posts = await db.query(
@@ -76,7 +76,7 @@ const getPublishedBlogPosts = async (req, res) => {
               LEFT(content, 200) AS excerpt, author_id
        FROM blog_posts WHERE is_published = TRUE ORDER BY published_at DESC`
     );
-    await redis.set(cacheKey, JSON.stringify(posts.rows), 'EX', PUBLIC_CACHE_TTL_SECONDS);
+    await cache.setJSON(cacheKey, posts.rows, PUBLIC_CACHE_TTL_SECONDS);
     return res.status(200).json({ status: 'success', source: 'database', data: posts.rows });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch blog posts' });
@@ -87,9 +87,9 @@ const getPublishedBlogPosts = async (req, res) => {
 const getBlogPostBySlug = async (req, res) => {
   try {
     const cacheKey = `public:blog:post:${req.params.slug}`;
-    const cached = await redis.get(cacheKey);
+    const cached = await cache.getJSON(cacheKey);
     if (cached) {
-      return res.status(200).json({ status: 'success', source: 'cache', data: JSON.parse(cached) });
+      return res.status(200).json({ status: 'success', source: 'cache', data: cached });
     }
 
     const post = await db.query(
@@ -101,7 +101,7 @@ const getBlogPostBySlug = async (req, res) => {
     if (post.rows.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Post not found' });
     }
-    await redis.set(cacheKey, JSON.stringify(post.rows[0]), 'EX', PUBLIC_CACHE_TTL_SECONDS);
+    await cache.setJSON(cacheKey, post.rows[0], PUBLIC_CACHE_TTL_SECONDS);
     return res.status(200).json({ status: 'success', source: 'database', data: post.rows[0] });
   } catch (error) {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch blog post' });
