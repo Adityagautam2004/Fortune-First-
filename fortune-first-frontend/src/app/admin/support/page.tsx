@@ -55,7 +55,7 @@ export default function AdminSupportPage() {
             {t.status === 'Open' && (
               <button
                 onClick={() => handleResolve(t.id)}
-                className="bg-brand-navy text-white px-4 py-2 rounded-md text-sm hover:bg-opacity-90"
+                className="bg-brand-navy text-white px-4 py-2 rounded-md text-sm hover:bg-brand-navy/90 dark:bg-primary dark:hover:bg-primary/90"
               >
                 Mark as Resolved
               </button>

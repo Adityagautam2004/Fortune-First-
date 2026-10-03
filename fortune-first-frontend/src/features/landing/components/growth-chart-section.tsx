@@ -129,7 +129,7 @@ export function GrowthChartSection({ returns: rawReturns }: GrowthChartSectionPr
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'var(--popover)',
-                      border: '1px solid #f97316',
+                      border: '1px solid var(--primary)',
                       borderRadius: '8px',
                       color: 'var(--popover-foreground)',
                       fontSize: '12px',
@@ -150,7 +150,7 @@ export function GrowthChartSection({ returns: rawReturns }: GrowthChartSectionPr
                       dataKey="value"
                       position="top"
                       formatter={(v) => `${v ?? ''}%`}
-                      style={{ fill: '#92400e', fontSize: '9px', fontWeight: 700 }}
+                      style={{ fill: 'var(--foreground)', fontSize: '9px', fontWeight: 700 }}
                     />
                   </Bar>
                 </BarChart>

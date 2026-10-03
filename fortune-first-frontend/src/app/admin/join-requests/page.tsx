@@ -61,7 +61,7 @@ export default function JoinRequestsPage() {
               </span>
               {req.status === 'Pending' && (
                 <div className="space-x-2 mt-2">
-                  <button onClick={() => handleUpdateStatus(req.id, 'Approved')} className="text-xs bg-brand-navy text-white px-3 py-1 rounded hover:bg-opacity-90">Approve</button>
+                  <button onClick={() => handleUpdateStatus(req.id, 'Approved')} className="text-xs bg-brand-navy text-white px-3 py-1 rounded hover:bg-brand-navy/90 dark:bg-primary dark:hover:bg-primary/90">Approve</button>
                   <button onClick={() => handleUpdateStatus(req.id, 'Rejected')} className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25">Reject</button>
                 </div>
               )}

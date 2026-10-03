@@ -67,27 +67,32 @@ export function PortfolioGrowthChart({ history }: PortfolioGrowthChartProps) {
         <div className="h-[130px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis
                 dataKey="label"
-                tick={{ fill: '#6b7280', fontSize: 11 }}
+                tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
                 tickLine={false}
-                axisLine={{ stroke: '#e5e7eb' }}
+                axisLine={{ stroke: 'var(--border)' }}
               />
               <YAxis
-                tick={{ fill: '#6b7280', fontSize: 11 }}
+                tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v) => formatRupees(v)}
                 width={70}
               />
+              {/* Theme tokens, not fixed hex, so the hover card follows light/dark mode. */}
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #f97316',
+                  backgroundColor: 'var(--popover)',
+                  border: '1px solid var(--primary)',
                   borderRadius: '8px',
                   fontSize: '12px',
+                  color: 'var(--popover-foreground)',
                 }}
+                labelStyle={{ color: 'var(--popover-foreground)', fontWeight: 600 }}
+                itemStyle={{ color: 'var(--popover-foreground)' }}
+                cursor={{ stroke: 'var(--border)' }}
                 formatter={(value) => [formatRupees(Number(value)), 'Payout']}
               />
               <Line
@@ -96,13 +101,13 @@ export function PortfolioGrowthChart({ history }: PortfolioGrowthChartProps) {
                 stroke="#10b981"
                 strokeWidth={2.5}
                 dot={{ r: 4, fill: '#10b981', strokeWidth: 0 }}
-                activeDot={{ r: 6 }}
+                activeDot={{ r: 6, stroke: 'var(--card)', strokeWidth: 2 }}
               >
                 <LabelList
                   dataKey="value"
                   position="top"
                   formatter={(v) => formatRupees(Number(v))}
-                  style={{ fill: '#111827', fontSize: 10, fontWeight: 600 }}
+                  style={{ fill: 'var(--foreground)', fontSize: 10, fontWeight: 600 }}
                 />
               </Line>
             </LineChart>

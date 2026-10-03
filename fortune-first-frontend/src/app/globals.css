@@ -147,12 +147,39 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Native <input type="date"> chrome (the calendar icon and its popup) is
-   browser-drawn and ignores every text/background color class — without
-   this it stays light-themed (near-invisible icon, stark white popup) even
-   when the rest of the page is dark. */
-.dark input[type='date'] {
+/* Tailwind v4 changed a bare `border` utility to use currentColor (v3 used
+   gray-200). In dark mode that turns every unstyled border near-white. This
+   is Tailwind's own v4 compatibility base style: default borders use the
+   theme's border token; explicit border-* color classes still win. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border);
+  }
+}
+
+/* Native form controls — <select> dropdown lists, date/month calendar
+   popups, checkboxes, scrollbars — are browser-drawn and ignore every
+   text/background color class. color-scheme tells the browser which theme to
+   draw them in; set on the root (where the .dark class lives) so every
+   control in the app follows the theme, not just date inputs. */
+:root {
+  color-scheme: light;
+}
+
+.dark {
   color-scheme: dark;
+}
+
+/* Some platforms (Chrome/Edge on Windows) draw the open dropdown list from
+   the option's own colors rather than color-scheme — match the dark card. */
+.dark select option,
+.dark select optgroup {
+  background-color: var(--card);
+  color: var(--foreground);
 }
 
 html {

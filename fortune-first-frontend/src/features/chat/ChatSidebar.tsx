@@ -84,7 +84,7 @@ export function ChatSidebar({
               <div className="relative shrink-0">
                 <Avatar src={member.profile_picture_url} name={member.name} size={36} className="border-2 border-primary/30" />
                 <span
-                  className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white ${
+                  className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${
                     online ? 'bg-green-500' : 'bg-gray-300'
                   }`}
                 />

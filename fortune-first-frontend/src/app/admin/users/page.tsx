@@ -272,7 +272,7 @@ export default function AdminUsersPage() {
             <div className="flex justify-end space-x-2 mt-6">
               <button onClick={() => { setKycUser(null); setKycData(null); }} className="px-4 py-2 bg-muted rounded">Close</button>
               {kycData && (
-                <button onClick={toggleVerified} className="px-4 py-2 bg-brand-navy text-white rounded">
+                <button onClick={toggleVerified} className="px-4 py-2 bg-brand-navy text-white rounded hover:bg-brand-navy/90 dark:bg-primary dark:hover:bg-primary/90">
                   {kycData.verified ? 'Mark Unverified' : 'Mark Verified'}
                 </button>
               )}
@@ -333,7 +333,7 @@ export default function AdminUsersPage() {
 
               <div className="flex justify-end space-x-2 mt-4">
                 <button type="button" onClick={closeEdit} className="px-4 py-2 bg-muted rounded">Cancel</button>
-                <button type="submit" disabled={editSubmitting} className="px-4 py-2 bg-brand-navy text-white rounded disabled:opacity-50">
+                <button type="submit" disabled={editSubmitting} className="px-4 py-2 bg-brand-navy text-white rounded hover:bg-brand-navy/90 disabled:opacity-50 dark:bg-primary dark:hover:bg-primary/90">
                   {editSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -392,7 +392,7 @@ export default function AdminUsersPage() {
 
               <div className="flex justify-end space-x-2 mt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-muted rounded">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-brand-navy text-white rounded">Save</button>
+                <button type="submit" className="px-4 py-2 bg-brand-navy text-white rounded hover:bg-brand-navy/90 dark:bg-primary dark:hover:bg-primary/90">Save</button>
               </div>
             </form>
           </div>
